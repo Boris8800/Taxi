@@ -720,36 +720,50 @@ Saloon Car
       <!-- Route Efficiency -->
       <div class="route-breakdown">
         <h4>Route Efficiency</h4>
-        <div class="route-segment">
+        
+        <!-- Profit per Hour -->
+        <div class="route-segment" style="background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
           <div class="segment-info">
-            <span class="segment-distance" id="efficiencyDistance">- miles total</span>
-            <span class="segment-time" id="efficiencyTime">- total time</span>
+            <span style="font-size: 14px; opacity: 0.9;">💰 Profit per Hour</span>
           </div>
-          <div class="metric-value" id="efficiencyScore">-</div>
+          <div style="font-size: 28px; font-weight: 700; margin-top: 5px;" id="profitPerHour">-</div>
         </div>
-        <div class="route-segment" style="border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px;">
+        
+        <!-- Route Efficiency Score -->
+        <div class="route-segment" style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
           <div class="segment-info">
-            <span class="segment-distance" style="font-weight: 600;">Profit per Hour</span>
+            <span style="font-size: 13px; color: #636e72;">📊 Route Efficiency</span>
+            <span style="font-size: 13px; color: #636e72;" id="efficiencyTime">- total time</span>
           </div>
-          <div class="metric-value" style="color: #00b894; font-weight: 700;" id="profitPerHour">-</div>
+          <div style="font-size: 20px; font-weight: 600; color: #2d3436; margin-top: 5px;" id="efficiencyScore">-</div>
         </div>
+        
+        <!-- Trip Efficiency Progress -->
         <div class="progress-container">
           <div class="progress-label">
-            <span>Trip Efficiency</span>
-            <span id="efficiencyPercent">0%</span>
+            <span style="font-weight: 600;">⚡ Trip Efficiency</span>
+            <span id="efficiencyPercent" style="font-weight: 600;">0%</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
           </div>
         </div>
+        
+        <!-- Profit Margin Progress -->
         <div class="progress-container">
           <div class="progress-label">
-            <span>Profit Margin</span>
-            <span id="profitMarginPercent">0%</span>
+            <span style="font-weight: 600;">📈 Profit Margin</span>
+            <span id="profitMarginPercent" style="font-weight: 600;">0%</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" id="profitMarginProgress" style="width: 0%"></div>
+            <div class="progress-fill" id="profitMarginProgress" style="width: 0%; background: linear-gradient(90deg, #00b894 0%, #00cec9 100%);"></div>
           </div>
+        </div>
+        
+        <!-- Total Distance -->
+        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #636e72;">
+          <span>📏 Total Distance: </span>
+          <span id="efficiencyDistance" style="font-weight: 600; color: #2d3436;">- miles</span>
         </div>
       </div>
     </div>
