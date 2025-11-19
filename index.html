@@ -124,35 +124,84 @@
     }
     .input-section {
       margin-bottom: 25px;
-      padding: 20px;
-      background-color: var(--bg-tertiary);
-      border-radius: 8px;
-      border-left: 4px solid #667eea;
+      padding: 25px;
+      background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: 0 4px 15px var(--shadow-light);
+      position: relative;
+      overflow: hidden;
+    }
+    .input-section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    }
+    .input-section h3 {
+      margin: 0 0 20px 0;
+      color: var(--text-secondary);
+      font-size: 22px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .input-section h3::before {
+      content: '📝';
+      font-size: 24px;
     }
     .input-group {
-      margin-bottom: 15px;
+      margin-bottom: 12px;
+      background: var(--input-bg);
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .input-group:hover {
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+      transform: translateY(-2px);
+      border-color: #667eea;
     }
     label {
       display: block;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       font-weight: 600;
       color: var(--text-secondary);
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     input, select, textarea {
       width: 100%;
-      padding: 12px;
-      border: 1px solid var(--border-color);
+      padding: 8px 0px;
+      border: 2px solid var(--border-color);
       border-radius: 6px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      transition: all 0.3s;
-      background-color: var(--input-bg);
+      margin-bottom: 0;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      background-color: var(--bg-tertiary);
       color: var(--text-primary);
+      font-weight: 500;
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15);
+      background-color: var(--input-bg);
+      transform: scale(1.01);
+    }
+    input::placeholder, textarea::placeholder {
+      color: var(--text-tertiary);
+      opacity: 0.6;
     }
     button {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -292,7 +341,30 @@
       height: 100%;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       border-radius: 4px;
-      transition: width 0.5s ease;
+      transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      overflow: hidden;
+      min-width: 2px;
+    }
+    .progress-fill::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      animation: shimmer 2s infinite;
+      z-index: 1;
+      pointer-events: none;
+    }
+    @keyframes shimmer {
+      0% {
+        left: -100%;
+      }
+      100% {
+        left: 100%;
+      }
     }
     .route-breakdown {
       background: var(--bg-tertiary);
@@ -361,15 +433,36 @@
       padding-bottom: 10px;
     }
     .fuel-cost-menu {
-      background: rgba(33, 150, 243, 0.15);
-      padding: 15px;
-      border-radius: 6px;
+      background: linear-gradient(135deg, rgba(33, 150, 243, 0.15) 0%, rgba(33, 150, 243, 0.05) 100%);
+      padding: 12px 15px;
+      border-radius: 10px;
       margin-bottom: 15px;
-      border-left: 4px solid #2196f3;
+      border: 2px solid rgba(33, 150, 243, 0.3);
+      box-shadow: 0 3px 10px rgba(33, 150, 243, 0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .fuel-cost-menu::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 4px;
+      height: 100%;
+      background: #2196f3;
     }
     .fuel-cost-menu h4 {
       margin: 0 0 10px 0;
       color: var(--text-secondary);
+      font-weight: 700;
+      font-size: 15px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .fuel-cost-menu h4::before {
+      content: '⛽';
+      font-size: 20px;
     }
     .whatsapp-examples {
       background: #e8f5e9;
@@ -558,6 +651,7 @@
     /* Fix for iOS Safari input styling */
     input[type="text"], input[type="number"], textarea {
       -webkit-appearance: none;
+      appearance: none;
       border-radius: 6px;
     }
   </style>
@@ -585,36 +679,36 @@
       </div>
       
       <div class="input-group">
-        <label for="baseLocation">Base Location</label>
+        <label for="baseLocation">🏠 Base Location</label>
         <input type="text" id="baseLocation" value="Birmingham" placeholder="Enter your base location (name or postcode)">
       </div>
       
       <div class="input-group">
-        <label for="pickupLocation">Pickup Location</label>
+        <label for="pickupLocation">📍 Pickup Location</label>
         <input type="text" id="pickupLocation" value="" placeholder="Enter pickup location">
       </div>
       
       <div class="input-group">
-        <label for="dropoffLocation">Dropoff Location</label>
+        <label for="dropoffLocation">🎯 Dropoff Location</label>
         <input type="text" id="dropoffLocation" value="" placeholder="Enter dropoff location">
       </div>
       
       <div class="input-group">
-        <label for="tripDate">Date</label>
+        <label for="tripDate">📅 Date</label>
         <input type="text" id="tripDateDisplay" placeholder="Date will be parsed from message">
       </div>
       
       <div class="input-group">
-        <label for="tripTime">Pickup Time</label>
+        <label for="tripTime">🕐 Pickup Time</label>
         <input type="time" id="tripTime" value="">
       </div>
       
       <div class="input-group">
-        <label for="tripPrice">Price (Net)</label>
+        <label for="tripPrice">💰 Price (Net)</label>
         <input type="text" id="tripPrice" value="" placeholder="e.g., 70">
       </div>
       
-      <button onclick="calculateTrip()" style="width: 100%; margin-top: 15px; padding: 12px; font-size: 16px; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">🔄 Recalculate</button>
+      <button onclick="calculateTrip()" style="width: 100%; margin-top: 20px; padding: 14px; font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3); transition: all 0.3s ease;">🔄 Recalculate Trip</button>
     </div>
     
     <div class="free-style-section">
@@ -773,14 +867,17 @@ Saloon Car
           <span class="efficiency-value" id="grossPerHour">-</span>
         </div>
         
+        <!-- Profit Per Hour -->
+        <div class="efficiency-row">
+          <span class="efficiency-label">Profit Per Hour</span>
+          <span class="efficiency-value" id="pricePerHourRouteEff">-</span>
+        </div>
+        
         <!-- Route Efficiency - Progress Bar -->
-        <div class="efficiency-row" style="padding-bottom: 15px;">
+        <div class="efficiency-row-last">
           <div class="efficiency-header">
             <span class="efficiency-label">Route Efficiency</span>
-            <span class="efficiency-value" id="efficiencyScore">-</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 4px;">
-            <span class="efficiency-value" id="efficiencyPercent" style="font-size: 12px;">0%</span>
+            <span class="efficiency-value" id="efficiencyPercent">0%</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
@@ -1235,6 +1332,11 @@ Saloon Car
     }
     
     function updateResults() {
+      console.log('updateResults called', {
+        routeResults: routeResults,
+        currentTrip: currentTrip
+      });
+      
       // Calculate totals
       const totalDistance = 
         routeResults.baseToPickup.distance + 
@@ -1335,25 +1437,38 @@ Saloon Car
       document.getElementById('totalDistanceEfficiency').textContent = `${totalDistance.toFixed(1)} mi`;
       document.getElementById('totalTimeEfficiency').textContent = formatMinutesToText(totalTime);
       
-      // Calculate efficiency score (higher is better)
-      const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
-      const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
-      document.getElementById('grossPerHour').textContent = `£${efficiencyScore}/hr`;
-      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
-      
-      // Calculate and display profit per hour
-      const profitPerHourCalc = parseFloat((profit / (totalTime / 60)).toFixed(2));
-      if (profitPerHourCalc <= 0.5 && profitPerHourCalc >= -0.5) {
+      // Update Profit Per Hour in Route Efficiency section
+      const profitPerHourRouteEff = parseFloat(pricePerHour);
+      if (profitPerHourRouteEff <= 0.5 && profitPerHourRouteEff >= -0.5) {
+        document.getElementById('pricePerHourRouteEff').textContent = 'No Profit';
         document.getElementById('profitPerHour').textContent = 'No Profit';
-      } else if (profitPerHourCalc < 0) {
-        document.getElementById('profitPerHour').textContent = `-£${Math.abs(profitPerHourCalc).toFixed(2)}/hr`;
+      } else if (profitPerHourRouteEff < 0) {
+        document.getElementById('pricePerHourRouteEff').textContent = `-£${Math.abs(profitPerHourRouteEff).toFixed(2)}/hr`;
+        document.getElementById('profitPerHour').textContent = `-£${Math.abs(profitPerHourRouteEff).toFixed(2)}/hr`;
       } else {
-        document.getElementById('profitPerHour').textContent = `£${profitPerHourCalc.toFixed(2)}/hr`;
+        document.getElementById('pricePerHourRouteEff').textContent = `£${profitPerHourRouteEff.toFixed(2)}/hr`;
+        document.getElementById('profitPerHour').textContent = `£${profitPerHourRouteEff.toFixed(2)}/hr`;
       }
       
-      // Update efficiency progress (0-100% scale) - already calculated above
-      document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
-      document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
+      // Calculate efficiency score (higher is better)
+      const efficiencyScore = parseFloat((currentTrip.price / totalTime * 60).toFixed(2));
+      const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
+      
+      console.log('Route Efficiency Debug:', {
+        price: currentTrip.price,
+        totalTime: totalTime,
+        efficiencyScore: efficiencyScore,
+        efficiencyPercent: efficiencyPercent
+      });
+      
+      document.getElementById('grossPerHour').textContent = `£${efficiencyScore.toFixed(2)}/hr`;
+      
+      // Update efficiency progress (0-100% scale)
+      const efficiencyBar = document.getElementById('efficiencyProgress');
+      const efficiencyWidth = Math.max(0, efficiencyPercent.toFixed(1));
+      efficiencyBar.style.width = `${efficiencyWidth}%`;
+      document.getElementById('efficiencyPercent').textContent = `${efficiencyWidth}%`;
+      console.log('Efficiency bar width set to:', efficiencyBar.style.width);
       
       // Update profit margin progress bar
       const profitMarginValue = parseFloat(profitMargin);
