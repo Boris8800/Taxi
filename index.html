@@ -1586,7 +1586,8 @@ Saloon Car
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
-          result.date = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          const dayName = tomorrow.toLocaleDateString('en-GB', { weekday: 'long' });
+          result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - Tomorrow (${dayName})`;
         } else {
           // Format the date properly
           const dateStr = dateMatch[0];
