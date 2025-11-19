@@ -742,6 +742,15 @@ Saloon Car
             <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
           </div>
         </div>
+        <div class="progress-container">
+          <div class="progress-label">
+            <span>Profit Margin</span>
+            <span id="profitMarginPercent">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="profitMarginProgress" style="width: 0%"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1298,6 +1307,12 @@ Saloon Car
       // Update efficiency progress (0-100% scale) - already calculated above
       document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
       document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
+      
+      // Update profit margin progress bar
+      const profitMarginValue = parseFloat(profitMargin);
+      const profitMarginProgressWidth = Math.max(0, Math.min(profitMarginValue, 100)); // Cap between 0-100%
+      document.getElementById('profitMarginPercent').textContent = `${profitMarginValue.toFixed(1)}%`;
+      document.getElementById('profitMarginProgress').style.width = `${profitMarginProgressWidth}%`;
       
       // Update parsed info with calculated totals
       updateParsedInfoFromStandardInput();
