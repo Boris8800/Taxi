@@ -776,8 +776,11 @@ Saloon Car
             <span class="efficiency-label">Route Efficiency</span>
             <span class="efficiency-value" id="efficiencyScore">-</span>
           </div>
-          <div class="progress-bar">
-            <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
+          <div style="display: flex; align-items: center; gap: 10px; margin-top: 8px;">
+            <div class="progress-bar" style="flex: 1;">
+              <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
+            </div>
+            <span class="efficiency-value" id="efficiencyPercent" style="min-width: 45px; text-align: right;">0%</span>
           </div>
         </div>
         
@@ -1346,6 +1349,7 @@ Saloon Car
       
       // Update efficiency progress (0-100% scale) - already calculated above
       document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
+      document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
       
       // Update profit margin progress bar
       const profitMarginValue = parseFloat(profitMargin);
