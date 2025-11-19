@@ -758,6 +758,18 @@ Saloon Car
           <span class="efficiency-value-large" id="profitPerHour">-</span>
         </div>
         
+        <!-- Total Distance -->
+        <div class="efficiency-row">
+          <span class="efficiency-label">Total Distance</span>
+          <span class="efficiency-value" id="totalDistanceEfficiency">-</span>
+        </div>
+        
+        <!-- Total Time -->
+        <div class="efficiency-row">
+          <span class="efficiency-label">Total Time</span>
+          <span class="efficiency-value" id="totalTimeEfficiency">-</span>
+        </div>
+        
         <!-- Route Efficiency - Progress Bar -->
         <div class="efficiency-row">
           <div class="efficiency-header">
@@ -1312,6 +1324,10 @@ Saloon Car
       document.getElementById('pricePerMile').textContent = `£${pricePerMileGross}`;
       document.getElementById('pricePerHour').textContent = `£${pricePerHour}`;
       document.getElementById('totalProfit').textContent = `£${profit}`;
+      
+      // Update Total Distance and Total Time in Route Efficiency section
+      document.getElementById('totalDistanceEfficiency').textContent = `${totalDistance.toFixed(1)} mi`;
+      document.getElementById('totalTimeEfficiency').textContent = formatMinutesToText(totalTime);
       
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
