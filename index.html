@@ -1685,17 +1685,26 @@ Saloon Car
         for (const match of matches) {
           // For "X TO Y" or "X----Y" patterns (two locations)
           if (match[1] && match[2] && (pattern.toString().includes('TO') || pattern.toString().includes('-{2,}'))) {
-            if (!locations.includes(match[1].toLowerCase().trim())) {
-              locations.push(match[1].toLowerCase().trim());
+            const loc1 = match[1].toLowerCase().trim();
+            const loc2 = match[2].toLowerCase().trim();
+            if (!locations.includes(loc1)) {
+              locations.push(loc1);
             }
-            if (!locations.includes(match[2].toLowerCase().trim())) {
-              locations.push(match[2].toLowerCase().trim());
+            if (!locations.includes(loc2)) {
+              locations.push(loc2);
             }
           } else {
             // For single location patterns
             for (let i = 1; i < match.length; i++) {
-              if (match[i] && !locations.includes(match[i].toLowerCase().trim())) {
-                locations.push(match[i].toLowerCase().trim());
+              if (match[i]) {
+                const loc = match[i].toLowerCase().trim();
+                // Skip if this is a partial postcode that's already covered by a full postcode
+                const isPartialOfExisting = locations.some(existing => {
+                  return existing.startsWith(loc + ' ') && existing.match(/^[a-z]{1,2}\d{1,2}[a-z]?\s+\d[a-z]{2}$/);
+                });
+                if (!locations.includes(loc) && !isPartialOfExisting) {
+                  locations.push(loc);
+                }
               }
             }
           }
