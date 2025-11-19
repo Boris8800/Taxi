@@ -3,7 +3,9 @@
 <head>
   <title>Smart Trip Calculator with Google Maps</title>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    /* Base styles remain the same */
     #map {
       height: 500px;
       width: 100%;
@@ -271,6 +273,129 @@
       background: #f1f8e9;
       transform: translateX(5px);
     }
+
+    /* Mobile-specific optimizations */
+    @media (max-width: 768px) {
+      body {
+        margin: 10px;
+        font-size: 14px;
+      }
+      
+      .container {
+        padding: 15px;
+      }
+      
+      h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+      }
+      
+      h3 {
+        font-size: 1.3rem;
+        margin-bottom: 15px;
+      }
+      
+      #map {
+        height: 300px;
+        margin-bottom: 15px;
+      }
+      
+      .input-section, .free-style-section, .analysis-box {
+        padding: 15px;
+        margin-bottom: 20px;
+      }
+      
+      .analysis-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .earnings-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+      }
+      
+      .earnings-summary {
+        padding: 20px 15px;
+      }
+      
+      .earnings-value {
+        font-size: 20px;
+      }
+      
+      .metric-group {
+        padding: 15px;
+      }
+      
+      .route-segment {
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      .segment-info {
+        flex-direction: column;
+        gap: 5px;
+      }
+      
+      button {
+        width: 100%;
+        padding: 14px 20px;
+        font-size: 16px;
+      }
+      
+      .progress-label {
+        font-size: 13px;
+      }
+      
+      .analysis-header h3 {
+        font-size: 1.4rem;
+      }
+      
+      .fuel-cost-menu, .whatsapp-examples {
+        padding: 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      body {
+        margin: 5px;
+      }
+      
+      .container {
+        padding: 10px;
+      }
+      
+      #map {
+        height: 250px;
+      }
+      
+      .input-section, .free-style-section, .analysis-box {
+        padding: 12px;
+      }
+      
+      .metric-group {
+        padding: 12px;
+      }
+      
+      .earnings-summary {
+        padding: 15px 10px;
+      }
+      
+      .earnings-card {
+        padding: 12px;
+      }
+      
+      input, select, textarea {
+        padding: 10px;
+        font-size: 16px; /* Prevents zoom on iOS */
+      }
+    }
+
+    /* Fix for iOS Safari input styling */
+    input[type="text"], input[type="number"], textarea {
+      -webkit-appearance: none;
+      border-radius: 6px;
+    }
   </style>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places"></script>
 </head>
@@ -331,7 +456,16 @@ Examples:
 LHR TO W1J PRICE 50 NET
 STN TO CB10 PRICE 55 NET
 Heathrow T2 to NW1 8YN £45
-Gatwick to SW1V 1LH £60"></textarea>
+Gatwick to SW1V 1LH £60
+Wednesday 19th  2025, 06:30 am
+
+Pick Up:  CB3 9HY
+
+Drop Off:  LHR 2
+
+Saloon Car
+
+£80 Same day"></textarea>
       <button onclick="parseFreeStyle()">Parse Free-Text</button>
       
       <div id="parsedInfo" class="parsed-info">
@@ -414,14 +548,14 @@ Gatwick to SW1V 1LH £60"></textarea>
       
       <!-- Earnings Summary -->
       <div class="earnings-summary">
-        <h3 style="color: white; margin: 0 0 10px 0;">Clean Earnings</h3>
-        <p style="opacity: 0.9; margin: 0;">Your actual take-home pay after costs</p>
+        <h3 style="color: white; margin: 0 0 10px 0;">Earnings Analysis</h3>
+        <p style="opacity: 0.9; margin: 0;">Price per mile shows before expenses</p>
         
         <div class="earnings-grid">
           <div class="earnings-card">
             <div class="earnings-label">Price Per Mile</div>
             <div class="earnings-value" id="pricePerMile">-</div>
-            <div class="earnings-label">Clean earnings per mile</div>
+            <div class="earnings-label">Gross earnings per mile</div>
           </div>
           <div class="earnings-card">
             <div class="earnings-label">Price Per Hour</div>
@@ -493,6 +627,11 @@ Gatwick to SW1V 1LH £60"></textarea>
       'heathrow terminal 3': 'London Heathrow Airport Terminal 3',
       'heathrow terminal 4': 'London Heathrow Airport Terminal 4',
       'heathrow terminal 5': 'London Heathrow Airport Terminal 5',
+      'lhr 1': 'London Heathrow Airport Terminal 1',
+      'lhr 2': 'London Heathrow Airport Terminal 2',
+      'lhr 3': 'London Heathrow Airport Terminal 3',
+      'lhr 4': 'London Heathrow Airport Terminal 4',
+      'lhr 5': 'London Heathrow Airport Terminal 5',
       
       'lgw': 'London Gatwick Airport',
       'gatwick': 'London Gatwick Airport',
@@ -549,6 +688,7 @@ Gatwick to SW1V 1LH £60"></textarea>
       'mk3 7nu': 'MK3 7NU',
       'w2 4sa': 'London W2 4SA',
       'tn4 9ng': 'TN4 9NG',
+      'cb3 9hy': 'CB3 9HY',
       
       // Cities & Towns
       'birmingham': 'Birmingham',
@@ -699,7 +839,11 @@ Gatwick to SW1V 1LH £60"></textarea>
       const fuelCost = (totalDistance * fuelCostPerMile).toFixed(2);
       const profit = (currentTrip.price - parseFloat(fuelCost)).toFixed(2);
       const profitMargin = ((profit / currentTrip.price) * 100).toFixed(1);
-      const pricePerMile = (profit / totalDistance).toFixed(2);
+      
+      // Price per mile BEFORE expenses (gross)
+      const pricePerMileGross = (currentTrip.price / routeResults.pickupToDropoff.distance).toFixed(2);
+      
+      // Price per hour AFTER expenses (net)
       const pricePerHour = (profit / (totalTime / 60)).toFixed(2);
       
       // Update distance metrics
@@ -729,7 +873,7 @@ Gatwick to SW1V 1LH £60"></textarea>
       document.getElementById('profitMargin').textContent = `${profitMargin}%`;
       
       // Update earnings summary
-      document.getElementById('pricePerMile').textContent = `£${pricePerMile}`;
+      document.getElementById('pricePerMile').textContent = `£${pricePerMileGross}`;
       document.getElementById('pricePerHour').textContent = `£${pricePerHour}`;
       document.getElementById('totalProfit').textContent = `£${profit}`;
       
@@ -827,7 +971,7 @@ Gatwick to SW1V 1LH £60"></textarea>
                          .replace(/7 SEATER/gi, '')
                          .replace(/8 SEATER/gi, '');
       
-      // Enhanced location extraction
+      // Enhanced location extraction with new format support
       const locations = extractLocations(cleanText);
       
       // Simple logic: first location is pickup, second is dropoff
@@ -848,11 +992,13 @@ Gatwick to SW1V 1LH £60"></textarea>
         result.price = parseFloat(priceMatch[1]);
       }
       
-      // Extract date with better pattern matching
+      // Enhanced date parsing with full date format support
       const dateMatch = cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) ||
                        cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
                        cleanText.match(/(?:today|tomorrow)/i) ||
-                       cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i);
+                       cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
+                       // New format: Wednesday 19th  2025
+                       cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i);
       
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
@@ -862,17 +1008,28 @@ Gatwick to SW1V 1LH £60"></textarea>
           tomorrow.setDate(tomorrow.getDate() + 1);
           result.date = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
         } else {
-          result.date = dateMatch[0];
+          // Format the date properly
+          const dateStr = dateMatch[0];
+          // Convert "Wednesday 19th  2025" to "19 Nov" format
+          if (dateStr.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i)) {
+            const parts = dateStr.split(/\s+/);
+            const day = parts[1].replace(/(st|nd|rd|th)/i, '');
+            const year = parts[2];
+            const month = new Date().toLocaleDateString('en-GB', { month: 'short' });
+            result.date = `${day} ${month}`;
+          } else {
+            result.date = dateMatch[0];
+          }
         }
       }
       
-      // Extract time with better pattern matching
-      const timeMatch = cleanText.match(/(\d{1,2}:\d{2})/) || 
+      // Enhanced time parsing with AM/PM support
+      const timeMatch = cleanText.match(/(\d{1,2}:\d{2}\s*(?:am|pm)?)/i) || 
                        cleanText.match(/(\d{1,2}\s*(?:am|pm))/i) ||
-                       cleanText.match(/(\d{1,2}\s*(?:AM|PM))/);
+                       cleanText.match(/(\d{1,2}\s*(?:AM|PM))/i);
       
       if (timeMatch) {
-        result.time = timeMatch[1];
+        result.time = timeMatch[1].trim();
       }
       
       return result;
@@ -882,16 +1039,20 @@ Gatwick to SW1V 1LH £60"></textarea>
       const locations = [];
       const lowerText = text.toLowerCase();
       
-      // Enhanced patterns for WhatsApp-style messages
+      // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
         // X TO Y format
         /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
         // X to Y format  
         /\b([a-z0-9\s]{2,20})\s+to\s+([a-z0-9\s]{2,20})\b/gi,
-        // Pickup: X Dropoff: Y format
+        // Pickup: X Dropoff: Y format (enhanced)
+        /pick\s*up\s*:?\s*([^,\n\.]+?)\s*(?:drop|dropoff|destination)/gi,
         /pickup\s*:?\s*([^,\n\.]+?)\s*(?:drop|dropoff|destination)/gi,
         /(?:pickup|pick)\s*:?\s*([^,\n\.]+)/gi,
         /(?:dropoff|drop off|destination)\s*:?\s*([^,\n\.]+)/gi,
+        // New format: Pick Up:  CB3 9HY
+        /pick\s*up\s*:?\s*([A-Z0-9\s]{2,10})/gi,
+        /drop\s*off\s*:?\s*([A-Z0-9\s]{2,10})/gi,
         // Airport terminals and complex names
         /\b(heathrow\s+(?:airport\s+)?t[1-5]|heathrow\s+(?:airport\s+)?terminal\s+[1-5])\b/gi,
         /\b(gatwick\s+(?:airport\s+)?(?:north|south)\s+terminal?)\b/gi,
