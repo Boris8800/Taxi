@@ -767,10 +767,16 @@ Saloon Car
           <span class="efficiency-value" id="totalTimeEfficiency">-</span>
         </div>
         
+        <!-- Gross per Hour -->
+        <div class="efficiency-row">
+          <span class="efficiency-label">Gross /h</span>
+          <span class="efficiency-value" id="grossPerHour">-</span>
+        </div>
+        
         <!-- Route Efficiency - Progress Bar -->
         <div class="efficiency-row" style="padding-bottom: 15px;">
           <div class="efficiency-header">
-            <span class="efficiency-label">Route Efficiency (gross)</span>
+            <span class="efficiency-label">Route Efficiency</span>
             <span class="efficiency-value" id="efficiencyScore">-</span>
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px; margin-bottom: 4px;">
@@ -1332,6 +1338,7 @@ Saloon Car
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
+      document.getElementById('grossPerHour').textContent = `£${efficiencyScore}/hr`;
       document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
       
       // Calculate and display profit per hour
