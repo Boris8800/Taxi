@@ -845,6 +845,7 @@ Saloon Car
       'gl5': 'GL5',
       'gl5 2rr': 'GL5 2RR',
       'sw1a 0pw': 'London SW1A 0PW',
+      'wc1n': 'London WC1N',
       
       // Cities & Towns
       'birmingham': 'Birmingham',
@@ -1541,13 +1542,31 @@ Saloon Car
       const locations = [];
       const lowerText = text.toLowerCase();
       
+      // Split text by common separators to find individual postcodes
+      // This handles cases like "SW1A 0PW‼️GL5 2RR" by looking for postcode patterns anywhere
+      const fullPostcodePattern = /([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})/g;
+      const fullPostcodeMatches = text.match(fullPostcodePattern);
+      if (fullPostcodeMatches) {
+        fullPostcodeMatches.forEach(pc => {
+          const normalized = pc.toLowerCase().trim();
+          if (!locations.includes(normalized)) {
+            locations.push(normalized);
+          }
+        });
+      }
+      
+      // If we found 2 postcodes, return them (pickup and dropoff)
+      if (locations.length >= 2) {
+        return locations.slice(0, 2);
+      }
+      
       // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
         // Pick Up: / Drop Off: format with specific extraction (process first for priority)
         /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
         /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-        // UK postcode patterns (must come before general patterns)
-        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi,
+        // Partial postcodes (like GL5, RH8)
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
         // Enhanced X TO Y format with better postcode support
         /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
         // X to Y format with postcode support (e.g., N8 7RU to LGW)
