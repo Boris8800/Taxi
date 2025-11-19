@@ -2083,6 +2083,18 @@ Saloon Car
         }
       }
       
+      // Check for dash-separated format: "Heathrow------SW1X 9NU" or "LHR----E4 8YY"
+      const dashMatch = text.match(/\b([A-Za-z][A-Za-z0-9\s,]*?)\s*-{2,}\s*([A-Z]{1,2}\d{1,2}[A-Z]?(?:\s+\d[A-Z]{2})?)\b/i);
+      if (dashMatch && dashMatch[1] && dashMatch[2]) {
+        const loc1 = dashMatch[1].trim().toLowerCase().replace(/,$/, '').trim(); // Remove trailing comma
+        const loc2 = dashMatch[2].trim().toLowerCase();
+        if (loc1 && loc2) {
+          locations.push(loc1); // First location = pickup
+          locations.push(loc2); // Second location = dropoff
+          return locations;
+        }
+      }
+      
       // This covers: "Heathrow to CT14 6DL", "LHR to SW1A 0PW", etc.
       const toPatterns = [
         // "From X To Y" format: "From Stansted To W6 8DR"
