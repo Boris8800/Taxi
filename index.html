@@ -941,16 +941,73 @@ Saloon Car
       document.getElementById('baseLocation').value = "Birmingham";
       document.getElementById('pickupLocation').value = "";
       document.getElementById('dropoffLocation').value = "";
-      document.getElementById('tripDate').value = "";
+      document.getElementById('tripDateDisplay').value = "";
       document.getElementById('tripTime').value = "";
       document.getElementById('tripPrice').value = "";
       document.getElementById('fuelCostPer100Miles').value = "10.00";
+      
+      // Initialize Google Maps Autocomplete
+      setupGoogleAutocomplete();
       
       // Add event listeners to standard input fields
       setupInputListeners();
       
       // Update parsed info initially
       updateParsedInfoFromStandardInput();
+    }
+
+    function setupGoogleAutocomplete() {
+      // Add autocomplete to base location
+      const baseInput = document.getElementById('baseLocation');
+      const baseAutocomplete = new google.maps.places.Autocomplete(baseInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Add autocomplete to pickup location
+      const pickupInput = document.getElementById('pickupLocation');
+      const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Add autocomplete to dropoff location
+      const dropoffInput = document.getElementById('dropoffLocation');
+      const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Update field values when place is selected
+      baseAutocomplete.addListener('place_changed', function() {
+        const place = baseAutocomplete.getPlace();
+        if (place.formatted_address) {
+          baseInput.value = place.formatted_address;
+        } else if (place.name) {
+          baseInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
+
+      pickupAutocomplete.addListener('place_changed', function() {
+        const place = pickupAutocomplete.getPlace();
+        if (place.formatted_address) {
+          pickupInput.value = place.formatted_address;
+        } else if (place.name) {
+          pickupInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
+
+      dropoffAutocomplete.addListener('place_changed', function() {
+        const place = dropoffAutocomplete.getPlace();
+        if (place.formatted_address) {
+          dropoffInput.value = place.formatted_address;
+        } else if (place.name) {
+          dropoffInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
     }
 
     function setupInputListeners() {
