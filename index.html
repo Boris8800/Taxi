@@ -1098,19 +1098,31 @@ Saloon Car
       const alertBadge = document.getElementById('profitAlert');
       const profitPerHourHeader = document.getElementById('profitPerHourHeader');
       
-      if (profitPerHourValue < 8) {
+      // Handle different profit scenarios
+      if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
+        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ NO PROFIT</span>';
+        profitPerHourHeader.textContent = 'No Profit';
+        profitPerHourHeader.style.color = '#e74c3c';
+      } else if (profitPerHourValue < 0) {
+        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOSS!</span>';
+        profitPerHourHeader.textContent = `-£${Math.abs(profitPerHourValue).toFixed(2)}/hr`;
+        profitPerHourHeader.style.color = '#e74c3c';
+      } else if (profitPerHourValue < 8) {
         alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOW PROFIT!</span>';
+        profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
+        profitPerHourHeader.style.color = '#e74c3c';
       } else if (profitPerHourValue < 13) {
         alertBadge.innerHTML = '<span class="alert-badge alert-warning">⚡ Medium Profit</span>';
+        profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
+        profitPerHourHeader.style.color = '#f39c12';
       } else {
         alertBadge.innerHTML = '<span class="alert-badge alert-success">✓ Good Profit</span>';
+        profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
+        profitPerHourHeader.style.color = '#00b894';
       }
       if (congestionCharge > 0) {
         alertBadge.innerHTML += '<span class="alert-badge alert-warning" style="background: #e67e22;">£15 CC</span>';
       }
-      
-      // Display profit per hour in header
-      profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
       
       // Update earnings summary
       document.getElementById('pricePerMile').textContent = `£${pricePerMileGross}`;
@@ -1126,8 +1138,14 @@ Saloon Car
       document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
       
       // Calculate and display profit per hour
-      const profitPerHourCalc = (profit / (totalTime / 60)).toFixed(2);
-      document.getElementById('profitPerHour').textContent = `£${profitPerHourCalc}/hr`;
+      const profitPerHourCalc = parseFloat((profit / (totalTime / 60)).toFixed(2));
+      if (profitPerHourCalc <= 0.5 && profitPerHourCalc >= -0.5) {
+        document.getElementById('profitPerHour').textContent = 'No Profit';
+      } else if (profitPerHourCalc < 0) {
+        document.getElementById('profitPerHour').textContent = `-£${Math.abs(profitPerHourCalc).toFixed(2)}/hr`;
+      } else {
+        document.getElementById('profitPerHour').textContent = `£${profitPerHourCalc.toFixed(2)}/hr`;
+      }
       
       // Update efficiency progress (0-100% scale)
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
@@ -1190,9 +1208,21 @@ Saloon Car
       const profitPerHour = document.getElementById('profitPerHour').textContent;
       
       // Determine profit level
-      const profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
+      let profitPerHourValue = 0;
+      if (profitPerHour === 'No Profit') {
+        profitPerHourValue = 0;
+      } else if (profitPerHour.startsWith('-')) {
+        profitPerHourValue = -parseFloat(profitPerHour.replace('-£', '').replace('/hr', ''));
+      } else {
+        profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
+      }
+      
       let profitLevel = '';
-      if (profitPerHourValue < 8) {
+      if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
+        profitLevel = '⚠️ NO PROFIT';
+      } else if (profitPerHourValue < 0) {
+        profitLevel = '⚠️ LOSS';
+      } else if (profitPerHourValue < 8) {
         profitLevel = '⚠️ LOW PROFIT';
       } else if (profitPerHourValue < 13) {
         profitLevel = '⚡ Medium Profit';
