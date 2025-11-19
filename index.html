@@ -660,7 +660,6 @@
     }
   </style>
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places"></script>
-  <script src="locations.js"></script>
 </head>
 <body>
   <button class="theme-toggle" onclick="toggleTheme()">
@@ -948,11 +947,68 @@ Saloon Car
       document.getElementById('tripPrice').value = "";
       document.getElementById('fuelCostPer100Miles').value = "10.00";
       
+      // Initialize Google Maps Autocomplete for location inputs
+      setupGoogleAutocomplete();
+      
       // Add event listeners to standard input fields
       setupInputListeners();
       
       // Update parsed info initially
       updateParsedInfoFromStandardInput();
+    }
+
+    function setupGoogleAutocomplete() {
+      // Add autocomplete to base location
+      const baseInput = document.getElementById('baseLocation');
+      const baseAutocomplete = new google.maps.places.Autocomplete(baseInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Add autocomplete to pickup location
+      const pickupInput = document.getElementById('pickupLocation');
+      const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Add autocomplete to dropoff location
+      const dropoffInput = document.getElementById('dropoffLocation');
+      const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, {
+        componentRestrictions: { country: 'uk' },
+        fields: ['formatted_address', 'name']
+      });
+
+      // Update field values when place is selected
+      baseAutocomplete.addListener('place_changed', function() {
+        const place = baseAutocomplete.getPlace();
+        if (place.formatted_address) {
+          baseInput.value = place.formatted_address;
+        } else if (place.name) {
+          baseInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
+
+      pickupAutocomplete.addListener('place_changed', function() {
+        const place = pickupAutocomplete.getPlace();
+        if (place.formatted_address) {
+          pickupInput.value = place.formatted_address;
+        } else if (place.name) {
+          pickupInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
+
+      dropoffAutocomplete.addListener('place_changed', function() {
+        const place = dropoffAutocomplete.getPlace();
+        if (place.formatted_address) {
+          dropoffInput.value = place.formatted_address;
+        } else if (place.name) {
+          dropoffInput.value = place.name;
+        }
+        updateParsedInfoFromStandardInput();
+      });
     }
 
     function setupInputListeners() {
@@ -1796,12 +1852,12 @@ Saloon Car
           // Check if line contains airport name (and isn't the job title)
           // Allow for trailing punctuation like periods
           if (!airportLocation && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)(?:\s+airport)?[\s\.]*$/gi) && !line.match(/job/i)) {
-            airportLocation = line.toLowerCase().trim().replace(/\.$/, '').trim();
+            airportLocation = line.trim().replace(/\.$/, '').trim(); // Keep original case
           }
           
           // Check if line is a full postcode
           if (!postcodeLocation && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
-            postcodeLocation = line.toLowerCase().trim();
+            postcodeLocation = line.trim(); // Keep original case
           }
         }
         
@@ -1826,7 +1882,7 @@ Saloon Car
         if (pickupIsFromMatch && pickupIsFromMatch[0]) {
           const match = pickupIsFromMatch[0].match(/pick[\s\-]*up\s+is\s+(?:from|at)\s+([^,\n]+?)(?:\s+drop[\s\-]*off|$)/i);
           if (match && match[1]) {
-            pickupLoc = match[1].trim().toLowerCase();
+            pickupLoc = match[1].trim(); // Keep original case
           }
         }
         
@@ -1834,7 +1890,7 @@ Saloon Car
         if (dropoffIsInMatch && dropoffIsInMatch[0]) {
           const match = dropoffIsInMatch[0].match(/drop[\s\-]*off\s+is\s+(?:in|at)\s+([^,\n]+?)(?=\.|,|\n|$)/i);
           if (match && match[1]) {
-            dropoffLoc = match[1].trim().toLowerCase();
+            dropoffLoc = match[1].trim(); // Keep original case
           }
         }
         
@@ -1845,7 +1901,39 @@ Saloon Car
         }
       }
       
-      // PRIORITY 2: Check for "Pickup:" and "Drop off:" format with bullet points or asterisks
+      // PRIORITY 2: Check for labeled format "Pickup Location:", "Drop off location:", etc.
+      // This covers: "Pickup Locaion:Heathrow Airport" and "Drop off location:London WC1A"
+      const pickupLocationMatch = text.match(/pickup\s+(?:locaion|location)\s*:\s*([^\n]+?)(?=\n|$)/gi);
+      const dropoffLocationMatch = text.match(/drop\s*(?:[\s\-])?off\s+location\s*:\s*([^\n]+?)(?=\n|$)/gi);
+      
+      if (pickupLocationMatch || dropoffLocationMatch) {
+        let pickupLoc = null;
+        let dropoffLoc = null;
+        
+        // Extract pickup location (preserve original case)
+        if (pickupLocationMatch && pickupLocationMatch[0]) {
+          const match = pickupLocationMatch[0].match(/pickup\s+(?:locaion|location)\s*:\s*([^\n]+?)(?=\n|$)/i);
+          if (match && match[1]) {
+            pickupLoc = match[1].trim().replace(/,$/, '').trim(); // Keep original case
+          }
+        }
+        
+        // Extract dropoff location (preserve original case)
+        if (dropoffLocationMatch && dropoffLocationMatch[0]) {
+          const match = dropoffLocationMatch[0].match(/drop\s*(?:[\s\-])?off\s+location\s*:\s*([^\n]+?)(?=\n|$)/i);
+          if (match && match[1]) {
+            dropoffLoc = match[1].trim().replace(/,$/, '').trim(); // Keep original case
+          }
+        }
+        
+        if (pickupLoc && dropoffLoc) {
+          locations.push(pickupLoc);
+          locations.push(dropoffLoc);
+          return locations;
+        }
+      }
+      
+      // PRIORITY 3: Check for "Pickup:" and "Drop off:" format with bullet points or asterisks
       // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY"
       const pickupPatterns = [
         /[\*\•\-]\s*pickup\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
@@ -1899,8 +1987,8 @@ Saloon Car
       // Check for vertical "To" format first: "Heathrow Airport\nTo\nEX33 1HT"
       const verticalToMatch = text.match(/([^\n]+)\s*\n\s*To\s*\n\s*([^\n]+)/i);
       if (verticalToMatch && verticalToMatch[1] && verticalToMatch[2]) {
-        const loc1 = verticalToMatch[1].trim().toLowerCase().replace(/,$/, '').trim(); // Remove trailing comma
-        const loc2 = verticalToMatch[2].trim().toLowerCase();
+        const loc1 = verticalToMatch[1].trim().replace(/,$/, '').trim(); // Remove trailing comma, keep case
+        const loc2 = verticalToMatch[2].trim(); // Keep original case
         if (loc1 && loc2) {
           locations.push(loc1); // First location = pickup
           locations.push(loc2); // Second location = dropoff
@@ -1911,8 +1999,8 @@ Saloon Car
       // Check for dash-separated format: "Heathrow------SW1X 9NU" or "LHR----E4 8YY"
       const dashMatch = text.match(/\b([A-Za-z][A-Za-z0-9\s,]*?)\s*-{2,}\s*([A-Z]{1,2}\d{1,2}[A-Z]?(?:\s+\d[A-Z]{2})?)\b/i);
       if (dashMatch && dashMatch[1] && dashMatch[2]) {
-        const loc1 = dashMatch[1].trim().toLowerCase().replace(/,$/, '').trim(); // Remove trailing comma
-        const loc2 = dashMatch[2].trim().toLowerCase();
+        const loc1 = dashMatch[1].trim().replace(/,$/, '').trim(); // Remove trailing comma, keep case
+        const loc2 = dashMatch[2].trim(); // Keep original case
         if (loc1 && loc2) {
           locations.push(loc1); // First location = pickup
           locations.push(loc2); // Second location = dropoff
@@ -2068,6 +2156,12 @@ Saloon Car
     function expandLocation(location) {
       const locLower = location.toLowerCase().trim();
       
+      // If location is already long/detailed (contains comma or multiple words), keep it as-is
+      // This preserves full addresses like "Thistle, Bloomsbury Way, London WC1A 2SD, UK"
+      if (location.includes(',') || location.length > 50) {
+        return location;
+      }
+      
       // Handle LHR terminal formats (LHR 2, LHR T2, LHRT2, etc.)
       const lhrMatch = locLower.match(/lhr\s*t?\s*([1-5])/i);
       if (lhrMatch) {
@@ -2079,10 +2173,12 @@ Saloon Car
         return locationDatabase[locLower];
       }
       
-      // Check for partial matches
-      for (const [key, value] of Object.entries(locationDatabase)) {
-        if (locLower.includes(key) || key.includes(locLower)) {
-          return value;
+      // Check for partial matches (only for short inputs)
+      if (location.length < 30) {
+        for (const [key, value] of Object.entries(locationDatabase)) {
+          if (locLower.includes(key) || key.includes(locLower)) {
+            return value;
+          }
         }
       }
       
