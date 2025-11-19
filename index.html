@@ -594,7 +594,7 @@ Saloon Car
       </div>
       
       <div id="parsedInfo" class="parsed-info">
-        <h4>Parsed Information:</h4>
+        <h4>Summary:</h4>
         <div id="parsedDetails"></div>
       </div>
     </div>
@@ -943,6 +943,13 @@ Saloon Car
       const totalDistance = document.getElementById('totalDistance').textContent;
       const totalTime = document.getElementById('totalTime').textContent;
       
+      // Get profit, CC, and profit per hour if calculated
+      const profit = document.getElementById('estimatedProfit').textContent;
+      const profitPerHour = document.getElementById('profitPerHour').textContent;
+      const fuelCostText = document.getElementById('fuelCost').textContent;
+      const hasCongestionCharge = fuelCostText.includes('CC');
+      const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
+      
       // Update parsed information display
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
@@ -952,7 +959,9 @@ Saloon Car
         <strong>Time:</strong> ${time || 'Not set'}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
-        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}
+        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
+        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${ccBadge}<br>
+        <strong>£/hr:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
       `;
       
       // Show the parsed info section
@@ -1328,6 +1337,13 @@ Saloon Car
       const totalDistance = document.getElementById('totalDistance').textContent;
       const totalTime = document.getElementById('totalTime').textContent;
       
+      // Get profit, CC, and profit per hour if calculated
+      const profit = document.getElementById('estimatedProfit').textContent;
+      const profitPerHour = document.getElementById('profitPerHour').textContent;
+      const fuelCostText = document.getElementById('fuelCost').textContent;
+      const hasCongestionCharge = fuelCostText.includes('CC');
+      const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
+      
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
@@ -1336,7 +1352,9 @@ Saloon Car
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
-        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}
+        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
+        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${ccBadge}<br>
+        <strong>£/hr:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
       `;
       
       document.getElementById('parsedInfo').style.display = 'block';
