@@ -1345,6 +1345,9 @@ Saloon Car
                        // New format: Wednesday 19th  2025
                        cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i);
       
+      // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
+      const dayNameMatch = cleanText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
+      
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
           result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
@@ -1366,6 +1369,24 @@ Saloon Car
             result.date = dateMatch[0];
           }
         }
+      } else if (dayNameMatch) {
+        // Find the next occurrence of this day within the next 7 days
+        const targetDay = dayNameMatch[1].toLowerCase();
+        const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const targetDayIndex = daysOfWeek.indexOf(targetDay);
+        
+        const today = new Date();
+        const currentDayIndex = today.getDay();
+        
+        // Calculate days until target day
+        let daysUntil = targetDayIndex - currentDayIndex;
+        if (daysUntil <= 0) {
+          daysUntil += 7; // Next week if day has passed or is today
+        }
+        
+        const targetDate = new Date();
+        targetDate.setDate(today.getDate() + daysUntil);
+        result.date = targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
       } else {
         // If no date found, default to today
         result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
