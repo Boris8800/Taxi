@@ -1554,8 +1554,8 @@ Saloon Car
         result.timeOfDay = timeOfDayMatch[1];
       }
       
-      // Parse vehicle type
-      const vehicleMatch = cleanText.match(/\b(e class or similar|exec\/e class or similar|exec\s*\/\s*e class or similar|e-class or similar|9 seater|mpv 8|mpv8|minivan|e class|e-class|estate car|saloon car|executive car|mpv|7 seater|8 seater|minibus|estate|saloon|executive|any car)\b/i);
+      // Parse vehicle type - comprehensive patterns for all variations
+      const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e class|e-class|estate car|saloon car|executive car|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|executive|any car)\b/i);
       if (vehicleMatch) {
         result.vehicleType = vehicleMatch[1].charAt(0).toUpperCase() + vehicleMatch[1].slice(1).toLowerCase();
       }
