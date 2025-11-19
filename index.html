@@ -807,6 +807,7 @@ Saloon Car
       // London Areas & Postcodes
       'w1d': 'London W1D',
       'w1': 'London W1',
+      'w1u': 'London W1U',
       'w2': 'London W2',
       'rh8': 'RH8',
       'sw1': 'London SW1',
@@ -815,6 +816,10 @@ Saloon Car
       'wc2': 'London WC2',
       'ec1': 'London EC1',
       'ec2': 'London EC2',
+      'ec2r': 'London EC2R',
+      'ec2r 8jb': 'London EC2R 8JB',
+      'ec2a': 'London EC2A',
+      'ec3': 'London EC3',
       'n1': 'London N1',
       'n8': 'London N8',
       'n8 7ru': 'London N8 7RU',
@@ -829,17 +834,24 @@ Saloon Car
       'sw1v 1lh': 'London SW1V 1LH',
       'wc2b 5re': 'London WC2B 5RE',
       'wc1n 3bh': 'London WC1N 3BH',
+      'gu19': 'GU19',
+      'gu19 5eu': 'GU19 5EU',
       'gu21 8ew': 'GU21 8EW',
       'w8 5nj': 'London W8 5NJ',
       'n4 1pe': 'London N4 1PE',
+      'e8': 'London E8',
+      'e8 4pg': 'London E8 4PG',
       'se1 7hd': 'London SE1 7HD',
       'mk3 7nu': 'MK3 7NU',
       'w2 4sa': 'London W2 4SA',
+      'tw17': 'TW17',
+      'tw17 0qd': 'TW17 0QD',
       'tn4 9ng': 'TN4 9NG',
       'cb3 9hy': 'CB3 9HY',
       'cb10': 'CB10',
       'ub3': 'UB3',
       'ub3 5ay': 'UB3 5AY',
+      'ub6': 'UB6',
       'ss2': 'SS2',
       'ss2 6yh': 'SS2 6YH',
       'gl5': 'GL5',
@@ -1515,11 +1527,18 @@ Saloon Car
       // Enhanced time parsing with AM/PM support and time-of-day descriptions
       const timeMatch = cleanText.match(/@?\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || 
                        cleanText.match(/\b(\d{1,2}:\d{2}\s*(?:am|pm)?)\b/i) || 
+                       cleanText.match(/\btoday\s+(\d{1,2}\s+\d{2})\b/i) ||  // TODAY 13 50 format
+                       cleanText.match(/\b(\d{1,2}\s+\d{2})\b(?!\s*(?:to|net|fare))/i) ||  // 13 50 format (space instead of colon)
                        cleanText.match(/\b(\d{1,2}\s*(?:am|pm))\b/i) ||
                        cleanText.match(/\b(\d{1,2}\s*(?:AM|PM))\b/i);
       
       if (timeMatch) {
-        result.time = timeMatch[1].trim();
+        let time = timeMatch[1].trim();
+        // Convert space to colon if needed (e.g., "13 50" -> "13:50")
+        if (/^\d{1,2}\s+\d{2}$/.test(time)) {
+          time = time.replace(/\s+/, ':');
+        }
+        result.time = time;
       }
       
       // Parse time-of-day descriptions
@@ -1530,7 +1549,7 @@ Saloon Car
       }
       
       // Parse vehicle type
-      const vehicleMatch = cleanText.match(/\b(estate car|saloon car|executive car|mpv|7 seater|8 seater|minibus|estate|saloon|executive|any car)\b/i);
+      const vehicleMatch = cleanText.match(/\b(e class|e-class|estate car|saloon car|executive car|mpv|7 seater|8 seater|minibus|estate|saloon|executive|any car)\b/i);
       if (vehicleMatch) {
         result.vehicleType = vehicleMatch[1].charAt(0).toUpperCase() + vehicleMatch[1].slice(1).toLowerCase();
       }
@@ -1567,6 +1586,8 @@ Saloon Car
         /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
         // Partial postcodes (like GL5, RH8)
         /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
+        // X to Y format with dashes (e.g., Gatwick--------Ec2A)
+        /\b([a-z0-9\s]{2,20})-{2,}([a-z0-9\s]{2,20})\b/gi,
         // Enhanced X TO Y format with better postcode support
         /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
         // X to Y format with postcode support (e.g., N8 7RU to LGW)
@@ -1585,8 +1606,8 @@ Saloon Car
       for (const pattern of patterns) {
         const matches = [...text.matchAll(pattern)];
         for (const match of matches) {
-          // For "X TO Y" patterns, extract both locations
-          if (match[1] && match[2] && pattern.toString().includes('TO')) {
+          // For "X TO Y" or "X----Y" patterns (two locations)
+          if (match[1] && match[2] && (pattern.toString().includes('TO') || pattern.toString().includes('-{2,}'))) {
             if (!locations.includes(match[1].toLowerCase().trim())) {
               locations.push(match[1].toLowerCase().trim());
             }
