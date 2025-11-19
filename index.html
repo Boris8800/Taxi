@@ -1779,8 +1779,10 @@ Saloon Car
       }
       
       // Enhanced time parsing with AM/PM support and time-of-day descriptions
-      const landingTimeMatch = cleanText.match(/(\d{1,2}:\d{2})\s*landing\s+time\.?/i) || // 22:40 landing time or 22:40 landing time.
-                               cleanText.match(/landing\s+time\.?[:\s]*(\d{1,2}:\d{2})/i); // landing time: 22:40 or landing time. 22:40
+      const landingTimeMatch = cleanText.match(/(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i) || // 11:12 PM (Landing)
+                               cleanText.match(/(\d{1,2}:\d{2})\s*landing\s+time\.?/i) || // 22:40 landing time or 22:40 landing time.
+                               cleanText.match(/landing\s+time\.?[:\s]*(\d{1,2}:\d{2})/i) || // landing time: 22:40 or landing time. 22:40
+                               cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i); // @ 11:12 PM (Landing)
       
       const timeMatch = landingTimeMatch ||
                        cleanText.match(/booking\s+pickup\s+time[:\s]+(?:[a-z]+\s+\d+,\s+\d{4}\s*\|\s*)?(\d{1,2}:\d{2})/i) || // Booking pickup time: Nov 20, 2025 | 20:20
@@ -1803,9 +1805,16 @@ Saloon Car
         if (/^\d{1,2}\s+\d{2}$/.test(time)) {
           time = time.replace(/\s+/, ':');
         }
+        
+        // Check if there's AM/PM in the matched text (for formats like "11:12 PM (Landing)")
+        const ampmMatch = timeMatch[0].match(/(AM|PM)/i);
+        if (ampmMatch && !time.match(/(AM|PM)/i)) {
+          time = `${time} ${ampmMatch[1].toUpperCase()}`;
+        }
+        
         // Add "Landing time" label if it's a landing time format
         if (landingTimeMatch) {
-          result.time = `${time} (Landing time)`;
+          result.time = `${time} (Landing)`;
         } else {
           result.time = time;
         }
