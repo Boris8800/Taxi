@@ -2156,10 +2156,32 @@ Saloon Car
     function expandLocation(location) {
       const locLower = location.toLowerCase().trim();
       
-      // If location is already long/detailed (contains comma or multiple words), keep it as-is
+      // If location is already long/detailed (contains comma), keep it as-is
       // This preserves full addresses like "Thistle, Bloomsbury Way, London WC1A 2SD, UK"
-      if (location.includes(',') || location.length > 50) {
+      if (location.includes(',')) {
         return location;
+      }
+      
+      // Comprehensive airport codes and common locations
+      const locationExpansions = {
+        'lhr': 'London Heathrow Airport',
+        'lgw': 'London Gatwick Airport',
+        'stn': 'London Stansted Airport',
+        'ltn': 'London Luton Airport',
+        'lcy': 'London City Airport',
+        'heathrow': 'London Heathrow Airport',
+        'gatwick': 'London Gatwick Airport',
+        'stansted': 'London Stansted Airport',
+        'luton': 'London Luton Airport',
+        'heathrow airport': 'London Heathrow Airport',
+        'gatwick airport': 'London Gatwick Airport',
+        'stansted airport': 'London Stansted Airport',
+        'luton airport': 'London Luton Airport'
+      };
+      
+      // Direct match
+      if (locationExpansions[locLower]) {
+        return locationExpansions[locLower];
       }
       
       // Handle LHR terminal formats (LHR 2, LHR T2, LHRT2, etc.)
@@ -2168,17 +2190,11 @@ Saloon Car
         return `London Heathrow Airport Terminal ${lhrMatch[1]}`;
       }
       
-      // Direct match in database
-      if (locationDatabase[locLower]) {
-        return locationDatabase[locLower];
-      }
-      
-      // Check for partial matches (only for short inputs)
-      if (location.length < 30) {
-        for (const [key, value] of Object.entries(locationDatabase)) {
-          if (locLower.includes(key) || key.includes(locLower)) {
-            return value;
-          }
+      // Handle Heathrow terminals in text
+      if (locLower.includes('heathrow') && locLower.match(/t[1-5]|terminal\s*[1-5]/i)) {
+        const terminalMatch = locLower.match(/(?:t|terminal\s*)([1-5])/i);
+        if (terminalMatch) {
+          return `London Heathrow Airport Terminal ${terminalMatch[1]}`;
         }
       }
       
@@ -2192,7 +2208,9 @@ Saloon Car
         return location.toUpperCase();
       }
       
-      // Return original if no expansion found
+      // Return original location with preserved capitalization
+      return location;
+    }
       return location;
     }
 
@@ -2237,6 +2255,7 @@ Saloon Car
     window.onload = function() {
       loadTheme();
       initMap();
+      setupGoogleAutocomplete();
     };
   </script>
 </body>
