@@ -1639,7 +1639,9 @@ Saloon Car
       
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
-          result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          const today = new Date();
+          const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+          result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - Today (${dayName})`;
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
@@ -1654,9 +1656,23 @@ Saloon Car
             const day = parts[1].replace(/(st|nd|rd|th)/i, '');
             const year = parts[2];
             const month = new Date().toLocaleDateString('en-GB', { month: 'short' });
-            result.date = `${day} ${month}`;
+            const parsedDate = new Date(year, new Date().getMonth(), day);
+            const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
+            result.date = `${day} ${month} (${dayName})`;
           } else {
-            result.date = dateMatch[0];
+            // Parse other date formats and add day name
+            let parsedDate;
+            const shortMonthMatch = dateStr.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+            if (shortMonthMatch) {
+              const day = shortMonthMatch[1];
+              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+              const monthIndex = monthNames.findIndex(m => m.toLowerCase() === shortMonthMatch[2].toLowerCase());
+              parsedDate = new Date(new Date().getFullYear(), monthIndex, day);
+              const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
+              result.date = `${day} ${shortMonthMatch[2]} (${dayName})`;
+            } else {
+              result.date = dateStr;
+            }
           }
         }
       } else if (dayNameMatch) {
@@ -1676,10 +1692,13 @@ Saloon Car
         
         const targetDate = new Date();
         targetDate.setDate(today.getDate() + daysUntil);
-        result.date = targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
+        result.date = `${targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} (${dayName})`;
       } else {
         // If no date found, default to today
-        result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const today = new Date();
+        const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+        result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - Today (${dayName})`;
       }
       
       // Enhanced time parsing with AM/PM support and time-of-day descriptions
