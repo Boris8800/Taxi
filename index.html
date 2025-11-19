@@ -939,6 +939,10 @@ Saloon Car
       const price = document.getElementById('tripPrice').value;
       const baseLocation = document.getElementById('baseLocation').value;
       
+      // Get total distance and time if calculated
+      const totalDistance = document.getElementById('totalDistance').textContent;
+      const totalTime = document.getElementById('totalTime').textContent;
+      
       // Update parsed information display
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
@@ -946,7 +950,9 @@ Saloon Car
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
-        <strong>Base Location:</strong> ${baseLocation || 'Not set'}
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+        <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
+        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}
       `;
       
       // Show the parsed info section
@@ -1151,6 +1157,9 @@ Saloon Car
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
       document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
       document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
+      
+      // Update parsed info with calculated totals
+      updateParsedInfoFromStandardInput();
     }
     
     function estimateDistance(origin, destination) {
@@ -1315,13 +1324,19 @@ Saloon Car
       const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
       const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
       
+      // Get total distance and time if calculated
+      const totalDistance = document.getElementById('totalDistance').textContent;
+      const totalTime = document.getElementById('totalTime').textContent;
+      
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
-        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
+        <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
+        <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}
       `;
       
       document.getElementById('parsedInfo').style.display = 'block';
