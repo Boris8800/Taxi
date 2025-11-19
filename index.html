@@ -924,7 +924,8 @@ Saloon Car
 
     // Location database is now loaded from locations.js
 
-    function initMap() {
+    // Make initMap globally accessible for Google Maps callback
+    window.initMap = function initMap() {
       directionsService = new google.maps.DirectionsService();
       directionsRenderer = new google.maps.DirectionsRenderer({
         draggable: false,
