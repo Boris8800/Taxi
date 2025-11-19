@@ -1079,7 +1079,7 @@ Saloon Car
       }
       
       // Update parsed information display
-      const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
+      const vehicleType = parsedVehicleType || 'Not Specified';
       
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
@@ -1087,7 +1087,8 @@ Saloon Car
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
-        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+        <strong>Vehicle:</strong> ${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
         <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
@@ -1529,7 +1530,7 @@ Saloon Car
       const baseLocation = document.getElementById('baseLocation').value;
       
       const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
-      const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
+      const vehicleType = parsed.vehicleType || 'Not Specified';
       
       // Get total distance and time if calculated
       const totalDistance = document.getElementById('totalDistance').textContent;
@@ -1573,7 +1574,8 @@ Saloon Car
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
-        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+        <strong>Vehicle:</strong> ${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
         <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
@@ -1768,6 +1770,9 @@ Saloon Car
         } else {
           result.vehicleType = vehicle.charAt(0).toUpperCase() + vehicle.slice(1).toLowerCase();
         }
+      } else {
+        // Default to 'Not Specified' if no vehicle type found
+        result.vehicleType = 'Not Specified';
       }
       
       return result;
