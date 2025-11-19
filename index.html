@@ -1282,7 +1282,8 @@ Saloon Car
       
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
-      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
+      const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
+      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr (${efficiencyPercent.toFixed(0)}%)`;
       
       // Calculate and display profit per hour
       const profitPerHourCalc = parseFloat((profit / (totalTime / 60)).toFixed(2));
@@ -1294,8 +1295,7 @@ Saloon Car
         document.getElementById('profitPerHour').textContent = `£${profitPerHourCalc.toFixed(2)}/hr`;
       }
       
-      // Update efficiency progress (0-100% scale)
-      const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
+      // Update efficiency progress (0-100% scale) - already calculated above
       document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
       document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
       
