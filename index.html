@@ -570,10 +570,7 @@
       
       <div class="input-group">
         <label for="tripDate">Date</label>
-        <div style="position: relative;">
-          <input type="text" id="tripDateDisplay" readonly style="cursor: pointer; background: white;" placeholder="Click to select date" onclick="document.getElementById('tripDate').showPicker()">
-          <input type="date" id="tripDate" value="" style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateDateDisplay()">
-        </div>
+        <input type="text" id="tripDateDisplay" readonly style="background: #f5f5f5; cursor: default;" placeholder="Date will be parsed from message">
       </div>
       
       <div class="input-group">
@@ -1039,7 +1036,7 @@ Saloon Car
       // Get current values from standard input fields
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
-      const date = document.getElementById('tripDateDisplay').value || document.getElementById('tripDate').value;
+      const date = document.getElementById('tripDateDisplay').value;
       const time = document.getElementById('tripTime').value;
       const price = document.getElementById('tripPrice').value;
       const baseLocation = document.getElementById('baseLocation').value;
@@ -1087,7 +1084,7 @@ Saloon Car
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').showPicker()">${date || 'Not set'}</span><br>
+        <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
@@ -1105,8 +1102,7 @@ Saloon Car
       const baseLocation = document.getElementById('baseLocation').value || "Birmingham";
       const pickup = document.getElementById('pickupLocation').value || currentTrip.pickup;
       const dropoff = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
-      const dateValue = document.getElementById('tripDate').value;
-      const date = dateValue || currentTrip.date;
+      const date = document.getElementById('tripDateDisplay').value || currentTrip.date;
       const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
       const price = parseFloat(document.getElementById('tripPrice').value) || currentTrip.price;
       const fuelCostPer100Miles = parseFloat(document.getElementById('fuelCostPer100Miles').value) || 15.00;
@@ -1486,7 +1482,6 @@ Saloon Car
       document.getElementById('freeStyleInput').value = '';
       document.getElementById('pickupLocation').value = '';
       document.getElementById('dropoffLocation').value = '';
-      document.getElementById('tripDate').value = '';
       document.getElementById('tripDateDisplay').value = '';
       document.getElementById('tripTime').value = '';
       document.getElementById('tripPrice').value = '';
@@ -1518,13 +1513,7 @@ Saloon Car
       }
       if (parsed.date) {
         parsedDateLabel = parsed.date;
-        const isoDate = convertToISODate(parsed.date);
-        if (isoDate) {
-          document.getElementById('tripDate').value = isoDate;
-          document.getElementById('tripDateDisplay').value = parsed.date;
-        } else {
-          document.getElementById('tripDateDisplay').value = parsed.date;
-        }
+        document.getElementById('tripDateDisplay').value = parsed.date;
       }
       if (parsed.time) {
         document.getElementById('tripTime').value = parsed.time;
@@ -1534,7 +1523,7 @@ Saloon Car
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
       const price = document.getElementById('tripPrice').value;
-      const date = document.getElementById('tripDateDisplay').value || document.getElementById('tripDate').value;
+      const date = document.getElementById('tripDateDisplay').value;
       const time = document.getElementById('tripTime').value;
       const baseLocation = document.getElementById('baseLocation').value;
       
@@ -1581,7 +1570,7 @@ Saloon Car
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').showPicker()">${date || 'Not set'}</span><br>
+        <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
