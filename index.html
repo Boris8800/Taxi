@@ -118,6 +118,10 @@
       background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
       margin-left: 10px;
     }
+    .maps-button {
+      background: linear-gradient(135deg, #4285f4 0%, #34a853 100%);
+      margin-left: 10px;
+    }
     .input-section {
       margin-bottom: 25px;
       padding: 20px;
@@ -606,6 +610,7 @@ Saloon Car
         <div style="margin-top: 10px;">
           <button onclick="calculateTrip()">Calculate Trip</button>
           <button class="share-button" onclick="shareTrip()">📤 Share Summary</button>
+          <button class="maps-button" onclick="openInGoogleMaps()">🗺️ Navigate</button>
         </div>
       </div>
       
@@ -1135,6 +1140,27 @@ Saloon Car
       } else {
         return `${minutes}m`;
       }
+    }
+    
+    function openInGoogleMaps() {
+      const pickup = document.getElementById('pickupLocation').value;
+      const dropoff = document.getElementById('dropoffLocation').value;
+      
+      if (!pickup || !dropoff) {
+        alert('⚠️ Please enter pickup and dropoff locations first!');
+        return;
+      }
+      
+      // Create Google Maps URL with waypoints: Current Location → Pickup → Dropoff → Current Location
+      // Using "My+Location" for current GPS position
+      const waypoint1 = encodeURIComponent(pickup);
+      const waypoint2 = encodeURIComponent(dropoff);
+      
+      // Google Maps URL with avoid=tolls parameter to avoid toll roads
+      const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=My+Location&waypoints=${waypoint1}|${waypoint2}&travelmode=driving&avoid=tolls`;
+      
+      // Open in new tab
+      window.open(mapsUrl, '_blank');
     }
     
     function shareTrip() {
