@@ -922,10 +922,8 @@ Saloon Car
     let parsedVehicleType = '';
     let parsedDateLabel = '';
 
-    // Location database is now loaded from locations.js
-
     // Make initMap globally accessible for Google Maps callback
-    window.initMap = function initMap() {
+    window.initMap = function() {
       directionsService = new google.maps.DirectionsService();
       directionsRenderer = new google.maps.DirectionsRenderer({
         draggable: false,
@@ -943,73 +941,16 @@ Saloon Car
       document.getElementById('baseLocation').value = "Birmingham";
       document.getElementById('pickupLocation').value = "";
       document.getElementById('dropoffLocation').value = "";
-      document.getElementById('tripDateDisplay').value = "";
+      document.getElementById('tripDate').value = "";
       document.getElementById('tripTime').value = "";
       document.getElementById('tripPrice').value = "";
       document.getElementById('fuelCostPer100Miles').value = "10.00";
-      
-      // Initialize Google Maps Autocomplete for location inputs
-      setupGoogleAutocomplete();
       
       // Add event listeners to standard input fields
       setupInputListeners();
       
       // Update parsed info initially
       updateParsedInfoFromStandardInput();
-    }
-
-    function setupGoogleAutocomplete() {
-      // Add autocomplete to base location
-      const baseInput = document.getElementById('baseLocation');
-      const baseAutocomplete = new google.maps.places.Autocomplete(baseInput, {
-        componentRestrictions: { country: 'uk' },
-        fields: ['formatted_address', 'name']
-      });
-
-      // Add autocomplete to pickup location
-      const pickupInput = document.getElementById('pickupLocation');
-      const pickupAutocomplete = new google.maps.places.Autocomplete(pickupInput, {
-        componentRestrictions: { country: 'uk' },
-        fields: ['formatted_address', 'name']
-      });
-
-      // Add autocomplete to dropoff location
-      const dropoffInput = document.getElementById('dropoffLocation');
-      const dropoffAutocomplete = new google.maps.places.Autocomplete(dropoffInput, {
-        componentRestrictions: { country: 'uk' },
-        fields: ['formatted_address', 'name']
-      });
-
-      // Update field values when place is selected
-      baseAutocomplete.addListener('place_changed', function() {
-        const place = baseAutocomplete.getPlace();
-        if (place.formatted_address) {
-          baseInput.value = place.formatted_address;
-        } else if (place.name) {
-          baseInput.value = place.name;
-        }
-        updateParsedInfoFromStandardInput();
-      });
-
-      pickupAutocomplete.addListener('place_changed', function() {
-        const place = pickupAutocomplete.getPlace();
-        if (place.formatted_address) {
-          pickupInput.value = place.formatted_address;
-        } else if (place.name) {
-          pickupInput.value = place.name;
-        }
-        updateParsedInfoFromStandardInput();
-      });
-
-      dropoffAutocomplete.addListener('place_changed', function() {
-        const place = dropoffAutocomplete.getPlace();
-        if (place.formatted_address) {
-          dropoffInput.value = place.formatted_address;
-        } else if (place.name) {
-          dropoffInput.value = place.name;
-        }
-        updateParsedInfoFromStandardInput();
-      });
     }
 
     function setupInputListeners() {
@@ -1378,7 +1319,7 @@ Saloon Car
     function shareTrip() {
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
-      const date = document.getElementById('tripDateDisplay').value;
+      const date = document.getElementById('tripDate').value;
       const time = document.getElementById('tripTime').value;
       const price = document.getElementById('tripPrice').value;
       
@@ -1447,6 +1388,41 @@ Saloon Car
         alert('❌ Could not copy. Please copy manually.');
       }
       document.body.removeChild(textArea);
+    }
+    
+    function updateDateDisplay() {
+      const dateInput = document.getElementById('tripDate');
+      const dateDisplay = document.getElementById('tripDateDisplay');
+      
+      if (dateInput.value) {
+        const date = new Date(dateInput.value + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        const dayName = date.toLocaleDateString('en-GB', { weekday: 'long' });
+        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        
+        if (selectedDate.getTime() === today.getTime()) {
+          dateDisplay.value = `${formattedDate} - Today (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        } else if (selectedDate.getTime() === tomorrow.getTime()) {
+          dateDisplay.value = `${formattedDate} - Tomorrow (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        } else {
+          dateDisplay.value = `${formattedDate} (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        }
+      } else {
+        dateDisplay.value = '';
+        parsedDateLabel = '';
+      }
+      
+      updateParsedInfoFromStandardInput();
     }
     
     function convertToISODate(dateStr) {
@@ -2122,32 +2098,10 @@ Saloon Car
     function expandLocation(location) {
       const locLower = location.toLowerCase().trim();
       
-      // If location is already long/detailed (contains comma), keep it as-is
+      // If location is already long/detailed (contains comma or multiple words), keep it as-is
       // This preserves full addresses like "Thistle, Bloomsbury Way, London WC1A 2SD, UK"
-      if (location.includes(',')) {
+      if (location.includes(',') || location.length > 50) {
         return location;
-      }
-      
-      // Comprehensive airport codes and common locations
-      const locationExpansions = {
-        'lhr': 'London Heathrow Airport',
-        'lgw': 'London Gatwick Airport',
-        'stn': 'London Stansted Airport',
-        'ltn': 'London Luton Airport',
-        'lcy': 'London City Airport',
-        'heathrow': 'London Heathrow Airport',
-        'gatwick': 'London Gatwick Airport',
-        'stansted': 'London Stansted Airport',
-        'luton': 'London Luton Airport',
-        'heathrow airport': 'London Heathrow Airport',
-        'gatwick airport': 'London Gatwick Airport',
-        'stansted airport': 'London Stansted Airport',
-        'luton airport': 'London Luton Airport'
-      };
-      
-      // Direct match
-      if (locationExpansions[locLower]) {
-        return locationExpansions[locLower];
       }
       
       // Handle LHR terminal formats (LHR 2, LHR T2, LHRT2, etc.)
@@ -2156,11 +2110,17 @@ Saloon Car
         return `London Heathrow Airport Terminal ${lhrMatch[1]}`;
       }
       
-      // Handle Heathrow terminals in text
-      if (locLower.includes('heathrow') && locLower.match(/t[1-5]|terminal\s*[1-5]/i)) {
-        const terminalMatch = locLower.match(/(?:t|terminal\s*)([1-5])/i);
-        if (terminalMatch) {
-          return `London Heathrow Airport Terminal ${terminalMatch[1]}`;
+      // Direct match in database
+      if (locationDatabase[locLower]) {
+        return locationDatabase[locLower];
+      }
+      
+      // Check for partial matches (only for short inputs)
+      if (location.length < 30) {
+        for (const [key, value] of Object.entries(locationDatabase)) {
+          if (locLower.includes(key) || key.includes(locLower)) {
+            return value;
+          }
         }
       }
       
@@ -2174,7 +2134,7 @@ Saloon Car
         return location.toUpperCase();
       }
       
-      // Return original location with preserved capitalization
+      // Return original if no expansion found
       return location;
     }
 
