@@ -589,6 +589,7 @@ Drop Off:  LHR 2
 Saloon Car
 £80 Same day"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button onclick="pasteFromClipboard()" style="flex: 0 0 auto; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">📋 Paste</button>
         <button onclick="parseFreeStyle()" style="flex: 1;">Parse Free-Text</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
       </div>
@@ -1396,6 +1397,18 @@ Saloon Car
         alert('❌ Could not copy. Please copy manually.');
       }
       document.body.removeChild(textArea);
+    }
+    
+    async function pasteFromClipboard() {
+      try {
+        const text = await navigator.clipboard.readText();
+        document.getElementById('freeStyleInput').value = text;
+        // Optionally auto-parse after pasting
+        // parseFreeStyle();
+      } catch (err) {
+        // Fallback for browsers that don't support clipboard API or need permission
+        alert('Please paste manually using Ctrl+V or Cmd+V');
+      }
     }
     
     function clearFreeStyleInput() {
