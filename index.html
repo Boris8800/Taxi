@@ -1960,7 +1960,39 @@ Saloon Car
       const locations = [];
       const lowerText = text.toLowerCase();
       
-      // Split text by common separators to find individual postcodes
+      // PRIORITY 1: Check for "X to Y" format (first location is pickup, second is dropoff)
+      // This covers: "Heathrow to CT14 6DL", "LHR to SW1A 0PW", etc.
+      const toPatterns = [
+        // Full postcode to full postcode: "SW1A 0PW to CT14 6DL"
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\b/gi,
+        // Location name to full postcode: "Heathrow to CT14 6DL"
+        /\b([a-z]{2,}(?:\s+[a-z]+)*)\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\b/gi,
+        // Full postcode to location name: "CT14 6DL to Heathrow"
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\s+to\s+([a-z]{2,}(?:\s+[a-z]+)*)\b/gi,
+        // Partial postcode to partial postcode: "N8 7RU to LGW"
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\s+to\s+([A-Z0-9\s]{2,8})\b/gi,
+        // Location to location: "Heathrow to Gatwick", "LHR to LGW"
+        /\b([a-z0-9]{2,}(?:\s+[a-z]+)*)\s+to\s+([a-z0-9]{2,}(?:\s+[a-z]+)*)\b/gi,
+        // X TO Y uppercase format
+        /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/g
+      ];
+      
+      for (const pattern of toPatterns) {
+        const matches = [...text.matchAll(pattern)];
+        if (matches.length > 0) {
+          const match = matches[0]; // Take first match
+          if (match[1] && match[2]) {
+            const loc1 = match[1].toLowerCase().trim();
+            const loc2 = match[2].toLowerCase().trim();
+            // First location is pickup, second is dropoff
+            locations.push(loc1);
+            locations.push(loc2);
+            return locations; // Return immediately - we found our pickup and dropoff
+          }
+        }
+      }
+      
+      // PRIORITY 2: Split text by common separators to find individual postcodes
       // This handles cases like "SW1A 0PW‼️GL5 2RR" by looking for postcode patterns anywhere
       const fullPostcodePattern = /([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})/g;
       const fullPostcodeMatches = text.match(fullPostcodePattern);
@@ -1978,8 +2010,8 @@ Saloon Car
         return locations.slice(0, 2);
       }
       
-      // Continue looking for other location patterns (terminals, airports, etc.)
-            // Enhanced patterns for WhatsApp-style messages including new format
+      // PRIORITY 3: Continue looking for other location patterns (terminals, airports, etc.)
+      // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
         // Pick Up: / Drop Off: format with specific extraction (process first for priority)
         /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
@@ -1988,11 +2020,6 @@ Saloon Car
         /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
         // X to Y format with dashes (e.g., Gatwick--------Ec2A)
         /\b([a-z0-9\s]{2,20})-{2,}([a-z0-9\s]{2,20})\b/gi,
-        // Enhanced X TO Y format with better postcode support
-        /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
-        // X to Y format with postcode support (e.g., N8 7RU to LGW)
-        /\b([A-Z0-9]{1,4}\s*\d[A-Z0-9]{2})\s+to\s+([A-Z0-9\s]{2,8})\b/gi,
-        /\b([a-z0-9\s]{2,20})\s+to\s+([a-z0-9\s]{2,20})\b/gi,
         // Airport terminals (LHR 2, LHR T2, etc.)
         /\b(LHR\s*[T]?\s*[1-5])\b/gi,
         /\b(LGW\s*(?:North|South)?)\b/gi,
