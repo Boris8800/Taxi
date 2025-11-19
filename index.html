@@ -2072,7 +2072,50 @@ Saloon Car
         }
       }
       
-      // PRIORITY 2: Split text by common separators to find individual postcodes
+      // PRIORITY 2: Check for vertical listings with "Airport Job" pattern
+      // Pattern: "Heathrow Airport Job\nHeathrow Airport\nE5 0QQ"
+      const airportJobMatch = text.match(/(heathrow|gatwick|stansted|luton|london city|birmingham|manchester)\s+airport\s+job/gi);
+      if (airportJobMatch && !pickupFound && !dropoffFound) {
+        // Split into lines and look for airport name and postcode
+        const lines = text.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
+        
+        let foundAirport = false;
+        let foundPostcode = false;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check if line contains airport name (and isn't the job title)
+          if (!foundAirport && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
+            const airportName = line.toLowerCase().trim();
+            if (!locations.includes(airportName)) {
+              locations.push(airportName);
+              foundAirport = true;
+            }
+          }
+          
+          // Check if line is a full postcode
+          if (!foundPostcode && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
+            const postcode = line.toLowerCase().trim();
+            if (!locations.includes(postcode)) {
+              locations.push(postcode);
+              foundPostcode = true;
+            }
+          }
+          
+          // If we found both, break
+          if (foundAirport && foundPostcode) {
+            return locations;
+          }
+        }
+        
+        // If we found at least 2 locations, return them
+        if (locations.length >= 2) {
+          return locations.slice(0, 2);
+        }
+      }
+      
+      // PRIORITY 3: Split text by common separators to find individual postcodes
       // This handles cases like "SW1A 0PW‼️GL5 2RR" by looking for postcode patterns anywhere
       const fullPostcodePattern = /([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})/g;
       const fullPostcodeMatches = text.match(fullPostcodePattern);
@@ -2090,7 +2133,7 @@ Saloon Car
         return locations.slice(0, 2);
       }
       
-      // PRIORITY 3: Continue looking for other location patterns (terminals, airports, etc.)
+      // PRIORITY 4: Continue looking for other location patterns (terminals, airports, etc.)
       // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
         // Pick Up: / Drop Off: format with specific extraction (process first for priority)
