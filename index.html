@@ -1461,6 +1461,9 @@ Saloon Car
       const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
       const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
       
+      // Display date with label (Today/Tomorrow) if available
+      const dateDisplay = parsed.dateLabel ? `${date} (${parsed.dateLabel})` : date;
+      
       // Get total distance and time if calculated
       const totalDistance = document.getElementById('totalDistance').textContent;
       const totalTime = document.getElementById('totalTime').textContent;
@@ -1501,7 +1504,7 @@ Saloon Car
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> ${date || 'Not set'}<br>
+        <strong>Date:</strong> ${dateDisplay || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
@@ -1570,10 +1573,12 @@ Saloon Car
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
           result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          result.dateLabel = 'Today';
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           result.date = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          result.dateLabel = 'Tomorrow';
         } else {
           // Format the date properly
           const dateStr = dateMatch[0];
