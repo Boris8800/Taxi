@@ -1775,6 +1775,9 @@ Saloon Car
     function parseFreeStyleText(text) {
       const result = {};
       
+      // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
+      const locations = extractLocations(text);
+      
       // Clean the text - remove WhatsApp timestamps and phone numbers
       let cleanText = text.replace(/\[\d{1,2}:\d{2}, \d{1,2}\/\d{1,2}\/\d{4}\]/g, '')
                          .replace(/\+44 \d{2,4} \d{4} \d{4}/g, '')
@@ -1795,9 +1798,6 @@ Saloon Car
                          .replace(/URGENT/gi, '')
                          .replace(/\bJob\b/gi, '')
                          .replace(/\bASAP\b/gi, '');
-      
-      // Enhanced location extraction with new format support
-      const locations = extractLocations(cleanText);
       
       // Simple logic: first location is pickup, second is dropoff
       if (locations.length >= 2) {
@@ -1986,7 +1986,41 @@ Saloon Car
       const locations = [];
       const lowerText = text.toLowerCase();
       
-      // PRIORITY 0: Check for "Pickup:" and "Drop off:" format with bullet points or asterisks
+      // PRIORITY 0: Check for vertical listings with "Airport Job" pattern FIRST
+      // Pattern: "Heathrow Airport Job\nHeathrow Airport\nE5 0QQ"
+      // In this format: Airport name is ALWAYS pickup, Postcode is ALWAYS dropoff
+      const airportJobMatch = text.match(/(heathrow|gatwick|stansted|luton|london city|birmingham|manchester)\s+airport\s+job/gi);
+      if (airportJobMatch) {
+        // Split into lines and look for airport name and postcode
+        const lines = text.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
+        
+        let airportLocation = null;
+        let postcodeLocation = null;
+        
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Check if line contains airport name (and isn't the job title)
+          // Allow for trailing punctuation like periods
+          if (!airportLocation && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)(?:\s+airport)?[\s\.]*$/gi) && !line.match(/job/i)) {
+            airportLocation = line.toLowerCase().trim().replace(/\.$/, '').trim();
+          }
+          
+          // Check if line is a full postcode
+          if (!postcodeLocation && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
+            postcodeLocation = line.toLowerCase().trim();
+          }
+        }
+        
+        // For "Airport Job" format: Airport is ALWAYS pickup, Postcode is ALWAYS dropoff
+        if (airportLocation && postcodeLocation) {
+          locations.push(airportLocation); // Airport = pickup (first position)
+          locations.push(postcodeLocation); // Postcode = dropoff (second position)
+          return locations;
+        }
+      }
+      
+      // PRIORITY 1: Check for "Pickup:" and "Drop off:" format with bullet points or asterisks
       // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY"
       const pickupPatterns = [
         /[\*\•\-]\s*pickup\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
@@ -2036,7 +2070,19 @@ Saloon Car
         return locations;
       }
       
-      // PRIORITY 1: Check for "X to Y" format (first location is pickup, second is dropoff)
+      // PRIORITY 1: Check for "X to Y" or "X\nTo\nY" format (first location is pickup, second is dropoff)
+      // Check for vertical "To" format first: "Heathrow Airport\nTo\nEX33 1HT"
+      const verticalToMatch = text.match(/([^\n]+)\s*\n\s*To\s*\n\s*([^\n]+)/i);
+      if (verticalToMatch && verticalToMatch[1] && verticalToMatch[2]) {
+        const loc1 = verticalToMatch[1].trim().toLowerCase().replace(/,$/, '').trim(); // Remove trailing comma
+        const loc2 = verticalToMatch[2].trim().toLowerCase();
+        if (loc1 && loc2) {
+          locations.push(loc1); // First location = pickup
+          locations.push(loc2); // Second location = dropoff
+          return locations;
+        }
+      }
+      
       // This covers: "Heathrow to CT14 6DL", "LHR to SW1A 0PW", etc.
       const toPatterns = [
         // "From X To Y" format: "From Stansted To W6 8DR"
@@ -2069,39 +2115,6 @@ Saloon Car
             locations.push(loc2);
             return locations; // Return immediately - we found our pickup and dropoff
           }
-        }
-      }
-      
-      // PRIORITY 2: Check for vertical listings with "Airport Job" pattern
-      // Pattern: "Heathrow Airport Job\nHeathrow Airport\nE5 0QQ"
-      // In this format: Airport name is ALWAYS pickup, Postcode is ALWAYS dropoff
-      const airportJobMatch = text.match(/(heathrow|gatwick|stansted|luton|london city|birmingham|manchester)\s+airport\s+job/gi);
-      if (airportJobMatch && !pickupFound && !dropoffFound) {
-        // Split into lines and look for airport name and postcode
-        const lines = text.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
-        
-        let airportLocation = null;
-        let postcodeLocation = null;
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          
-          // Check if line contains airport name (and isn't the job title)
-          if (!airportLocation && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
-            airportLocation = line.toLowerCase().trim();
-          }
-          
-          // Check if line is a full postcode
-          if (!postcodeLocation && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
-            postcodeLocation = line.toLowerCase().trim();
-          }
-        }
-        
-        // For "Airport Job" format: Airport is ALWAYS pickup, Postcode is ALWAYS dropoff
-        if (airportLocation && postcodeLocation) {
-          locations.push(airportLocation); // Airport = pickup
-          locations.push(postcodeLocation); // Postcode = dropoff
-          return locations;
         }
       }
       
