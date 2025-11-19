@@ -842,6 +842,9 @@ Saloon Car
       'ub3 5ay': 'UB3 5AY',
       'ss2': 'SS2',
       'ss2 6yh': 'SS2 6YH',
+      'gl5': 'GL5',
+      'gl5 2rr': 'GL5 2RR',
+      'sw1a 0pw': 'London SW1A 0PW',
       
       // Cities & Towns
       'birmingham': 'Birmingham',
@@ -1422,6 +1425,9 @@ Saloon Car
       let cleanText = text.replace(/\[\d{1,2}:\d{2}, \d{1,2}\/\d{1,2}\/\d{4}\]/g, '')
                          .replace(/\+44 \d{4} \d{6}/g, '')
                          .replace(/🚨/g, '')
+                         .replace(/🛞/g, '')
+                         .replace(/‼️/g, '')
+                         .replace(/\.\./g, ' ')
                          .replace(/UPDATED\s*FARE/gi, '')
                          .replace(/SAMEDAY PAYMENT/gi, '')
                          .replace(/SAME DAY PAYMENT/gi, '')
@@ -1506,9 +1512,10 @@ Saloon Car
       }
       
       // Enhanced time parsing with AM/PM support and time-of-day descriptions
-      const timeMatch = cleanText.match(/(\d{1,2}:\d{2}\s*(?:am|pm)?)/i) || 
-                       cleanText.match(/(\d{1,2}\s*(?:am|pm))/i) ||
-                       cleanText.match(/(\d{1,2}\s*(?:AM|PM))/i);
+      const timeMatch = cleanText.match(/@?\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || 
+                       cleanText.match(/\b(\d{1,2}:\d{2}\s*(?:am|pm)?)\b/i) || 
+                       cleanText.match(/\b(\d{1,2}\s*(?:am|pm))\b/i) ||
+                       cleanText.match(/\b(\d{1,2}\s*(?:AM|PM))\b/i);
       
       if (timeMatch) {
         result.time = timeMatch[1].trim();
