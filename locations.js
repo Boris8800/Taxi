@@ -1,0 +1,237 @@
+// Location Database for SMART TRIP
+// Add your postcodes and locations here
+
+const locationDatabase = {
+  // ============================================
+  // AIRPORTS & TERMINALS
+  // ============================================
+  
+  // Heathrow Airport
+  'lhr': 'London Heathrow Airport',
+  'heathrow': 'London Heathrow Airport',
+  'heathrow airport': 'London Heathrow Airport',
+  'heathrow t1': 'London Heathrow Airport Terminal 1',
+  'heathrow t2': 'London Heathrow Airport Terminal 2', 
+  'heathrow t3': 'London Heathrow Airport Terminal 3',
+  'heathrow t4': 'London Heathrow Airport Terminal 4',
+  'heathrow t5': 'London Heathrow Airport Terminal 5',
+  'heathrow terminal 1': 'London Heathrow Airport Terminal 1',
+  'heathrow terminal 2': 'London Heathrow Airport Terminal 2',
+  'heathrow terminal 3': 'London Heathrow Airport Terminal 3',
+  'heathrow terminal 4': 'London Heathrow Airport Terminal 4',
+  'heathrow terminal 5': 'London Heathrow Airport Terminal 5',
+  'lhr 1': 'London Heathrow Airport Terminal 1',
+  'lhr 2': 'London Heathrow Airport Terminal 2',
+  'lhr 3': 'London Heathrow Airport Terminal 3',
+  'lhr 4': 'London Heathrow Airport Terminal 4',
+  'lhr 5': 'London Heathrow Airport Terminal 5',
+  'lhrt1': 'London Heathrow Airport Terminal 1',
+  'lhrt2': 'London Heathrow Airport Terminal 2',
+  'lhrt3': 'London Heathrow Airport Terminal 3',
+  'lhrt4': 'London Heathrow Airport Terminal 4',
+  'lhrt5': 'London Heathrow Airport Terminal 5',
+  't5': 'London Heathrow Airport Terminal 5',
+  'terminal 5': 'London Heathrow Airport Terminal 5',
+  
+  // Gatwick Airport
+  'lgw': 'London Gatwick Airport',
+  'gatwick': 'London Gatwick Airport',
+  'gatwick airport': 'London Gatwick Airport',
+  'gatwick north': 'London Gatwick Airport North Terminal',
+  'gatwick south': 'London Gatwick Airport South Terminal',
+  'gatwick north terminal': 'London Gatwick Airport North Terminal',
+  'gatwick south terminal': 'London Gatwick Airport South Terminal',
+  
+  // Stansted Airport
+  'stn': 'London Stansted Airport',
+  'stansted': 'London Stansted Airport',
+  'stansted airport': 'London Stansted Airport',
+  
+  // Luton Airport
+  'ltn': 'London Luton Airport',
+  'luton': 'London Luton Airport', 
+  'luton airport': 'London Luton Airport',
+  
+  // London City Airport
+  'lcy': 'London City Airport',
+  'london city': 'London City Airport',
+  'london city airport': 'London City Airport',
+  
+  // Birmingham Airport
+  'bhx': 'Birmingham Airport',
+  'birmingham airport': 'Birmingham Airport',
+  
+  // Manchester Airport
+  'man': 'Manchester Airport',
+  'manchester airport': 'Manchester Airport',
+  
+  // Southend Airport
+  'sen': 'London Southend Airport',
+  'southend': 'London Southend Airport',
+  'southend airport': 'London Southend Airport',
+  
+  // ============================================
+  // ADDITIONAL UK AIRPORTS
+  // ============================================
+  'edi': 'Edinburgh Airport',
+  'edinburgh airport': 'Edinburgh Airport',
+  'gla': 'Glasgow Airport',
+  'glasgow airport': 'Glasgow Airport',
+  'ncl': 'Newcastle Airport',
+  'newcastle airport': 'Newcastle Airport',
+  'ema': 'East Midlands Airport',
+  'east midlands airport': 'East Midlands Airport',
+  'brs': 'Bristol Airport',
+  'bristol airport': 'Bristol Airport',
+  'lba': 'Leeds Bradford Airport',
+  'leeds bradford airport': 'Leeds Bradford Airport',
+  'lpl': 'Liverpool Airport',
+  'liverpool airport': 'Liverpool John Lennon Airport',
+  'bfs': 'Belfast International Airport',
+  'belfast airport': 'Belfast International Airport',
+  'bhd': 'George Best Belfast City Airport',
+  'belfast city airport': 'George Best Belfast City Airport',
+  'abz': 'Aberdeen Airport',
+  'aberdeen airport': 'Aberdeen Airport',
+  'sou': 'Southampton Airport',
+  'southampton airport': 'Southampton Airport',
+  'cwl': 'Cardiff Airport',
+  'cardiff airport': 'Cardiff Airport',
+  'ext': 'Exeter Airport',
+  'exeter airport': 'Exeter Airport',
+  'inv': 'Inverness Airport',
+  'inverness airport': 'Inverness Airport',
+  'dsrt': 'Doncaster Sheffield Airport',
+  'doncaster airport': 'Doncaster Sheffield Airport',
+  'huy': 'Humberside Airport',
+  'humberside airport': 'Humberside Airport',
+  
+  // ============================================
+  // LONDON AREAS & POSTCODES
+  // ============================================
+  'sw1x': 'London SW1X',
+  'w1d': 'London W1D',
+  'w1': 'London W1',
+  'w1u': 'London W1U',
+  'w2': 'London W2',
+  'rh8': 'RH8',
+  'sw1': 'London SW1',
+  'sw1a': 'London SW1A',
+  'wc1': 'London WC1',
+  'wc2': 'London WC2',
+  'ec1': 'London EC1',
+  'ec2': 'London EC2',
+  'ec2r': 'London EC2R',
+  'ec2r 8jb': 'London EC2R 8JB',
+  'ec2a': 'London EC2A',
+  'ec3': 'London EC3',
+  'n1': 'London N1',
+  'n8': 'London N8',
+  'n8 7ru': 'London N8 7RU',
+  'nw1': 'London NW1',
+  'se1': 'London SE1',
+  'se10': 'London SE10',
+  'se11': 'London SE11',
+  'se4': 'London SE4',
+  'se4 1er': 'London SE4 1ER',
+  'se15': 'London SE15',
+  'w1j': 'London W1J',
+  'w1k': 'London W1K',
+  'ec1y': 'London EC1Y',
+  'nw1 8yn': 'London NW1 8YN',
+  'sw1v 1lh': 'London SW1V 1LH',
+  'wc2b 5re': 'London WC2B 5RE',
+  'wc1n 3bh': 'London WC1N 3BH',
+  'gu19': 'GU19',
+  'gu19 5eu': 'GU19 5EU',
+  'gu21 8ew': 'GU21 8EW',
+  'w8 5nj': 'London W8 5NJ',
+  'n4 1pe': 'London N4 1PE',
+  'e8': 'London E8',
+  'e8 4pg': 'London E8 4PG',
+  'se1 7hd': 'London SE1 7HD',
+  'mk3 7nu': 'MK3 7NU',
+  'w2 4sa': 'London W2 4SA',
+  'tw17': 'TW17',
+  'tw17 0qd': 'TW17 0QD',
+  'tn4 9ng': 'TN4 9NG',
+  'cb3 9hy': 'CB3 9HY',
+  'cb10': 'CB10',
+  'ub3': 'UB3',
+  'ub3 5ay': 'UB3 5AY',
+  'ub6': 'UB6',
+  'ss2': 'SS2',
+  'ss2 6yh': 'SS2 6YH',
+  'gl5': 'GL5',
+  'gl5 2rr': 'GL5 2RR',
+  'sw1a 0pw': 'London SW1A 0PW',
+  'wc1n': 'London WC1N',
+  
+  // ============================================
+  // CITIES & TOWNS
+  // ============================================
+  'birmingham': 'Birmingham',
+  'manchester': 'Manchester',
+  'liverpool': 'Liverpool',
+  'leeds': 'Leeds',
+  'sheffield': 'Sheffield',
+  'bristol': 'Bristol',
+  'glasgow': 'Glasgow',
+  'edinburgh': 'Edinburgh',
+  'cambridge': 'Cambridge',
+  'oxford': 'Oxford',
+  'reading': 'Reading',
+  'brighton': 'Brighton',
+  'nottingham': 'Nottingham',
+  'leicester': 'Leicester',
+  'coventry': 'Coventry',
+  'hull': 'Kingston upon Hull',
+  'newcastle': 'Newcastle upon Tyne',
+  'belfast': 'Belfast',
+  'cardiff': 'Cardiff',
+  'swansea': 'Swansea',
+  'aberdeen': 'Aberdeen',
+  'dundee': 'Dundee',
+  'plymouth': 'Plymouth',
+  'southampton': 'Southampton',
+  'portsmouth': 'Portsmouth',
+  'york': 'York',
+  'derby': 'Derby',
+  'stoke': 'Stoke-on-Trent',
+  'wolverhampton': 'Wolverhampton',
+  'bournemouth': 'Bournemouth',
+  'norwich': 'Norwich',
+  'swindon': 'Swindon',
+  'milton keynes': 'Milton Keynes',
+  'slough': 'Slough',
+  'peterborough': 'Peterborough',
+  'exeter': 'Exeter',
+  'bath': 'Bath',
+  'inverness': 'Inverness',
+  'stirling': 'Stirling',
+  'perth': 'Perth',
+  
+  // ============================================
+  // MAJOR STATIONS
+  // ============================================
+  'victoria': 'Victoria Station, London',
+  'victoria station': 'Victoria Station, London',
+  'paddington': 'Paddington Station, London',
+  'paddington station': 'Paddington Station, London',
+  'kings cross': "King's Cross Station, London",
+  'kings cross station': "King's Cross Station, London",
+  'euston': 'Euston Station, London',
+  'euston station': 'Euston Station, London',
+  'waterloo': 'Waterloo Station, London',
+  'waterloo station': 'Waterloo Station, London',
+  'liverpool street': 'Liverpool Street Station, London',
+  'liverpool street station': 'Liverpool Street Station, London'
+  
+  // ============================================
+  // ADD YOUR CUSTOM POSTCODES & LOCATIONS HERE:
+  // ============================================
+  // Example:
+  // 'e5': 'London E5',
+  // 'e5 0qq': 'London E5 0QQ',
+  // 'ex33 1ht': 'EX33 1HT',
+};
