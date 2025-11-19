@@ -1785,6 +1785,7 @@ Saloon Car
       const timeMatch = landingTimeMatch ||
                        cleanText.match(/booking\s+pickup\s+time[:\s]+(?:[a-z]+\s+\d+,\s+\d{4}\s*\|\s*)?(\d{1,2}:\d{2})/i) || // Booking pickup time: Nov 20, 2025 | 20:20
                        cleanText.match(/(?:\d{1,2}\s+[a-z]+\s+\d{4})\s+(\d{1,2}:\d{2})\s*(?:AM|PM)/i) || // 21 Nov 2025 21:00 PM
+                       cleanText.match(/(?:tomorrow|today|tonight)\s+(\d{1,2}:\d{2})/i) || // TOMORROW 07:25 or TODAY 13:50
                        cleanText.match(/(?:tomorrow|today|tonight)\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || // Tomorrow @ 08:00
                        cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || // @ 20:20PM
                        cleanText.match(/(?:tomorrow|today)\s+at\s+(\d{1,2}:\d{2})/i) ||
