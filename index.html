@@ -570,7 +570,10 @@
       
       <div class="input-group">
         <label for="tripDate">Date</label>
-        <input type="date" id="tripDate" value="">
+        <div style="position: relative;">
+          <input type="text" id="tripDateDisplay" readonly style="cursor: pointer; background: white;" placeholder="Click to select date" onclick="document.getElementById('tripDate').showPicker()">
+          <input type="date" id="tripDate" value="" style="position: absolute; opacity: 0; pointer-events: none;" onchange="updateDateDisplay()">
+        </div>
       </div>
       
       <div class="input-group">
@@ -763,6 +766,7 @@ Saloon Car
       dropoffToBase: { distance: 0, duration: 0 }
     };
     let parsedVehicleType = '';
+    let parsedDateLabel = '';
 
     // Enhanced location database for better free-text parsing
     const locationDatabase = {
@@ -1035,7 +1039,7 @@ Saloon Car
       // Get current values from standard input fields
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
-      const date = document.getElementById('tripDate').value;
+      const date = document.getElementById('tripDateDisplay').value || document.getElementById('tripDate').value;
       const time = document.getElementById('tripTime').value;
       const price = document.getElementById('tripPrice').value;
       const baseLocation = document.getElementById('baseLocation').value;
@@ -1083,7 +1087,7 @@ Saloon Car
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').showPicker()">${date || 'Not set'}</span><br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
@@ -1101,7 +1105,8 @@ Saloon Car
       const baseLocation = document.getElementById('baseLocation').value || "Birmingham";
       const pickup = document.getElementById('pickupLocation').value || currentTrip.pickup;
       const dropoff = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
-      const date = document.getElementById('tripDate').value || currentTrip.date;
+      const dateValue = document.getElementById('tripDate').value;
+      const date = dateValue || currentTrip.date;
       const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
       const price = parseFloat(document.getElementById('tripPrice').value) || currentTrip.price;
       const fuelCostPer100Miles = parseFloat(document.getElementById('fuelCostPer100Miles').value) || 15.00;
@@ -1414,6 +1419,59 @@ Saloon Car
       document.body.removeChild(textArea);
     }
     
+    function updateDateDisplay() {
+      const dateInput = document.getElementById('tripDate');
+      const dateDisplay = document.getElementById('tripDateDisplay');
+      
+      if (dateInput.value) {
+        const date = new Date(dateInput.value + 'T00:00:00');
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const selectedDate = new Date(date);
+        selectedDate.setHours(0, 0, 0, 0);
+        
+        const dayName = date.toLocaleDateString('en-GB', { weekday: 'long' });
+        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        
+        if (selectedDate.getTime() === today.getTime()) {
+          dateDisplay.value = `${formattedDate} - Today (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        } else if (selectedDate.getTime() === tomorrow.getTime()) {
+          dateDisplay.value = `${formattedDate} - Tomorrow (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        } else {
+          dateDisplay.value = `${formattedDate} (${dayName})`;
+          parsedDateLabel = dateDisplay.value;
+        }
+      } else {
+        dateDisplay.value = '';
+        parsedDateLabel = '';
+      }
+      
+      updateParsedInfoFromStandardInput();
+    }
+    
+    function convertToISODate(dateStr) {
+      // Remove labels like "Tomorrow (Wednesday)" or "Today (Tuesday)"
+      let cleanDate = dateStr.replace(/\s*-\s*(Today|Tomorrow)\s*\([^)]+\)/i, '');
+      cleanDate = cleanDate.replace(/\s*\([^)]+\)/i, '');
+      
+      // Parse "20 Nov" format
+      const match = cleanDate.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      if (match) {
+        const day = match[1];
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const month = monthNames.findIndex(m => m.toLowerCase() === match[2].toLowerCase()) + 1;
+        const year = new Date().getFullYear();
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      }
+      
+      return null;
+    }
+    
     async function pasteFromClipboard() {
       try {
         const text = await navigator.clipboard.readText();
@@ -1429,8 +1487,10 @@ Saloon Car
       document.getElementById('pickupLocation').value = '';
       document.getElementById('dropoffLocation').value = '';
       document.getElementById('tripDate').value = '';
+      document.getElementById('tripDateDisplay').value = '';
       document.getElementById('tripTime').value = '';
       document.getElementById('tripPrice').value = '';
+      parsedDateLabel = '';
       document.getElementById('parsedInfo').style.display = 'none';
     }
     
@@ -1457,7 +1517,14 @@ Saloon Car
         document.getElementById('tripPrice').value = parsed.price;
       }
       if (parsed.date) {
-        document.getElementById('tripDate').value = parsed.date;
+        parsedDateLabel = parsed.date;
+        const isoDate = convertToISODate(parsed.date);
+        if (isoDate) {
+          document.getElementById('tripDate').value = isoDate;
+          document.getElementById('tripDateDisplay').value = parsed.date;
+        } else {
+          document.getElementById('tripDateDisplay').value = parsed.date;
+        }
       }
       if (parsed.time) {
         document.getElementById('tripTime').value = parsed.time;
@@ -1467,7 +1534,7 @@ Saloon Car
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
       const price = document.getElementById('tripPrice').value;
-      const date = document.getElementById('tripDate').value;
+      const date = document.getElementById('tripDateDisplay').value || document.getElementById('tripDate').value;
       const time = document.getElementById('tripTime').value;
       const baseLocation = document.getElementById('baseLocation').value;
       
@@ -1514,7 +1581,7 @@ Saloon Car
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').showPicker()">${date || 'Not set'}</span><br>
         <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
