@@ -2079,39 +2079,32 @@ Saloon Car
         // Split into lines and look for airport name and postcode
         const lines = text.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
         
-        let foundAirport = false;
-        let foundPostcode = false;
+        const foundLocations = [];
         
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           
           // Check if line contains airport name (and isn't the job title)
-          if (!foundAirport && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
+          if (line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
             const airportName = line.toLowerCase().trim();
-            if (!locations.includes(airportName)) {
-              locations.push(airportName);
-              foundAirport = true;
-            }
+            foundLocations.push({ index: i, location: airportName });
           }
           
           // Check if line is a full postcode
-          if (!foundPostcode && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
+          if (line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
             const postcode = line.toLowerCase().trim();
-            if (!locations.includes(postcode)) {
-              locations.push(postcode);
-              foundPostcode = true;
-            }
-          }
-          
-          // If we found both, break
-          if (foundAirport && foundPostcode) {
-            return locations;
+            foundLocations.push({ index: i, location: postcode });
           }
         }
         
-        // If we found at least 2 locations, return them
-        if (locations.length >= 2) {
-          return locations.slice(0, 2);
+        // Sort by line index to maintain vertical order (first = pickup, second = dropoff)
+        foundLocations.sort((a, b) => a.index - b.index);
+        
+        // Add first two locations in order
+        if (foundLocations.length >= 2) {
+          locations.push(foundLocations[0].location); // First vertical = pickup
+          locations.push(foundLocations[1].location); // Second vertical = dropoff
+          return locations;
         }
       }
       
