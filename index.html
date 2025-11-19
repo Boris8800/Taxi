@@ -5,26 +5,58 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    /* Base styles remain the same */
+    /* Theme Variables */
+    :root {
+      --bg-primary: #f5f7fa;
+      --bg-secondary: #ffffff;
+      --bg-tertiary: #f8f9fa;
+      --bg-gradient-start: #fff3cd;
+      --bg-gradient-end: #ffeaa7;
+      --text-primary: #333;
+      --text-secondary: #2d3748;
+      --text-tertiary: #4a5568;
+      --border-color: #e2e8f0;
+      --shadow-light: rgba(0,0,0,0.1);
+      --shadow-medium: rgba(0,0,0,0.2);
+      --input-bg: #ffffff;
+    }
+    
+    [data-theme="dark"] {
+      --bg-primary: #1a202c;
+      --bg-secondary: #2d3748;
+      --bg-tertiary: #4a5568;
+      --bg-gradient-start: #3d3d00;
+      --bg-gradient-end: #5a5a00;
+      --text-primary: #e2e8f0;
+      --text-secondary: #cbd5e0;
+      --text-tertiary: #a0aec0;
+      --border-color: #4a5568;
+      --shadow-light: rgba(0,0,0,0.3);
+      --shadow-medium: rgba(0,0,0,0.5);
+      --input-bg: #2d3748;
+    }
+    
+    /* Base styles */
     #map {
       height: 500px;
       width: 100%;
       margin-bottom: 20px;
       border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 10px var(--shadow-light);
     }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
       margin: 20px auto;
       max-width: 1200px;
-      background-color: #f5f7fa;
-      color: #333;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      transition: background-color 0.3s ease, color 0.3s ease;
     }
     .container {
-      background: white;
+      background: var(--bg-secondary);
       padding: 25px;
       border-radius: 10px;
-      box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 20px var(--shadow-light);
     }
     .summary {
       margin-top: 20px;
@@ -32,12 +64,35 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 15px var(--shadow-medium);
+    }
+    .theme-toggle {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 1000;
+      background: var(--bg-secondary);
+      border: 2px solid var(--border-color);
+      border-radius: 50px;
+      padding: 10px 20px;
+      cursor: pointer;
+      box-shadow: 0 2px 10px var(--shadow-light);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+      transition: all 0.3s ease;
+    }
+    .theme-toggle:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px var(--shadow-medium);
     }
     .input-section {
       margin-bottom: 25px;
       padding: 20px;
-      background-color: #f8f9fa;
+      background-color: var(--bg-tertiary);
       border-radius: 8px;
       border-left: 4px solid #667eea;
     }
@@ -48,16 +103,18 @@
       display: block;
       margin-bottom: 8px;
       font-weight: 600;
-      color: #2d3748;
+      color: var(--text-secondary);
     }
     input, select, textarea {
       width: 100%;
       padding: 12px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
       border-radius: 6px;
       margin-bottom: 10px;
       font-size: 14px;
       transition: all 0.3s;
+      background-color: var(--input-bg);
+      color: var(--text-primary);
     }
     input:focus, select:focus, textarea:focus {
       outline: none;
@@ -83,25 +140,26 @@
     .free-style-section {
       margin-top: 25px;
       padding: 20px;
-      background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
       border-radius: 8px;
       border-left: 4px solid #ffd43b;
     }
     .parsed-info {
       margin-top: 15px;
       padding: 15px;
-      background-color: #d4edda;
+      background-color: rgba(40, 167, 69, 0.2);
       border-radius: 6px;
       border-left: 4px solid #28a745;
       display: none;
+      color: var(--text-primary);
     }
     .analysis-box {
-      background: white;
+      background: var(--bg-secondary);
       padding: 25px;
       border-radius: 10px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      box-shadow: 0 4px 20px var(--shadow-light);
       margin-top: 25px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
     }
     .analysis-header {
       text-align: center;
@@ -111,7 +169,7 @@
     }
     .analysis-header h3 {
       margin: 0;
-      color: #2d3748;
+      color: var(--text-secondary);
       font-size: 24px;
     }
     .analysis-grid {
@@ -121,14 +179,14 @@
       margin-bottom: 25px;
     }
     .metric-group {
-      background: #f8f9fa;
+      background: var(--bg-tertiary);
       padding: 20px;
       border-radius: 8px;
       border-left: 4px solid #667eea;
     }
     .metric-group h4 {
       margin: 0 0 15px 0;
-      color: #2d3748;
+      color: var(--text-secondary);
       font-size: 16px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -138,19 +196,19 @@
       justify-content: space-between;
       margin-bottom: 12px;
       padding-bottom: 8px;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--border-color);
     }
     .metric:last-child {
       border-bottom: none;
       margin-bottom: 0;
     }
     .metric-label {
-      color: #4a5568;
+      color: var(--text-tertiary);
       font-weight: 500;
     }
     .metric-value {
       font-weight: 600;
-      color: #2d3748;
+      color: var(--text-secondary);
     }
     .earnings-summary {
       background: linear-gradient(135deg, #00b894 0%, #00a085 100%);
@@ -204,21 +262,21 @@
       transition: width 0.5s ease;
     }
     .route-breakdown {
-      background: #f7f9fc;
+      background: var(--bg-tertiary);
       padding: 20px;
       border-radius: 8px;
       margin-top: 20px;
-      border: 1px solid #e2e8f0;
+      border: 1px solid var(--border-color);
     }
     .route-breakdown h4 {
       margin: 0 0 15px 0;
-      color: #2d3748;
+      color: var(--text-secondary);
     }
     .route-segment {
       display: flex;
       justify-content: space-between;
       padding: 10px 0;
-      border-bottom: 1px solid #e2e8f0;
+      border-bottom: 1px solid var(--border-color);
     }
     .route-segment:last-child {
       border-bottom: none;
@@ -228,10 +286,10 @@
       gap: 15px;
     }
     .segment-distance, .segment-time {
-      color: #4a5568;
+      color: var(--text-tertiary);
     }
     h2, h3 {
-      color: #2d3748;
+      color: var(--text-secondary);
       margin-bottom: 20px;
     }
     h2 {
@@ -239,7 +297,7 @@
       padding-bottom: 10px;
     }
     .fuel-cost-menu {
-      background: #e8f4fd;
+      background: rgba(33, 150, 243, 0.15);
       padding: 15px;
       border-radius: 6px;
       margin-bottom: 15px;
@@ -247,7 +305,7 @@
     }
     .fuel-cost-menu h4 {
       margin: 0 0 10px 0;
-      color: #2d3748;
+      color: var(--text-secondary);
     }
     .whatsapp-examples {
       background: #e8f5e9;
@@ -427,6 +485,11 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places"></script>
 </head>
 <body>
+  <button class="theme-toggle" onclick="toggleTheme()">
+    <span id="themeIcon">🌙</span>
+    <span id="themeText">Dark Mode</span>
+  </button>
+  
   <div class="container">
     <h2>SMART TRIP v1</h2>
     
@@ -563,7 +626,7 @@ Saloon Car
             <span class="metric-value" id="netFare">-</span>
           </div>
           <div class="metric">
-            <span class="metric-label">Fuel Cost</span>
+            <span class="metric-label">Expenses (Fuel + CC)</span>
             <span class="metric-value" id="fuelCost">-</span>
           </div>
           <div class="metric">
@@ -610,6 +673,12 @@ Saloon Car
             <span class="segment-time" id="efficiencyTime">- total time</span>
           </div>
           <div class="metric-value" id="efficiencyScore">-</div>
+        </div>
+        <div class="route-segment" style="border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px;">
+          <div class="segment-info">
+            <span class="segment-distance" style="font-weight: 600;">Profit per Hour</span>
+          </div>
+          <div class="metric-value" style="color: #00b894; font-weight: 700;" id="profitPerHour">-</div>
         </div>
         <div class="progress-container">
           <div class="progress-label">
@@ -930,10 +999,17 @@ Saloon Car
         routeResults.pickupToDropoff.duration + 
         routeResults.dropoffToBase.duration;
       
+      // Check for congestion charge (£15 per day if in zone)
+      const pickup = document.getElementById('pickupLocation').value;
+      const dropoff = document.getElementById('dropoffLocation').value;
+      const hasCongestionCharge = isInCongestionZone(pickup) || isInCongestionZone(dropoff);
+      const congestionCharge = hasCongestionCharge ? 15 : 0;
+      
       // Calculate financials using the fuel cost per 100 miles
       const fuelCostPerMile = currentTrip.fuelCostPer100Miles / 100;
       const fuelCost = (totalDistance * fuelCostPerMile).toFixed(2);
-      const profit = (currentTrip.price - parseFloat(fuelCost)).toFixed(2);
+      const totalExpenses = (parseFloat(fuelCost) + congestionCharge).toFixed(2);
+      const profit = (currentTrip.price - parseFloat(totalExpenses)).toFixed(2);
       const profitMargin = ((profit / currentTrip.price) * 100).toFixed(1);
       
       // Price per mile BEFORE expenses (gross)
@@ -964,7 +1040,11 @@ Saloon Car
       
       // Update financial metrics
       document.getElementById('netFare').textContent = `£${currentTrip.price}`;
-      document.getElementById('fuelCost').textContent = `£${fuelCost}`;
+      if (congestionCharge > 0) {
+        document.getElementById('fuelCost').textContent = `£${fuelCost} + £${congestionCharge} CC`;
+      } else {
+        document.getElementById('fuelCost').textContent = `£${fuelCost}`;
+      }
       document.getElementById('estimatedProfit').textContent = `£${profit}`;
       document.getElementById('profitMargin').textContent = `${profitMargin}%`;
       
@@ -980,6 +1060,10 @@ Saloon Car
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
       document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
+      
+      // Calculate and display profit per hour
+      const profitPerHourValue = (profit / (totalTime / 60)).toFixed(2);
+      document.getElementById('profitPerHour').textContent = `£${profitPerHourValue}/hr`;
       
       // Update efficiency progress (0-100% scale)
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
@@ -1214,6 +1298,42 @@ Saloon Car
       return locations;
     }
     
+    function isInCongestionZone(location) {
+      const locLower = location.toLowerCase().trim();
+      
+      // Central London postcodes in congestion charge zone
+      const congestionZones = [
+        'ec1', 'ec2', 'ec3', 'ec4',
+        'wc1', 'wc2',
+        'sw1', 'sw1a', 'sw1e', 'sw1h', 'sw1p', 'sw1v', 'sw1w', 'sw1x', 'sw1y',
+        'w1', 'w1a', 'w1b', 'w1c', 'w1d', 'w1f', 'w1g', 'w1h', 'w1j', 'w1k', 'w1s', 'w1t', 'w1u', 'w1w',
+        'se1', 'se11',
+        'e1'
+      ];
+      
+      // Check if location contains central London postcode
+      for (const zone of congestionZones) {
+        if (locLower.includes(zone)) {
+          return true;
+        }
+      }
+      
+      // Check for central London landmarks
+      const centralLondonKeywords = [
+        'westminster', 'piccadilly', 'soho', 'covent garden', 'holborn',
+        'city of london', 'shoreditch', 'southwark', 'waterloo',
+        'kings cross', 'euston', 'paddington', 'victoria', 'liverpool street'
+      ];
+      
+      for (const keyword of centralLondonKeywords) {
+        if (locLower.includes(keyword)) {
+          return true;
+        }
+      }
+      
+      return false;
+    }
+    
     function expandLocation(location) {
       const locLower = location.toLowerCase().trim();
       
@@ -1245,7 +1365,48 @@ Saloon Car
       return location;
     }
 
-    window.onload = initMap;
+    function toggleTheme() {
+      const html = document.documentElement;
+      const currentTheme = html.getAttribute('data-theme');
+      const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      
+      // Update button text and icon
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      if (newTheme === 'dark') {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light Mode';
+      } else {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark Mode';
+      }
+    }
+    
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+      
+      // Update button text and icon on load
+      const themeIcon = document.getElementById('themeIcon');
+      const themeText = document.getElementById('themeText');
+      
+      if (savedTheme === 'dark') {
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light Mode';
+      } else {
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark Mode';
+      }
+    }
+    
+    window.onload = function() {
+      loadTheme();
+      initMap();
+    };
   </script>
 </body>
 </html>
