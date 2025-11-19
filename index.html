@@ -746,6 +746,7 @@ Saloon Car
       pickupToDropoff: { distance: 0, duration: 0 },
       dropoffToBase: { distance: 0, duration: 0 }
     };
+    let parsedVehicleType = '';
 
     // Enhanced location database for better free-text parsing
     const locationDatabase = {
@@ -992,13 +993,15 @@ Saloon Car
       }
       
       // Update parsed information display
+      const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
+      
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> ${date || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
-        <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
         <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
@@ -1345,6 +1348,9 @@ Saloon Car
       }
       
       const parsed = parseFreeStyleText(freeText);
+      
+      // Store vehicle type globally
+      parsedVehicleType = parsed.vehicleType || '';
       
       // Update form with parsed values
       if (parsed.pickup) {
