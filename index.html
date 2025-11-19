@@ -1728,7 +1728,7 @@ Saloon Car
       }
       
       // Parse vehicle type - comprehensive patterns for all variations
-      const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|executive\s*car|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|executive|any\s*car)\b/gi);
+      const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
       if (vehicleMatch) {
         // Get the first match and format it nicely
         let vehicle = vehicleMatch[0].trim();
@@ -1743,8 +1743,10 @@ Saloon Car
           result.vehicleType = 'Estate Car';
         } else if (vehicle.match(/saloon\s*car/i)) {
           result.vehicleType = 'Saloon Car';
-        } else if (vehicle.match(/executive\s*car/i)) {
+        } else if (vehicle.match(/ex[e|c]cutive\s*car/i)) {
           result.vehicleType = 'Executive Car';
+        } else if (vehicle.match(/ex[e|c]cutive/i)) {
+          result.vehicleType = 'Executive';
         } else if (vehicle.match(/mpv\s*8/i)) {
           result.vehicleType = 'MPV 8';
         } else if (vehicle.match(/9\s*seater/i)) {
@@ -1763,8 +1765,6 @@ Saloon Car
           result.vehicleType = 'Estate';
         } else if (vehicle.match(/saloon/i)) {
           result.vehicleType = 'Saloon';
-        } else if (vehicle.match(/executive/i)) {
-          result.vehicleType = 'Executive';
         } else if (vehicle.match(/mpv/i)) {
           result.vehicleType = 'MPV';
         } else {
