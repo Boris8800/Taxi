@@ -1726,9 +1726,48 @@ Saloon Car
       }
       
       // Parse vehicle type - comprehensive patterns for all variations
-      const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e class|e-class|estate car|saloon car|executive car|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|executive|any car)\b/i);
+      const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|executive\s*car|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|executive|any\s*car)\b/gi);
       if (vehicleMatch) {
-        result.vehicleType = vehicleMatch[1].charAt(0).toUpperCase() + vehicleMatch[1].slice(1).toLowerCase();
+        // Get the first match and format it nicely
+        let vehicle = vehicleMatch[0].trim();
+        // Standardize the formatting
+        if (vehicle.match(/exec\s*\/?\s*e\s*class\s*or\s*similar/i)) {
+          result.vehicleType = 'Exec/E Class or Similar';
+        } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
+          result.vehicleType = 'E Class or Similar';
+        } else if (vehicle.match(/e\s*class|e-class/i)) {
+          result.vehicleType = 'E Class';
+        } else if (vehicle.match(/estate\s*car/i)) {
+          result.vehicleType = 'Estate Car';
+        } else if (vehicle.match(/saloon\s*car/i)) {
+          result.vehicleType = 'Saloon Car';
+        } else if (vehicle.match(/executive\s*car/i)) {
+          result.vehicleType = 'Executive Car';
+        } else if (vehicle.match(/mpv\s*8/i)) {
+          result.vehicleType = 'MPV 8';
+        } else if (vehicle.match(/9\s*seater/i)) {
+          result.vehicleType = '9 Seater';
+        } else if (vehicle.match(/8\s*seater/i)) {
+          result.vehicleType = '8 Seater';
+        } else if (vehicle.match(/7\s*seater/i)) {
+          result.vehicleType = '7 Seater';
+        } else if (vehicle.match(/any\s*car/i)) {
+          result.vehicleType = 'Any Car';
+        } else if (vehicle.match(/minivan/i)) {
+          result.vehicleType = 'Minivan';
+        } else if (vehicle.match(/minibus/i)) {
+          result.vehicleType = 'Minibus';
+        } else if (vehicle.match(/estate/i)) {
+          result.vehicleType = 'Estate';
+        } else if (vehicle.match(/saloon/i)) {
+          result.vehicleType = 'Saloon';
+        } else if (vehicle.match(/executive/i)) {
+          result.vehicleType = 'Executive';
+        } else if (vehicle.match(/mpv/i)) {
+          result.vehicleType = 'MPV';
+        } else {
+          result.vehicleType = vehicle.charAt(0).toUpperCase() + vehicle.slice(1).toLowerCase();
+        }
       }
       
       return result;
