@@ -748,6 +748,7 @@ Saloon Car
       dropoffToBase: { distance: 0, duration: 0 }
     };
     let parsedVehicleType = '';
+    let parsedDateLabel = '';
 
     // Enhanced location database for better free-text parsing
     const locationDatabase = {
@@ -1430,8 +1431,9 @@ Saloon Car
       
       const parsed = parseFreeStyleText(freeText);
       
-      // Store vehicle type globally
+      // Store vehicle type and date label globally
       parsedVehicleType = parsed.vehicleType || '';
+      parsedDateLabel = parsed.dateLabel || '';
       
       // Update form with parsed values
       if (parsed.pickup) {
@@ -1459,10 +1461,10 @@ Saloon Car
       const baseLocation = document.getElementById('baseLocation').value;
       
       const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
-      const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
+      const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
       
-      // Display date with label (Today/Tomorrow) if available
-      const dateDisplay = parsed.dateLabel ? `${date} (${parsed.dateLabel})` : date;
+      // Display date with label (Today/Tomorrow + Day name) if available
+      const dateDisplay = parsedDateLabel ? `${date} - ${parsedDateLabel}` : date;
       
       // Get total distance and time if calculated
       const totalDistance = document.getElementById('totalDistance').textContent;
@@ -1572,13 +1574,14 @@ Saloon Car
       
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
-          result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-          result.dateLabel = 'Today';
+          const today = new Date();
+          result.date = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          result.dateLabel = `Today (${today.toLocaleDateString('en-GB', { weekday: 'long' })})`;
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           result.date = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-          result.dateLabel = 'Tomorrow';
+          result.dateLabel = `Tomorrow (${tomorrow.toLocaleDateString('en-GB', { weekday: 'long' })})`;
         } else {
           // Format the date properly
           const dateStr = dateMatch[0];
