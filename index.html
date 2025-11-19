@@ -942,7 +942,7 @@ Saloon Car
       document.getElementById('baseLocation').value = "Birmingham";
       document.getElementById('pickupLocation').value = "";
       document.getElementById('dropoffLocation').value = "";
-      document.getElementById('tripDate').value = "";
+      document.getElementById('tripDateDisplay').value = "";
       document.getElementById('tripTime').value = "";
       document.getElementById('tripPrice').value = "";
       document.getElementById('fuelCostPer100Miles').value = "10.00";
@@ -1377,7 +1377,7 @@ Saloon Car
     function shareTrip() {
       const pickup = document.getElementById('pickupLocation').value;
       const dropoff = document.getElementById('dropoffLocation').value;
-      const date = document.getElementById('tripDate').value;
+      const date = document.getElementById('tripDateDisplay').value;
       const time = document.getElementById('tripTime').value;
       const price = document.getElementById('tripPrice').value;
       
@@ -1446,41 +1446,6 @@ Saloon Car
         alert('❌ Could not copy. Please copy manually.');
       }
       document.body.removeChild(textArea);
-    }
-    
-    function updateDateDisplay() {
-      const dateInput = document.getElementById('tripDate');
-      const dateDisplay = document.getElementById('tripDateDisplay');
-      
-      if (dateInput.value) {
-        const date = new Date(dateInput.value + 'T00:00:00');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-        
-        const dayName = date.toLocaleDateString('en-GB', { weekday: 'long' });
-        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        
-        if (selectedDate.getTime() === today.getTime()) {
-          dateDisplay.value = `${formattedDate} - Today (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        } else if (selectedDate.getTime() === tomorrow.getTime()) {
-          dateDisplay.value = `${formattedDate} - Tomorrow (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        } else {
-          dateDisplay.value = `${formattedDate} (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        }
-      } else {
-        dateDisplay.value = '';
-        parsedDateLabel = '';
-      }
-      
-      updateParsedInfoFromStandardInput();
     }
     
     function convertToISODate(dateStr) {
@@ -2209,8 +2174,6 @@ Saloon Car
       }
       
       // Return original location with preserved capitalization
-      return location;
-    }
       return location;
     }
 
