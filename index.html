@@ -364,6 +364,20 @@
       background: #f1f8e9;
       transform: translateX(5px);
     }
+    .editable-field {
+      cursor: pointer;
+      color: #667eea;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+      transition: all 0.2s;
+    }
+    .editable-field:hover {
+      color: #764ba2;
+      text-decoration-style: solid;
+      background: rgba(102, 126, 234, 0.1);
+      padding: 2px 4px;
+      border-radius: 3px;
+    }
 
     /* Mobile-specific optimizations */
     @media (max-width: 768px) {
@@ -1067,11 +1081,11 @@ Saloon Car
       const dateDisplay = parsedDateLabel ? `${date} - ${parsedDateLabel}` : date;
       
       document.getElementById('parsedDetails').innerHTML = `
-        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
-        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
-        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> ${dateDisplay || 'Not set'}<br>
-        <strong>Time:</strong> ${time || 'Not set'}<br>
+        <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
+        <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
+        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">£${price || 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${dateDisplay || 'Not set'}</span><br>
+        <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}</span><br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
@@ -1504,11 +1518,11 @@ Saloon Car
       }
       
       document.getElementById('parsedDetails').innerHTML = `
-        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
-        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
-        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> ${dateDisplay || 'Not set'}<br>
-        <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
+        <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
+        <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
+        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">£${price || 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${dateDisplay || 'Not set'}</span><br>
+        <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}${timeOfDay}</span><br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
