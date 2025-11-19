@@ -2074,36 +2074,33 @@ Saloon Car
       
       // PRIORITY 2: Check for vertical listings with "Airport Job" pattern
       // Pattern: "Heathrow Airport Job\nHeathrow Airport\nE5 0QQ"
+      // In this format: Airport name is ALWAYS pickup, Postcode is ALWAYS dropoff
       const airportJobMatch = text.match(/(heathrow|gatwick|stansted|luton|london city|birmingham|manchester)\s+airport\s+job/gi);
       if (airportJobMatch && !pickupFound && !dropoffFound) {
         // Split into lines and look for airport name and postcode
         const lines = text.split(/\n/).map(line => line.trim()).filter(line => line.length > 0);
         
-        const foundLocations = [];
+        let airportLocation = null;
+        let postcodeLocation = null;
         
         for (let i = 0; i < lines.length; i++) {
           const line = lines[i];
           
           // Check if line contains airport name (and isn't the job title)
-          if (line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
-            const airportName = line.toLowerCase().trim();
-            foundLocations.push({ index: i, location: airportName });
+          if (!airportLocation && line.match(/(heathrow|gatwick|stansted|luton|lhr|lgw|stn|ltn)\s*(?:airport)?$/gi) && !line.match(/job$/i)) {
+            airportLocation = line.toLowerCase().trim();
           }
           
           // Check if line is a full postcode
-          if (line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
-            const postcode = line.toLowerCase().trim();
-            foundLocations.push({ index: i, location: postcode });
+          if (!postcodeLocation && line.match(/^[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}$/i)) {
+            postcodeLocation = line.toLowerCase().trim();
           }
         }
         
-        // Sort by line index to maintain vertical order (first = pickup, second = dropoff)
-        foundLocations.sort((a, b) => a.index - b.index);
-        
-        // Add first two locations in order
-        if (foundLocations.length >= 2) {
-          locations.push(foundLocations[0].location); // First vertical = pickup
-          locations.push(foundLocations[1].location); // Second vertical = dropoff
+        // For "Airport Job" format: Airport is ALWAYS pickup, Postcode is ALWAYS dropoff
+        if (airportLocation && postcodeLocation) {
+          locations.push(airportLocation); // Airport = pickup
+          locations.push(postcodeLocation); // Postcode = dropoff
           return locations;
         }
       }
