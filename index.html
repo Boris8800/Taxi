@@ -659,7 +659,7 @@
       border-radius: 6px;
     }
   </style>
-  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places"></script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places&callback=initMap" async defer></script>
 </head>
 <body>
   <button class="theme-toggle" onclick="toggleTheme()">
@@ -2254,8 +2254,6 @@ Saloon Car
     
     window.onload = function() {
       loadTheme();
-      initMap();
-      setupGoogleAutocomplete();
     };
   </script>
 </body>
