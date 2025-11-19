@@ -736,6 +736,7 @@ Saloon Car
 £80 Same day"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
         <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Parse</button>
+        <button onclick="parseFreeStyle()" style="flex: 1; background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);">🔍 Parse</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
       </div>
       
@@ -1036,6 +1037,19 @@ Saloon Car
           });
         }
       });
+      
+      // Add paste event listener to freeStyleInput textarea
+      const freeStyleInput = document.getElementById('freeStyleInput');
+      if (freeStyleInput) {
+        freeStyleInput.addEventListener('paste', function(event) {
+          // Wait a moment for paste to complete, then parse
+          setTimeout(() => {
+            if (freeStyleInput.value.trim()) {
+              parseFreeStyle();
+            }
+          }, 100);
+        });
+      }
     }
 
     function updateParsedInfoFromStandardInput() {
@@ -1466,12 +1480,16 @@ Saloon Car
     }
     
     async function pasteFromClipboard() {
+      const textarea = document.getElementById('freeStyleInput');
       try {
         const text = await navigator.clipboard.readText();
-        document.getElementById('freeStyleInput').value = text;
+        textarea.value = text;
         parseFreeStyle(); // Auto-parse after paste
       } catch (err) {
-        alert('Please paste manually using Ctrl+V or Cmd+V');
+        // Focus the textarea so user can paste manually
+        textarea.focus();
+        textarea.select();
+        // The paste event listener will handle the parsing
       }
     }
     
