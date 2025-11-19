@@ -305,6 +305,37 @@
       margin: 0 0 15px 0;
       color: var(--text-secondary);
     }
+    .efficiency-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 0;
+      border-bottom: 1px solid var(--border-color);
+    }
+    .efficiency-row-last {
+      padding: 15px 0;
+    }
+    .efficiency-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      width: 100%;
+    }
+    .efficiency-label {
+      font-size: 14px;
+      color: var(--text-tertiary);
+    }
+    .efficiency-value {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    .efficiency-value-large {
+      font-size: 20px;
+      font-weight: 700;
+      color: #00b894;
+    }
     .route-segment {
       display: flex;
       justify-content: space-between;
@@ -722,16 +753,16 @@ Saloon Car
         <h4>Route Efficiency</h4>
         
         <!-- Profit per Hour - Minimalist -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e2e8f0;">
-          <span style="font-size: 14px; color: #64748b;">Profit per Hour</span>
-          <span style="font-size: 20px; font-weight: 700; color: #00b894;" id="profitPerHour">-</span>
+        <div class="efficiency-row">
+          <span class="efficiency-label">Profit per Hour</span>
+          <span class="efficiency-value-large" id="profitPerHour">-</span>
         </div>
         
         <!-- Route Efficiency - Progress Bar -->
-        <div style="padding: 15px 0; border-bottom: 1px solid #e2e8f0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 14px; color: #64748b;">Route Efficiency</span>
-            <span style="font-size: 14px; font-weight: 600; color: #1e293b;" id="efficiencyScore">-</span>
+        <div class="efficiency-row">
+          <div class="efficiency-header">
+            <span class="efficiency-label">Route Efficiency</span>
+            <span class="efficiency-value" id="efficiencyScore">-</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
@@ -739,10 +770,10 @@ Saloon Car
         </div>
         
         <!-- Profit Margin - Progress Bar -->
-        <div style="padding: 15px 0;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-            <span style="font-size: 14px; color: #64748b;">Profit Margin</span>
-            <span style="font-size: 14px; font-weight: 600; color: #1e293b;" id="profitMarginPercent">0%</span>
+        <div class="efficiency-row-last">
+          <div class="efficiency-header">
+            <span class="efficiency-label">Profit Margin</span>
+            <span class="efficiency-value" id="profitMarginPercent">0%</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" id="profitMarginProgress" style="width: 0%"></div>
@@ -1285,7 +1316,7 @@ Saloon Car
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
-      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
+      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr (${efficiencyPercent.toFixed(0)}%)`;
       
       // Calculate and display profit per hour
       const profitPerHourCalc = parseFloat((profit / (totalTime / 60)).toFixed(2));
