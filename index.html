@@ -1064,12 +1064,13 @@ Saloon Car
       
       // Update parsed information display
       const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
+      const dateDisplay = parsedDateLabel ? `${date} - ${parsedDateLabel}` : date;
       
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
         <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-        <strong>Date:</strong> ${date || 'Not set'}<br>
+        <strong>Date:</strong> ${dateDisplay || 'Not set'}<br>
         <strong>Time:</strong> ${time || 'Not set'}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
