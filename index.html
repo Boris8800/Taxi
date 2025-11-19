@@ -950,6 +950,31 @@ Saloon Car
       const hasCongestionCharge = fuelCostText.includes('CC');
       const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
       
+      // Determine profit level badge
+      let profitBadge = '';
+      if (profitPerHour !== '-' && profitPerHour !== 'Not calculated') {
+        let profitPerHourValue = 0;
+        if (profitPerHour === 'No Profit') {
+          profitPerHourValue = 0;
+        } else if (profitPerHour.startsWith('-')) {
+          profitPerHourValue = -parseFloat(profitPerHour.replace('-£', '').replace('/hr', ''));
+        } else {
+          profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
+        }
+        
+        if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
+        } else if (profitPerHourValue < 0) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
+        } else if (profitPerHourValue < 8) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOW</span>';
+        } else if (profitPerHourValue < 13) {
+          profitBadge = ' <span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">MEDIUM</span>';
+        } else {
+          profitBadge = ' <span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">GOOD</span>';
+        }
+      }
+      
       // Update parsed information display
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
@@ -960,7 +985,7 @@ Saloon Car
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
-        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${ccBadge}<br>
+        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
         <strong>£/hr:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
       `;
       
@@ -1344,6 +1369,31 @@ Saloon Car
       const hasCongestionCharge = fuelCostText.includes('CC');
       const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
       
+      // Determine profit level badge
+      let profitBadge = '';
+      if (profitPerHour !== '-' && profitPerHour !== 'Not calculated') {
+        let profitPerHourValue = 0;
+        if (profitPerHour === 'No Profit') {
+          profitPerHourValue = 0;
+        } else if (profitPerHour.startsWith('-')) {
+          profitPerHourValue = -parseFloat(profitPerHour.replace('-£', '').replace('/hr', ''));
+        } else {
+          profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
+        }
+        
+        if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
+        } else if (profitPerHourValue < 0) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
+        } else if (profitPerHourValue < 8) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOW</span>';
+        } else if (profitPerHourValue < 13) {
+          profitBadge = ' <span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">MEDIUM</span>';
+        } else {
+          profitBadge = ' <span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">GOOD</span>';
+        }
+      }
+      
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
         <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
@@ -1353,7 +1403,7 @@ Saloon Car
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
-        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${ccBadge}<br>
+        <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
         <strong>£/hr:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
       `;
       
