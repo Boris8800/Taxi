@@ -1447,41 +1447,6 @@ Saloon Car
       document.body.removeChild(textArea);
     }
     
-    function updateDateDisplay() {
-      const dateInput = document.getElementById('tripDate');
-      const dateDisplay = document.getElementById('tripDateDisplay');
-      
-      if (dateInput.value) {
-        const date = new Date(dateInput.value + 'T00:00:00');
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        
-        const selectedDate = new Date(date);
-        selectedDate.setHours(0, 0, 0, 0);
-        
-        const dayName = date.toLocaleDateString('en-GB', { weekday: 'long' });
-        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        
-        if (selectedDate.getTime() === today.getTime()) {
-          dateDisplay.value = `${formattedDate} - Today (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        } else if (selectedDate.getTime() === tomorrow.getTime()) {
-          dateDisplay.value = `${formattedDate} - Tomorrow (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        } else {
-          dateDisplay.value = `${formattedDate} (${dayName})`;
-          parsedDateLabel = dateDisplay.value;
-        }
-      } else {
-        dateDisplay.value = '';
-        parsedDateLabel = '';
-      }
-      
-      updateParsedInfoFromStandardInput();
-    }
-    
     function convertToISODate(dateStr) {
       // Remove labels like "Tomorrow (Wednesday)" or "Today (Tuesday)"
       let cleanDate = dateStr.replace(/\s*-\s*(Today|Tomorrow)\s*\([^)]+\)/i, '');
