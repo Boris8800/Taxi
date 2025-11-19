@@ -721,49 +721,32 @@ Saloon Car
       <div class="route-breakdown">
         <h4>Route Efficiency</h4>
         
-        <!-- Profit per Hour -->
-        <div class="route-segment" style="background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-          <div class="segment-info">
-            <span style="font-size: 14px; opacity: 0.9;">💰 Profit per Hour</span>
-          </div>
-          <div style="font-size: 28px; font-weight: 700; margin-top: 5px;" id="profitPerHour">-</div>
+        <!-- Profit per Hour - Minimalist -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e2e8f0;">
+          <span style="font-size: 14px; color: #64748b;">Profit per Hour</span>
+          <span style="font-size: 20px; font-weight: 700; color: #00b894;" id="profitPerHour">-</span>
         </div>
         
-        <!-- Route Efficiency Score -->
-        <div class="route-segment" style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-          <div class="segment-info">
-            <span style="font-size: 13px; color: #636e72;">📊 Route Efficiency</span>
-            <span style="font-size: 13px; color: #636e72;" id="efficiencyTime">- total time</span>
-          </div>
-          <div style="font-size: 20px; font-weight: 600; color: #2d3436; margin-top: 5px;" id="efficiencyScore">-</div>
-        </div>
-        
-        <!-- Trip Efficiency Progress -->
-        <div class="progress-container">
-          <div class="progress-label">
-            <span style="font-weight: 600;">⚡ Trip Efficiency</span>
-            <span id="efficiencyPercent" style="font-weight: 600;">0%</span>
+        <!-- Route Efficiency - Progress Bar -->
+        <div style="padding: 15px 0; border-bottom: 1px solid #e2e8f0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 14px; color: #64748b;">Route Efficiency</span>
+            <span style="font-size: 14px; font-weight: 600; color: #1e293b;" id="efficiencyScore">-</span>
           </div>
           <div class="progress-bar">
             <div class="progress-fill" id="efficiencyProgress" style="width: 0%"></div>
           </div>
         </div>
         
-        <!-- Profit Margin Progress -->
-        <div class="progress-container">
-          <div class="progress-label">
-            <span style="font-weight: 600;">📈 Profit Margin</span>
-            <span id="profitMarginPercent" style="font-weight: 600;">0%</span>
+        <!-- Profit Margin - Progress Bar -->
+        <div style="padding: 15px 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span style="font-size: 14px; color: #64748b;">Profit Margin</span>
+            <span style="font-size: 14px; font-weight: 600; color: #1e293b;" id="profitMarginPercent">0%</span>
           </div>
           <div class="progress-bar">
-            <div class="progress-fill" id="profitMarginProgress" style="width: 0%; background: linear-gradient(90deg, #00b894 0%, #00cec9 100%);"></div>
+            <div class="progress-fill" id="profitMarginProgress" style="width: 0%"></div>
           </div>
-        </div>
-        
-        <!-- Total Distance -->
-        <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #636e72;">
-          <span>📏 Total Distance: </span>
-          <span id="efficiencyDistance" style="font-weight: 600; color: #2d3436;">- miles</span>
         </div>
       </div>
     </div>
@@ -1299,14 +1282,10 @@ Saloon Car
       document.getElementById('pricePerHour').textContent = `£${pricePerHour}`;
       document.getElementById('totalProfit').textContent = `£${profit}`;
       
-      // Update efficiency metrics
-      document.getElementById('efficiencyDistance').textContent = `${totalDistance.toFixed(1)} miles total`;
-      document.getElementById('efficiencyTime').textContent = `${formatMinutesToText(totalTime)} total time`;
-      
       // Calculate efficiency score (higher is better)
       const efficiencyScore = (currentTrip.price / totalTime * 60).toFixed(2);
       const efficiencyPercent = Math.min((efficiencyScore / 50) * 100, 100); // Cap at £50/hr = 100%
-      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr (${efficiencyPercent.toFixed(0)}%)`;
+      document.getElementById('efficiencyScore').textContent = `£${efficiencyScore}/hr`;
       
       // Calculate and display profit per hour
       const profitPerHourCalc = parseFloat((profit / (totalTime / 60)).toFixed(2));
@@ -1319,7 +1298,6 @@ Saloon Car
       }
       
       // Update efficiency progress (0-100% scale) - already calculated above
-      document.getElementById('efficiencyPercent').textContent = `${efficiencyPercent.toFixed(0)}%`;
       document.getElementById('efficiencyProgress').style.width = `${efficiencyPercent}%`;
       
       // Update profit margin progress bar
