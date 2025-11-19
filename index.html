@@ -364,6 +364,7 @@
       background: #f1f8e9;
       transform: translateX(5px);
     }
+    
     .editable-field {
       cursor: pointer;
       color: #667eea;
@@ -371,9 +372,9 @@
       text-decoration-style: dotted;
       transition: all 0.2s;
     }
+    
     .editable-field:hover {
       color: #764ba2;
-      text-decoration-style: solid;
       background: rgba(102, 126, 234, 0.1);
       padding: 2px 4px;
       border-radius: 3px;
@@ -569,12 +570,12 @@
       
       <div class="input-group">
         <label for="tripDate">Date</label>
-        <input type="date" id="tripDate" value="" placeholder="e.g., 18 Nov">
+        <input type="date" id="tripDate" value="">
       </div>
       
       <div class="input-group">
         <label for="tripTime">Pickup Time</label>
-        <input type="time" id="tripTime" value="" placeholder="e.g., 19:35">
+        <input type="time" id="tripTime" value="">
       </div>
       
       <div class="input-group">
@@ -603,7 +604,7 @@ Drop Off:  LHR 2
 Saloon Car
 £80 Same day"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <button onclick="pasteFromClipboard()" style="flex: 0 0 auto; background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);">📋 Paste</button>
+        <button onclick="pasteFromClipboard()" style="flex: 0 0 auto; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste</button>
         <button onclick="parseFreeStyle()" style="flex: 1;">Parse Free-Text</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
       </div>
@@ -762,7 +763,6 @@ Saloon Car
       dropoffToBase: { distance: 0, duration: 0 }
     };
     let parsedVehicleType = '';
-    let parsedDateLabel = '';
 
     // Enhanced location database for better free-text parsing
     const locationDatabase = {
@@ -1078,13 +1078,12 @@ Saloon Car
       
       // Update parsed information display
       const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
-      const dateDisplay = parsedDateLabel ? `${date} - ${parsedDateLabel}` : date;
       
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
         <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
-        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">£${price || 'Not set'}</span><br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${dateDisplay || 'Not set'}</span><br>
+        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">${price ? '£' + price : 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
         <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}</span><br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
@@ -1419,10 +1418,8 @@ Saloon Car
       try {
         const text = await navigator.clipboard.readText();
         document.getElementById('freeStyleInput').value = text;
-        // Auto-parse after pasting
-        parseFreeStyle();
+        parseFreeStyle(); // Auto-parse after paste
       } catch (err) {
-        // Fallback for browsers that don't support clipboard API or need permission
         alert('Please paste manually using Ctrl+V or Cmd+V');
       }
     }
@@ -1446,9 +1443,8 @@ Saloon Car
       
       const parsed = parseFreeStyleText(freeText);
       
-      // Store vehicle type and date label globally
+      // Store vehicle type globally
       parsedVehicleType = parsed.vehicleType || '';
-      parsedDateLabel = parsed.dateLabel || '';
       
       // Update form with parsed values
       if (parsed.pickup) {
@@ -1476,10 +1472,7 @@ Saloon Car
       const baseLocation = document.getElementById('baseLocation').value;
       
       const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
-      const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
-      
-      // Display date with label (Today/Tomorrow + Day name) if available
-      const dateDisplay = parsedDateLabel ? `${date} - ${parsedDateLabel}` : date;
+      const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
       
       // Get total distance and time if calculated
       const totalDistance = document.getElementById('totalDistance').textContent;
@@ -1520,8 +1513,8 @@ Saloon Car
       document.getElementById('parsedDetails').innerHTML = `
         <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
         <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
-        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">£${price || 'Not set'}</span><br>
-        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${dateDisplay || 'Not set'}</span><br>
+        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">${price ? '£' + price : 'Not set'}</span><br>
+        <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
         <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}${timeOfDay}</span><br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
@@ -1589,14 +1582,11 @@ Saloon Car
       
       if (dateMatch) {
         if (dateMatch[0].toLowerCase() === 'today') {
-          const today = new Date();
-          result.date = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-          result.dateLabel = `Today (${today.toLocaleDateString('en-GB', { weekday: 'long' })})`;
+          result.date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           result.date = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-          result.dateLabel = `Tomorrow (${tomorrow.toLocaleDateString('en-GB', { weekday: 'long' })})`;
         } else {
           // Format the date properly
           const dateStr = dateMatch[0];
