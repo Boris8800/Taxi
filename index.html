@@ -15,7 +15,7 @@
     }
     body {
       font-family: 'Segoe UI', Arial, sans-serif;
-      margin: 20px;
+      margin: 20px auto;
       max-width: 1200px;
       background-color: #f5f7fa;
       color: #333;
@@ -410,7 +410,7 @@
         <h4>Fuel Cost Settings</h4>
         <div class="input-group">
           <label for="fuelCostPer100Miles">Fuel Cost per 100 Miles (£)</label>
-          <input type="number" id="fuelCostPer100Miles" value="15.00" step="0.01" min="0">
+          <input type="number" id="fuelCostPer100Miles" value="10.00" step="0.01" min="0">
           <small>Average fuel cost for 100 miles of driving</small>
         </div>
       </div>
@@ -422,27 +422,27 @@
       
       <div class="input-group">
         <label for="pickupLocation">Pickup Location</label>
-        <input type="text" id="pickupLocation" placeholder="Enter pickup location">
+        <input type="text" id="pickupLocation" value="" placeholder="Enter pickup location">
       </div>
       
       <div class="input-group">
         <label for="dropoffLocation">Dropoff Location</label>
-        <input type="text" id="dropoffLocation" placeholder="Enter dropoff location">
+        <input type="text" id="dropoffLocation" value="" placeholder="Enter dropoff location">
       </div>
       
       <div class="input-group">
         <label for="tripDate">Date</label>
-        <input type="text" id="tripDate" placeholder="e.g., 18 Nov">
+        <input type="text" id="tripDate" value="" placeholder="e.g., 18 Nov">
       </div>
       
       <div class="input-group">
         <label for="tripTime">Pickup Time</label>
-        <input type="text" id="tripTime" placeholder="e.g., 19:35">
+        <input type="text" id="tripTime" value="" placeholder="e.g., 19:35">
       </div>
       
       <div class="input-group">
         <label for="tripPrice">Price (Net)</label>
-        <input type="text" id="tripPrice" placeholder="e.g., 70">
+        <input type="text" id="tripPrice" value="" placeholder="e.g., 70">
       </div>
       
       <button onclick="calculateTrip()">Calculate Trip</button>
@@ -457,16 +457,20 @@ LHR TO W1J PRICE 50 NET
 STN TO CB10 PRICE 55 NET
 Heathrow T2 to NW1 8YN £45
 Gatwick to SW1V 1LH £60
+Early Morning
+04:00 N8 7RU to LGW
+Estate car
+£60 Same day
+
 Wednesday 19th  2025, 06:30 am
-
 Pick Up:  CB3 9HY
-
 Drop Off:  LHR 2
-
 Saloon Car
-
 £80 Same day"></textarea>
-      <button onclick="parseFreeStyle()">Parse Free-Text</button>
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button onclick="parseFreeStyle()" style="flex: 1;">Parse Free-Text</button>
+        <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
+      </div>
       
       <div id="parsedInfo" class="parsed-info">
         <h4>Parsed Information:</h4>
@@ -632,6 +636,11 @@ Saloon Car
       'lhr 3': 'London Heathrow Airport Terminal 3',
       'lhr 4': 'London Heathrow Airport Terminal 4',
       'lhr 5': 'London Heathrow Airport Terminal 5',
+      'lhrt1': 'London Heathrow Airport Terminal 1',
+      'lhrt2': 'London Heathrow Airport Terminal 2',
+      'lhrt3': 'London Heathrow Airport Terminal 3',
+      'lhrt4': 'London Heathrow Airport Terminal 4',
+      'lhrt5': 'London Heathrow Airport Terminal 5',
       
       'lgw': 'London Gatwick Airport',
       'gatwick': 'London Gatwick Airport',
@@ -659,6 +668,10 @@ Saloon Car
       'man': 'Manchester Airport',
       'manchester airport': 'Manchester Airport',
       
+      'sen': 'London Southend Airport',
+      'southend': 'London Southend Airport',
+      'southend airport': 'London Southend Airport',
+      
       // London Areas & Postcodes
       'w1d': 'London W1D',
       'w1': 'London W1',
@@ -670,6 +683,8 @@ Saloon Car
       'ec1': 'London EC1',
       'ec2': 'London EC2',
       'n1': 'London N1',
+      'n8': 'London N8',
+      'n8 7ru': 'London N8 7RU',
       'nw1': 'London NW1',
       'se1': 'London SE1',
       'se10': 'London SE10',
@@ -689,6 +704,11 @@ Saloon Car
       'w2 4sa': 'London W2 4SA',
       'tn4 9ng': 'TN4 9NG',
       'cb3 9hy': 'CB3 9HY',
+      'cb10': 'CB10',
+      'ub3': 'UB3',
+      'ub3 5ay': 'UB3 5AY',
+      'ss2': 'SS2',
+      'ss2 6yh': 'SS2 6YH',
       
       // Cities & Towns
       'birmingham': 'Birmingham',
@@ -735,12 +755,61 @@ Saloon Car
       
       // Set default values in form
       document.getElementById('baseLocation').value = "Birmingham";
-      document.getElementById('pickupLocation').value = currentTrip.pickup;
-      document.getElementById('dropoffLocation').value = currentTrip.dropoff;
-      document.getElementById('tripDate').value = currentTrip.date;
-      document.getElementById('tripTime').value = currentTrip.pickupTime;
-      document.getElementById('tripPrice').value = currentTrip.price;
-      document.getElementById('fuelCostPer100Miles').value = "15.00";
+      document.getElementById('pickupLocation').value = "";
+      document.getElementById('dropoffLocation').value = "";
+      document.getElementById('tripDate').value = "";
+      document.getElementById('tripTime').value = "";
+      document.getElementById('tripPrice').value = "";
+      document.getElementById('fuelCostPer100Miles').value = "10.00";
+      
+      // Add event listeners to standard input fields
+      setupInputListeners();
+      
+      // Update parsed info initially
+      updateParsedInfoFromStandardInput();
+    }
+
+    function setupInputListeners() {
+      // Add event listeners to all standard input fields
+      const inputFields = [
+        'pickupLocation',
+        'dropoffLocation', 
+        'tripDate',
+        'tripTime',
+        'tripPrice',
+        'baseLocation'
+      ];
+      
+      inputFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.addEventListener('input', updateParsedInfoFromStandardInput);
+          field.addEventListener('change', updateParsedInfoFromStandardInput);
+        }
+      });
+    }
+
+    function updateParsedInfoFromStandardInput() {
+      // Get current values from standard input fields
+      const pickup = document.getElementById('pickupLocation').value;
+      const dropoff = document.getElementById('dropoffLocation').value;
+      const date = document.getElementById('tripDate').value;
+      const time = document.getElementById('tripTime').value;
+      const price = document.getElementById('tripPrice').value;
+      const baseLocation = document.getElementById('baseLocation').value;
+      
+      // Update parsed information display
+      document.getElementById('parsedDetails').innerHTML = `
+        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
+        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
+        <strong>Date:</strong> ${date || 'Not set'}<br>
+        <strong>Time:</strong> ${time || 'Not set'}<br>
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}
+      `;
+      
+      // Show the parsed info section
+      document.getElementById('parsedInfo').style.display = 'block';
     }
 
     function calculateTrip() {
@@ -911,6 +980,11 @@ Saloon Car
       }
     }
     
+    function clearFreeStyleInput() {
+      document.getElementById('freeStyleInput').value = '';
+      document.getElementById('parsedInfo').style.display = 'none';
+    }
+    
     function parseFreeStyle() {
       const freeText = document.getElementById('freeStyleInput').value;
       if (!freeText.trim()) {
@@ -937,14 +1011,26 @@ Saloon Car
         document.getElementById('tripTime').value = parsed.time;
       }
       
-      // Show parsed information
+      // Update parsed information display with additional details
+      const pickup = document.getElementById('pickupLocation').value;
+      const dropoff = document.getElementById('dropoffLocation').value;
+      const price = document.getElementById('tripPrice').value;
+      const date = document.getElementById('tripDate').value;
+      const time = document.getElementById('tripTime').value;
+      const baseLocation = document.getElementById('baseLocation').value;
+      
+      const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
+      const vehicleType = parsed.vehicleType ? `<br><strong>Vehicle:</strong> ${parsed.vehicleType}` : '';
+      
       document.getElementById('parsedDetails').innerHTML = `
-        <strong>Pickup:</strong> ${parsed.pickup || 'Not detected'}<br>
-        <strong>Dropoff:</strong> ${parsed.dropoff || 'Not detected'}<br>
-        <strong>Price:</strong> ${parsed.price ? '£' + parsed.price : 'Not detected'}<br>
-        <strong>Date:</strong> ${parsed.date || 'Not detected'}<br>
-        <strong>Time:</strong> ${parsed.time || 'Not detected'}
+        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
+        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
+        <strong>Date:</strong> ${date || 'Not set'}<br>
+        <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
+        <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}
       `;
+      
       document.getElementById('parsedInfo').style.display = 'block';
       
       // Auto-calculate if we have enough info
@@ -960,16 +1046,13 @@ Saloon Car
       let cleanText = text.replace(/\[\d{1,2}:\d{2}, \d{1,2}\/\d{1,2}\/\d{4}\]/g, '')
                          .replace(/\+44 \d{4} \d{6}/g, '')
                          .replace(/🚨/g, '')
+                         .replace(/UPDATED\s*FARE/gi, '')
                          .replace(/SAMEDAY PAYMENT/gi, '')
                          .replace(/SAME DAY PAYMENT/gi, '')
+                         .replace(/SAME DAY PAYMNET/gi, '')
+                         .replace(/\bSAME DAY\b/gi, '')
                          .replace(/URGENT/gi, '')
-                         .replace(/ANY CAR/gi, '')
-                         .replace(/EXECUTIVE CAR/gi, '')
-                         .replace(/SALOON/gi, '')
-                         .replace(/MPV/gi, '')
-                         .replace(/ESTATE/gi, '')
-                         .replace(/7 SEATER/gi, '')
-                         .replace(/8 SEATER/gi, '');
+                         .replace(/ANY CAR/gi, '');
       
       // Enhanced location extraction with new format support
       const locations = extractLocations(cleanText);
@@ -983,7 +1066,7 @@ Saloon Car
       }
       
       // Extract price with better pattern matching
-      const priceMatch = cleanText.match(/(?:price|fare|net|clear|£)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net|clear|fare)?/i) || 
+      const priceMatch = cleanText.match(/(?:net\s*fare|price|fare|net|clear)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)/i) || 
                         cleanText.match(/£\s*(\d+(?:\.\d{2})?)/) ||
                         cleanText.match(/(\d+)\s*(?:pounds|gbp|£)/i) ||
                         cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\-]\d)/); // Standalone 2-3 digit numbers
@@ -995,7 +1078,7 @@ Saloon Car
       // Enhanced date parsing with full date format support
       const dateMatch = cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) ||
                        cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
-                       cleanText.match(/(?:today|tomorrow)/i) ||
+                       cleanText.match(/\b(today|tomorrow)\b/i) ||
                        cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
                        // New format: Wednesday 19th  2025
                        cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i);
@@ -1023,13 +1106,26 @@ Saloon Car
         }
       }
       
-      // Enhanced time parsing with AM/PM support
+      // Enhanced time parsing with AM/PM support and time-of-day descriptions
       const timeMatch = cleanText.match(/(\d{1,2}:\d{2}\s*(?:am|pm)?)/i) || 
                        cleanText.match(/(\d{1,2}\s*(?:am|pm))/i) ||
                        cleanText.match(/(\d{1,2}\s*(?:AM|PM))/i);
       
       if (timeMatch) {
         result.time = timeMatch[1].trim();
+      }
+      
+      // Parse time-of-day descriptions
+      const timeOfDayMatch = cleanText.match(/\b(early morning|morning|afternoon|evening|late night|night)\b/i);
+      if (timeOfDayMatch && !result.time) {
+        // Add as a note if no specific time found
+        result.timeOfDay = timeOfDayMatch[1];
+      }
+      
+      // Parse vehicle type
+      const vehicleMatch = cleanText.match(/\b(estate car|saloon car|executive car|mpv|7 seater|8 seater|minibus|estate|saloon|executive)\b/i);
+      if (vehicleMatch) {
+        result.vehicleType = vehicleMatch[1].charAt(0).toUpperCase() + vehicleMatch[1].slice(1).toLowerCase();
       }
       
       return result;
@@ -1041,24 +1137,21 @@ Saloon Car
       
       // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
-        // X TO Y format
+        // Pick Up: / Drop Off: format with specific extraction (process first for priority)
+        /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
+        /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
+        // Enhanced X TO Y format with better postcode support
         /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
-        // X to Y format  
+        // X to Y format with postcode support (e.g., N8 7RU to LGW)
+        /\b([A-Z0-9]{1,4}\s*\d[A-Z0-9]{2})\s+to\s+([A-Z0-9\s]{2,8})\b/gi,
         /\b([a-z0-9\s]{2,20})\s+to\s+([a-z0-9\s]{2,20})\b/gi,
-        // Pickup: X Dropoff: Y format (enhanced)
-        /pick\s*up\s*:?\s*([^,\n\.]+?)\s*(?:drop|dropoff|destination)/gi,
-        /pickup\s*:?\s*([^,\n\.]+?)\s*(?:drop|dropoff|destination)/gi,
-        /(?:pickup|pick)\s*:?\s*([^,\n\.]+)/gi,
-        /(?:dropoff|drop off|destination)\s*:?\s*([^,\n\.]+)/gi,
-        // New format: Pick Up:  CB3 9HY
-        /pick\s*up\s*:?\s*([A-Z0-9\s]{2,10})/gi,
-        /drop\s*off\s*:?\s*([A-Z0-9\s]{2,10})/gi,
-        // Airport terminals and complex names
+        // Airport terminals (LHR 2, LHR T2, etc.)
+        /\b(LHR\s*[T]?\s*[1-5])\b/gi,
+        /\b(LGW\s*(?:North|South)?)\b/gi,
         /\b(heathrow\s+(?:airport\s+)?t[1-5]|heathrow\s+(?:airport\s+)?terminal\s+[1-5])\b/gi,
         /\b(gatwick\s+(?:airport\s+)?(?:north|south)\s+terminal?)\b/gi,
         // UK postcode patterns
         /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi,
-        /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
         // Simple location names
         /\b(lhr|lgw|stn|ltn|lcy|bhx|man|gatwick|heathrow|stansted|luton)\b/gi
       ];
@@ -1091,6 +1184,12 @@ Saloon Car
     
     function expandLocation(location) {
       const locLower = location.toLowerCase().trim();
+      
+      // Handle LHR terminal formats (LHR 2, LHR T2, LHRT2, etc.)
+      const lhrMatch = locLower.match(/lhr\s*t?\s*([1-5])/i);
+      if (lhrMatch) {
+        return `London Heathrow Airport Terminal ${lhrMatch[1]}`;
+      }
       
       // Direct match in database
       if (locationDatabase[locLower]) {
