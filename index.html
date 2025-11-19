@@ -1080,11 +1080,11 @@ Saloon Car
       const vehicleType = parsedVehicleType ? `<br><strong>Vehicle:</strong> ${parsedVehicleType}` : '';
       
       document.getElementById('parsedDetails').innerHTML = `
-        <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
-        <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
-        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">${price ? '£' + price : 'Not set'}</span><br>
+        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
+        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
-        <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}</span><br>
+        <strong>Time:</strong> ${time || 'Not set'}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
@@ -1511,11 +1511,11 @@ Saloon Car
       }
       
       document.getElementById('parsedDetails').innerHTML = `
-        <strong>Pickup:</strong> <span class="editable-field" onclick="document.getElementById('pickupLocation').focus()">${pickup || 'Not set'}</span><br>
-        <strong>Dropoff:</strong> <span class="editable-field" onclick="document.getElementById('dropoffLocation').focus()">${dropoff || 'Not set'}</span><br>
-        <strong>Price:</strong> <span class="editable-field" onclick="document.getElementById('tripPrice').focus()">${price ? '£' + price : 'Not set'}</span><br>
+        <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
+        <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+        <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
         <strong>Date:</strong> <span class="editable-field" onclick="document.getElementById('tripDate').focus(); document.getElementById('tripDate').showPicker ? document.getElementById('tripDate').showPicker() : document.getElementById('tripDate').click()">${date || 'Not set'}</span><br>
-        <strong>Time:</strong> <span class="editable-field" onclick="document.getElementById('tripTime').focus(); document.getElementById('tripTime').showPicker ? document.getElementById('tripTime').showPicker() : document.getElementById('tripTime').click()">${time || 'Not set'}${timeOfDay}</span><br>
+        <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
         <strong>Base Location:</strong> ${baseLocation || 'Not set'}${vehicleType}<br>
         <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
         <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
