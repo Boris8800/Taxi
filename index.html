@@ -1546,6 +1546,8 @@ Saloon Car
         // Pick Up: / Drop Off: format with specific extraction (process first for priority)
         /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
         /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
+        // UK postcode patterns (must come before general patterns)
+        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi,
         // Enhanced X TO Y format with better postcode support
         /\b([A-Z]{1,4})\s+TO\s+([A-Z0-9\s]{2,8})\b/gi,
         // X to Y format with postcode support (e.g., N8 7RU to LGW)
@@ -1556,8 +1558,6 @@ Saloon Car
         /\b(LGW\s*(?:North|South)?)\b/gi,
         /\b(heathrow\s+(?:airport\s+)?t[1-5]|heathrow\s+(?:airport\s+)?terminal\s+[1-5])\b/gi,
         /\b(gatwick\s+(?:airport\s+)?(?:north|south)\s+terminal?)\b/gi,
-        // UK postcode patterns
-        /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi,
         // Simple location names
         /\b(lhr|lgw|stn|ltn|lcy|bhx|man|gatwick|heathrow|stansted|luton)\b/gi
       ];
@@ -1645,9 +1645,13 @@ Saloon Car
         }
       }
       
-      // If it looks like a postcode, format it properly
-      if (locLower.match(/^[a-z]{1,2}\d{1,2}[a-z]?(\s*\d[a-z]{2})?$/i) || 
-          locLower.match(/^[a-z]{1,2}\d{1,2}[a-z]?$/i)) {
+      // If it looks like a full UK postcode (e.g., SW1A 0PW, GL5 2RR), format it properly
+      if (locLower.match(/^[a-z]{1,2}\d{1,2}[a-z]?\s+\d[a-z]{2}$/i)) {
+        return location.toUpperCase();
+      }
+      
+      // If it looks like a partial postcode (e.g., SW1A, GL5), format it properly
+      if (locLower.match(/^[a-z]{1,2}\d{1,2}[a-z]?$/i)) {
         return location.toUpperCase();
       }
       
