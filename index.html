@@ -1653,7 +1653,8 @@ Saloon Car
         return locations.slice(0, 2);
       }
       
-      // Enhanced patterns for WhatsApp-style messages including new format
+      // Continue looking for other location patterns (terminals, airports, etc.)
+            // Enhanced patterns for WhatsApp-style messages including new format
       const patterns = [
         // Pick Up: / Drop Off: format with specific extraction (process first for priority)
         /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
