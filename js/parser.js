@@ -2,7 +2,9 @@
 async function pasteFromClipboard() {
   try {
     const text = await navigator.clipboard.readText();
-    document.getElementById('freeStyleInput').value = text;
+    // Remove empty lines (lines with only spaces or tabs)
+    const cleanedText = text.split('\n').filter(line => line.trim().length > 0).join('\n');
+    document.getElementById('freeStyleInput').value = cleanedText;
     parseFreeStyle(); // Auto-parse after paste
   } catch (err) {
     alert('Please paste manually using Ctrl+V or Cmd+V');
@@ -147,6 +149,10 @@ async function parseFreeStyleText(text) {
                      .replace(/URGENT/gi, '')
                      .replace(/\bJob\b/gi, '')
                      .replace(/\bASAP\b/gi, '');
+
+  // Normalize common typo 'Tommorow' to 'Tomorrow' (and similar variants)
+  cleanText = cleanText.replace(/\bTomm?o?r?o?w\b/gi, 'Tomorrow');
+  text = text.replace(/\bTomm?o?r?o?w\b/gi, 'Tomorrow');
   
   // Simple logic: first location is pickup, second is dropoff
   if (locations.length >= 2) {
@@ -159,18 +165,16 @@ async function parseFreeStyleText(text) {
   // Extract price with better pattern matching including PAYMENT format
   const priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
                     cleanText.match(/payment[\s\-]*£(\d+(?:\.\d{2})?)/i) || // PAYMENT- £75
-                    cleanText.match(/(\d+)£\s*(?:net)?/i) || // 48£ Net or 53£
+                    cleanText.match(/(\d+)£\s*net/i) || // 48£ Net
                     cleanText.match(/price\s*[;:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*net/i) ||
-                    cleanText.match(/fare[\s\-]*£(\d+(?:\.\d{2})?)/i) || // fare£60 or fare £60
                     cleanText.match(/fare\s*[;:\-]\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net)?/i) || // Fare; £107 net or Fare: 60
-                    cleanText.match(/\bfare\s+(\d+(?:\.\d{2})?)\b/i) || // fare 75 or fare 60.00
                     cleanText.match(/net\s*fare\s*[;:]\s*£?\s*(\d+(?:\.\d{2})?)/i) ||
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/(?:net\s*fare|price|fare|net|clear)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)/i) || 
                     cleanText.match(/saloon\s*:\s*(\d+)£/i) || // Saloon : 65£
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)/) ||
                     cleanText.match(/(\d+)\s*(?:pounds|gbp)\b/i) ||
-                    cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)(?!\s*(?:to|clock|o'clock))/); // Standalone 2-3 digit numbers excluding time patterns
+                    cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)/); // Standalone 2-3 digit numbers
   
   if (priceMatch) {
     result.price = parseFloat(priceMatch[1]);
@@ -261,9 +265,8 @@ async function parseFreeStyleText(text) {
                            cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i); // @ 11:12 PM (Landing)
   
   const timeMatch = landingTimeMatch ||
-                   cleanText.match(/today\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)/i) || // Today @ 7:00am
                    cleanText.match(/tonight\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)/i) || // TONIGHT @ 21:25 pm
-                   cleanText.match(/\b(\d{1,2}\.\d{2})\s*(?:clock|o'clock)?\b/i) || // 12.00 clock or 12.00
+                   cleanText.match(/tomorrow\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || // TOMORROW @ 09:50 (typo handled by normalization)
                    cleanText.match(/\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}:\d{2})/i) || // 20th Nov 11:15
                    cleanText.match(/booking\s+pickup\s+time[:\s]+(?:[a-z]+\s+\d+,\s+\d{4}\s*\|\s*)?(\d{1,2}:\d{2})/i) || // Booking pickup time: Nov 20, 2025 | 20:20
                    cleanText.match(/(?:\d{1,2}\s+[a-z]+\s+\d{4})\s+(\d{1,2}:\d{2})\s*(?:AM|PM)/i) || // 21 Nov 2025 21:00 PM
@@ -282,10 +285,6 @@ async function parseFreeStyleText(text) {
   
   if (timeMatch) {
     let time = timeMatch[1].trim();
-    // Convert decimal format to standard time format (e.g., "12.00" -> "12:00")
-    if (/^\d{1,2}\.\d{2}$/.test(time)) {
-      time = time.replace(/\./, ':');
-    }
     // Convert space to colon if needed (e.g., "13 50" -> "13:50")
     if (/^\d{1,2}\s+\d{2}$/.test(time)) {
       time = time.replace(/\s+/, ':');
@@ -325,16 +324,12 @@ async function parseFreeStyleText(text) {
   }
   
   // Parse vehicle type - comprehensive patterns for all variations including passenger count
-  const vehicleMatch = cleanText.match(/\b(any\s*bmw\s*\/\s*mercedes|bmw\s*\/\s*mercedes|exec\s*\/\?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
+  const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
   if (vehicleMatch) {
     // Get the first match and format it nicely
     let vehicle = vehicleMatch[0].trim();
     // Standardize the formatting
-    if (vehicle.match(/any\s*bmw\s*\/\s*mercedes/i)) {
-      result.vehicleType = 'Any BMW / MERCEDES';
-    } else if (vehicle.match(/bmw\s*\/\s*mercedes/i)) {
-      result.vehicleType = 'BMW / MERCEDES';
-    } else if (vehicle.match(/exec\s*\/\?\s*e\s*class\s*or\s*similar/i)) {
+    if (vehicle.match(/exec\s*\/?\s*e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'Exec/E Class or Similar';
     } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'E Class or Similar';

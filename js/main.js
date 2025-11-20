@@ -154,10 +154,16 @@ function updateParsedInfoFromStandardInput() {
   const fuelCostText = document.getElementById('fuelCost').textContent;
   const hasCongestionCharge = fuelCostText.includes('CC');
   const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
-  
+
+  // If no price/fare info, always show Not Specified for Profit and Profit/h
+  let showNotSpecified = false;
+  if (!price || price === '-' || price === 'Not set') {
+    showNotSpecified = true;
+  }
+
   // Determine profit level badge
   let profitBadge = '';
-  if (profitPerHour !== '-' && profitPerHour !== 'Not calculated') {
+  if (!showNotSpecified && profitPerHour !== '-' && profitPerHour !== 'Not calculated') {
     let profitPerHourValue = 0;
     if (profitPerHour === 'No Profit') {
       profitPerHourValue = 0;
@@ -166,7 +172,6 @@ function updateParsedInfoFromStandardInput() {
     } else {
       profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
     }
-    
     if (profitPerHourValue < 4) {
       profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
     } else if (profitPerHourValue < 5) {
@@ -179,10 +184,10 @@ function updateParsedInfoFromStandardInput() {
       profitBadge = ' <span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">GOOD</span>';
     }
   }
-  
+
   // Update parsed information display
   const vehicleType = parsedVehicleType || 'Not Specified';
-  
+
   document.getElementById('parsedDetails').innerHTML = `
     <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
@@ -193,10 +198,10 @@ function updateParsedInfoFromStandardInput() {
     <strong>Vehicle:</strong> ${vehicleType}<br>
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
-    <strong>Profit:</strong> ${(profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified'}${profitBadge}${ccBadge}<br>
-    <strong>Profit/h:</strong> ${(profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified'}
+    <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
+    <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}
   `;
-  
+
   // Show the parsed info section
   document.getElementById('parsedInfo').style.display = 'block';
 }

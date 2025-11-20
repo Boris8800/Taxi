@@ -106,15 +106,13 @@ function extractLocations(text) {
   const pickupPatterns = [
     /[\*\•\-]\s*pickup\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
     /pickup\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /pick\s+up\s*:\s*([^\n]+?)(?=\n|$)/gi,  // Added "Pick Up:" pattern
-    /pick[\s\-]*up\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Pick-up :" pattern with optional dash and space
+    /pick\s+up\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Pick Up:" pattern
   ];
   
   const dropoffPatterns = [
     /[\*\•\-]\s*drop\s*off\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
     /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /drop\s+off\s*:\s*([^\n]+?)(?=\n|$)/gi,  // Added "Drop Off:" pattern
-    /drop[\s\-]*off\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Drop-off :" pattern with optional dash and space
+    /drop\s+off\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Drop Off:" pattern
   ];
   
   let pickupFound = false;
@@ -167,12 +165,25 @@ function extractLocations(text) {
       return locations;
     }
   }
-  
-  // Check for arrow format: "Stansted ➝ WC2B 5SN" or "LHR → E1 1DU"
-  const arrowMatch = text.match(/([^\n➝→]+?)\s*[➝→]\s*([^\n➝→]+)/);
+
+  // Check for explicit arrow/chevron/emoji format: "Gatwick airport➡️SE1 7NJ", "A -> B", "A => B"
+  const arrowPattern = /([^\n➡️➝→\-=>]+?)\s*[➡️➝→\-=>]+\s*([^\n➡️➝→\-=>]+)/;
+  const arrowMatch = text.match(arrowPattern);
   if (arrowMatch && arrowMatch[1] && arrowMatch[2]) {
-    const loc1 = arrowMatch[1].trim().replace(/,$/, '').trim(); // Remove trailing comma, keep case
-    const loc2 = arrowMatch[2].trim(); // Keep original case
+    const loc1 = arrowMatch[1].trim().replace(/,$/, '').trim();
+    const loc2 = arrowMatch[2].trim();
+    if (loc1 && loc2) {
+      locations.push(loc1);
+      locations.push(loc2);
+      return locations;
+    }
+  }
+
+  // Check for arrow format: "Stansted ➝ WC2B 5SN" or "LHR → E1 1DU"
+  const legacyArrowMatch = text.match(/([^\n➝→]+?)\s*[➝→]\s*([^\n➝→]+)/);
+  if (legacyArrowMatch && legacyArrowMatch[1] && legacyArrowMatch[2]) {
+    const loc1 = legacyArrowMatch[1].trim().replace(/,$/, '').trim(); // Remove trailing comma, keep case
+    const loc2 = legacyArrowMatch[2].trim(); // Keep original case
     if (loc1 && loc2) {
       locations.push(loc1); // First location = pickup
       locations.push(loc2); // Second location = dropoff
@@ -244,6 +255,18 @@ function extractLocations(text) {
   if (locations.length >= 2) {
     return locations.slice(0, 2);
   }
+
+  // FALLBACK: If not enough locations found, try to extract from 'Pickup:' and 'Dropoff:' anywhere in the text (case-insensitive)
+  // This is a last-resort fallback and does not interfere with earlier logic
+  const pickupFallback = text.match(/pickup\s*:\s*([^\n\r]+)/i);
+  const dropoffFallback = text.match(/drop\s*off\s*:\s*([^\n\r]+)/i);
+  if (pickupFallback && dropoffFallback) {
+    const pickupLoc = pickupFallback[1].trim();
+    const dropoffLoc = dropoffFallback[1].trim();
+    if (pickupLoc && dropoffLoc) {
+      return [pickupLoc, dropoffLoc];
+    }
+  }
   
   // PRIORITY 4: Continue looking for other location patterns (terminals, airports, etc.)
   // Enhanced patterns for WhatsApp-style messages including new format
@@ -251,8 +274,8 @@ function extractLocations(text) {
     // Pick Up: / Drop Off: format with specific extraction (process first for priority)
     /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
     /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    // Partial postcodes (like GL5, RH8) - exclude time patterns and fare
-    /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b(?!\s*(?:\.\d{2}|clock|o'clock|fare|pounds|gbp))/gi,
+    // Partial postcodes (like GL5, RH8)
+    /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
     // X to Y format with dashes (e.g., Gatwick--------Ec2A)
     /\b([a-z0-9\s]{2,20})-{2,}([a-z0-9\s]{2,20})\b/gi,
     // Airport terminals (LHR 2, LHR T2, etc.)
@@ -285,17 +308,11 @@ function extractLocations(text) {
         for (let i = 1; i < match.length; i++) {
           if (match[i]) {
             const loc = match[i].toLowerCase().trim();
-            // Skip time patterns, fare/money patterns, and numbers that are clearly not postcodes
-            const isTimePattern = /^\d{1,2}\.\d{2}$/.test(loc) || /\b(?:clock|o'clock)/.test(match[0]);
-            const isFarePattern = /\bfare\b/.test(match[0]) || /\b(?:pounds|gbp)\b/.test(match[0]);
-            const isNumberOnly = /^\d+$/.test(loc);
-            
             // Skip if this is a partial postcode that's already covered by a full postcode
             const isPartialOfExisting = locations.some(existing => {
               return existing.startsWith(loc + ' ') && existing.match(/^[a-z]{1,2}\d{1,2}[a-z]?\s+\d[a-z]{2}$/);
             });
-            
-            if (!locations.includes(loc) && !isPartialOfExisting && !isTimePattern && !isFarePattern && !isNumberOnly) {
+            if (!locations.includes(loc) && !isPartialOfExisting) {
               locations.push(loc);
             }
           }
