@@ -80,6 +80,26 @@ async function parseFreeStyleText(text) {
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
   const locations = extractLocations(text);
+
+  // Fallback: Extract Passengers/luggage, Vehicle type, and Price from explicit labels if present
+  // Passengers/luggage: 1/0
+  const paxLuggageMatch = text.match(/Passengers\s*\/\s*luggage\s*:\s*(\d+)\s*\/\s*(\d+)/i);
+  if (paxLuggageMatch) {
+    result.passengers = parseInt(paxLuggageMatch[1]);
+    result.luggage = parseInt(paxLuggageMatch[2]);
+  }
+
+  // Vehicle type: Saloon
+  const vehicleTypeMatch = text.match(/Vehicle type\s*:\s*([A-Za-z0-9\s\-]+)/i);
+  if (vehicleTypeMatch) {
+    result.vehicleType = vehicleTypeMatch[1].trim();
+  }
+
+  // Price: £90 or Price: 90
+  const priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+  if (priceLabelMatch) {
+    result.price = parseFloat(priceLabelMatch[1]);
+  }
   
   // Clean the text - remove WhatsApp timestamps and phone numbers
   let cleanText = text.replace(/\[\d{1,2}:\d{2}, \d{1,2}\/\d{1,2}\/\d{4}\]/g, '')
