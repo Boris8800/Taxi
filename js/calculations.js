@@ -9,6 +9,27 @@ function calculateTrip() {
   const price = parseFloat(document.getElementById('tripPrice').value) || currentTrip.price;
   const fuelCostPer100Miles = parseFloat(document.getElementById('fuelCostPer100Miles').value) || 15.00;
   
+  // Validate that we have pickup and dropoff locations
+  if (!pickup || !dropoff) {
+    showValidationMessage('Please enter both pickup and dropoff locations before calculating.', 'warning');
+    return;
+  }
+  
+  // Check for postcode presence and show warnings if missing
+  const pickupHasPostcode = hasPostcode(pickup);
+  const dropoffHasPostcode = hasPostcode(dropoff);
+  
+  if (!pickupHasPostcode && !dropoffHasPostcode) {
+    showValidationMessage('⚠️ No postcodes detected for pickup or dropoff locations. Results may be less accurate.', 'warning');
+  } else if (!pickupHasPostcode) {
+    showValidationMessage('⚠️ No postcode detected for pickup location. Consider adding a postcode for better accuracy.', 'warning');
+  } else if (!dropoffHasPostcode) {
+    showValidationMessage('⚠️ No postcode detected for dropoff location. Consider adding a postcode for better accuracy.', 'warning');
+  } else {
+    // Both have postcodes - clear any previous warnings
+    clearValidationMessage();
+  }
+  
   // Update current trip
   currentTrip = {
     date,
@@ -26,10 +47,14 @@ function calculateTrip() {
     dropoffToBase: { distance: 0, duration: 0 }
   };
 
-  // Calculate all three routes
+  // Calculate all three routes and send to Google Maps
   calculateRouteWithDetails(baseLocation, pickup, 'baseToPickup', () => {
     calculateRouteWithDetails(pickup, dropoff, 'pickupToDropoff', () => {
-      calculateRouteWithDetails(dropoff, baseLocation, 'dropoffToBase', updateResults);
+      calculateRouteWithDetails(dropoff, baseLocation, 'dropoffToBase', () => {
+        updateResults();
+        // Send trip data to Google Maps after calculation
+        sendToGoogleMaps(pickup, dropoff);
+      });
     });
   });
 }
@@ -244,6 +269,78 @@ function formatMinutesToText(totalMinutes) {
     return `${hours}h ${minutes}m`;
   } else {
     return `${minutes}m`;
+  }
+}
+
+// Utility function to check if a location contains a postcode
+function hasPostcode(location) {
+  if (!location) return false;
+  
+  // Check for full UK postcode pattern (e.g., "SW1A 0AA" or "M1 1AA")
+  const fullPostcodePattern = /\b[A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2}\b/i;
+  
+  // Check for partial postcode pattern (e.g., "SW1A" or "M1")
+  const partialPostcodePattern = /\b[A-Z]{1,2}\d{1,2}[A-Z]?\b/i;
+  
+  return fullPostcodePattern.test(location) || partialPostcodePattern.test(location);
+}
+
+// Function to show validation messages
+function showValidationMessage(message, type = 'warning') {
+  const alertElement = document.getElementById('profitAlert');
+  if (alertElement) {
+    let alertClass, icon;
+    
+    if (type === 'error') {
+      alertClass = 'alert-danger';
+      icon = '❌';
+    } else if (type === 'warning') {
+      alertClass = 'alert-warning';
+      icon = '⚠️';
+    } else {
+      alertClass = 'alert-warning';
+      icon = '⚠️';
+    }
+    
+    alertElement.innerHTML = `<span class="alert-badge ${alertClass}">${icon} ${message}</span>`;
+  }
+}
+
+// Function to clear validation messages
+function clearValidationMessage() {
+  const alertElement = document.getElementById('profitAlert');
+  if (alertElement) {
+    alertElement.innerHTML = '';
+  }
+}
+
+// Function to send trip data to Google Maps
+function sendToGoogleMaps(pickup, dropoff) {
+  if (!pickup || !dropoff) {
+    console.log('Cannot send to Google Maps: missing pickup or dropoff location');
+    return;
+  }
+  
+  try {
+    // Create Google Maps URL with directions
+    const encodedPickup = encodeURIComponent(pickup);
+    const encodedDropoff = encodeURIComponent(dropoff);
+    const googleMapsUrl = `https://www.google.com/maps/dir/${encodedPickup}/${encodedDropoff}`;
+    
+    console.log('Trip data sent to Google Maps:', {
+      pickup: pickup,
+      dropoff: dropoff,
+      url: googleMapsUrl
+    });
+    
+    // Store the URL for potential future use (could be used to open in new tab)
+    window.lastGoogleMapsUrl = googleMapsUrl;
+    
+    // Optionally, you can uncomment the next line to automatically open Google Maps
+    // window.open(googleMapsUrl, '_blank');
+    
+  } catch (error) {
+    console.error('Error sending data to Google Maps:', error);
   }
 }
 
