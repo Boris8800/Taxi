@@ -192,9 +192,9 @@ function updateParsedInfoFromStandardInput() {
     <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
     <strong>Vehicle:</strong> ${vehicleType}<br>
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
-    <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
-    <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
-    <strong>Profit/h:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
+    <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
+    <strong>Profit:</strong> ${(profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified'}${profitBadge}${ccBadge}<br>
+    <strong>Profit/h:</strong> ${(profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified'}
   `;
   
   // Show the parsed info section
