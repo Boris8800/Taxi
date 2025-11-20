@@ -106,13 +106,15 @@ function extractLocations(text) {
   const pickupPatterns = [
     /[\*\•\-]\s*pickup\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
     /pickup\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /pick\s+up\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Pick Up:" pattern
+    /pick\s+up\s*:\s*([^\n]+?)(?=\n|$)/gi,  // Added "Pick Up:" pattern
+    /pick[\s\-]*up\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Pick-up :" pattern with optional dash and space
   ];
   
   const dropoffPatterns = [
     /[\*\•\-]\s*drop\s*off\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
     /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /drop\s+off\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Drop Off:" pattern
+    /drop\s+off\s*:\s*([^\n]+?)(?=\n|$)/gi,  // Added "Drop Off:" pattern
+    /drop[\s\-]*off\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Drop-off :" pattern with optional dash and space
   ];
   
   let pickupFound = false;

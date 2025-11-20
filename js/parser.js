@@ -159,7 +159,7 @@ async function parseFreeStyleText(text) {
   // Extract price with better pattern matching including PAYMENT format
   const priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
                     cleanText.match(/payment[\s\-]*£(\d+(?:\.\d{2})?)/i) || // PAYMENT- £75
-                    cleanText.match(/(\d+)£\s*net/i) || // 48£ Net
+                    cleanText.match(/(\d+)£\s*(?:net)?/i) || // 48£ Net or 53£
                     cleanText.match(/price\s*[;:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/fare\s*[;:\-]\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net)?/i) || // Fare; £107 net or Fare: 60
                     cleanText.match(/net\s*fare\s*[;:]\s*£?\s*(\d+(?:\.\d{2})?)/i) ||
@@ -259,6 +259,7 @@ async function parseFreeStyleText(text) {
                            cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i); // @ 11:12 PM (Landing)
   
   const timeMatch = landingTimeMatch ||
+                   cleanText.match(/today\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)/i) || // Today @ 7:00am
                    cleanText.match(/tonight\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)/i) || // TONIGHT @ 21:25 pm
                    cleanText.match(/\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}:\d{2})/i) || // 20th Nov 11:15
                    cleanText.match(/booking\s+pickup\s+time[:\s]+(?:[a-z]+\s+\d+,\s+\d{4}\s*\|\s*)?(\d{1,2}:\d{2})/i) || // Booking pickup time: Nov 20, 2025 | 20:20
@@ -317,12 +318,16 @@ async function parseFreeStyleText(text) {
   }
   
   // Parse vehicle type - comprehensive patterns for all variations including passenger count
-  const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
+  const vehicleMatch = cleanText.match(/\b(any\s*bmw\s*\/\s*mercedes|bmw\s*\/\s*mercedes|exec\s*\/\?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
   if (vehicleMatch) {
     // Get the first match and format it nicely
     let vehicle = vehicleMatch[0].trim();
     // Standardize the formatting
-    if (vehicle.match(/exec\s*\/?\s*e\s*class\s*or\s*similar/i)) {
+    if (vehicle.match(/any\s*bmw\s*\/\s*mercedes/i)) {
+      result.vehicleType = 'Any BMW / MERCEDES';
+    } else if (vehicle.match(/bmw\s*\/\s*mercedes/i)) {
+      result.vehicleType = 'BMW / MERCEDES';
+    } else if (vehicle.match(/exec\s*\/\?\s*e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'Exec/E Class or Similar';
     } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'E Class or Similar';
