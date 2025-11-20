@@ -106,6 +106,12 @@ async function parseFreeStyleText(text) {
     if (vehicleTypeMatch) {
       result.vehicleType = vehicleTypeMatch[1].trim();
       result.passengers = parseInt(vehicleTypeMatch[2]);
+    } else {
+      // Support for 'Vehicle: Executive' and 'Vehicle: Executive Saloon'
+      vehicleTypeMatch = text.match(/Vehicle\s*:\s*([A-Za-z0-9\s\-]+)/i);
+      if (vehicleTypeMatch) {
+        result.vehicleType = vehicleTypeMatch[1].trim();
+      }
     }
   } else {
     result.vehicleType = vehicleTypeMatch[1].trim();
