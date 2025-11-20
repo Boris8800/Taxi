@@ -194,7 +194,8 @@ async function parseFreeStyleText(text) {
                    cleanText.match(/\b(today|tomorrow)\b/i) ||
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
                    // New format: Wednesday 19th  2025
-                   cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i);
+                   cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i) ||
+                   cleanText.match(/Date\s*:\s*ASAP(\s*\(Passenger ready\))?/i); // Date: ASAP or Date: ASAP (Passenger ready)
   
   // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
   const dayNameMatch = cleanText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
@@ -210,6 +211,9 @@ async function parseFreeStyleText(text) {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const dayName = tomorrow.toLocaleDateString('en-GB', { weekday: 'long' });
       result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} - Tomorrow (${dayName})`;
+    } else if (dateMatch[0].toUpperCase().startsWith('DATE: ASAP')) {
+      // Support for 'Date: ASAP' and 'Date: ASAP (Passenger ready)'
+      result.date = dateMatch[0].replace(/date\s*:\s*/i, '').trim();
     } else {
       // Format the date properly
       const dateStr = dateMatch[0];
