@@ -105,13 +105,13 @@ function extractLocations(text) {
   // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY" and "Pick Up: Location"
   // Patterns for explicit pickup and dropoff lines (case-insensitive, robust)
   const pickupPatterns = [
-    /[\*\•\-]?\s*pick\s*up\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi, // Pick - up :
     /pickup\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
     /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
   ];
 
   const dropoffPatterns = [
-    /[\*\•\-]?\s*drop\s*off\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi, // Drop - off :
     /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
     /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
   ];
