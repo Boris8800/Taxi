@@ -251,8 +251,8 @@ function extractLocations(text) {
     // Pick Up: / Drop Off: format with specific extraction (process first for priority)
     /pick\s*up\s*:\s*([^\n]+?)(?=\n|$)/gi,
     /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    // Partial postcodes (like GL5, RH8)
-    /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b/gi,
+    // Partial postcodes (like GL5, RH8) - exclude time patterns and fare
+    /\b([A-Z]{1,2}\d{1,2}[A-Z]?)\b(?!\s*(?:\.\d{2}|clock|o'clock|fare|pounds|gbp))/gi,
     // X to Y format with dashes (e.g., Gatwick--------Ec2A)
     /\b([a-z0-9\s]{2,20})-{2,}([a-z0-9\s]{2,20})\b/gi,
     // Airport terminals (LHR 2, LHR T2, etc.)
@@ -285,11 +285,17 @@ function extractLocations(text) {
         for (let i = 1; i < match.length; i++) {
           if (match[i]) {
             const loc = match[i].toLowerCase().trim();
+            // Skip time patterns, fare/money patterns, and numbers that are clearly not postcodes
+            const isTimePattern = /^\d{1,2}\.\d{2}$/.test(loc) || /\b(?:clock|o'clock)/.test(match[0]);
+            const isFarePattern = /\bfare\b/.test(match[0]) || /\b(?:pounds|gbp)\b/.test(match[0]);
+            const isNumberOnly = /^\d+$/.test(loc);
+            
             // Skip if this is a partial postcode that's already covered by a full postcode
             const isPartialOfExisting = locations.some(existing => {
               return existing.startsWith(loc + ' ') && existing.match(/^[a-z]{1,2}\d{1,2}[a-z]?\s+\d[a-z]{2}$/);
             });
-            if (!locations.includes(loc) && !isPartialOfExisting) {
+            
+            if (!locations.includes(loc) && !isPartialOfExisting && !isTimePattern && !isFarePattern && !isNumberOnly) {
               locations.push(loc);
             }
           }
