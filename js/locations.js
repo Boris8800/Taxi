@@ -256,10 +256,15 @@ function extractLocations(text) {
     return locations.slice(0, 2);
   }
 
-  // FALLBACK: If not enough locations found, try to extract from 'Pickup:' and 'Dropoff:' anywhere in the text (case-insensitive)
+  // FALLBACK: If not enough locations found, try to extract from 'Pickup:' and 'Dropoff:' or 'Pick-up:' and 'Drop-off:' anywhere in the text (case-insensitive)
   // This is a last-resort fallback and does not interfere with earlier logic
-  const pickupFallback = text.match(/pickup\s*:\s*([^\n\r]+)/i);
-  const dropoffFallback = text.match(/drop\s*off\s*:\s*([^\n\r]+)/i);
+  let pickupFallback = text.match(/pickup\s*:\s*([^\n\r]+)/i);
+  let dropoffFallback = text.match(/drop\s*off\s*:\s*([^\n\r]+)/i);
+  if (!(pickupFallback && dropoffFallback)) {
+    // Try hyphenated forms if not found
+    pickupFallback = text.match(/pick-up\s*:\s*([^\n\r]+)/i);
+    dropoffFallback = text.match(/drop-off\s*:\s*([^\n\r]+)/i);
+  }
   if (pickupFallback && dropoffFallback) {
     const pickupLoc = pickupFallback[1].trim();
     const dropoffLoc = dropoffFallback[1].trim();
