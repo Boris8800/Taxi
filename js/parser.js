@@ -24,17 +24,27 @@ function clearFreeStyleInput() {
 }
 
 async function parseFreeStyle() {
+  // Clear all relevant fields before parsing
+  document.getElementById('pickupLocation').value = '';
+  document.getElementById('dropoffLocation').value = '';
+  document.getElementById('tripDateDisplay').value = '';
+  document.getElementById('tripTime').value = '';
+  document.getElementById('tripPrice').value = '';
+  parsedDateLabel = '';
+  parsedTimeLabel = '';
+  document.getElementById('parsedInfo').style.display = 'none';
+  // ...existing code...
   const freeText = document.getElementById('freeStyleInput').value;
   if (!freeText.trim()) {
     alert("Please enter trip details");
     return;
   }
-  
+
   const parsed = await parseFreeStyleText(freeText);
-  
+
   // Store vehicle type globally
   parsedVehicleType = parsed.vehicleType || '';
-  
+
   // Update form with parsed values
   if (parsed.pickup) {
     document.getElementById('pickupLocation').value = parsed.pickup;
@@ -54,67 +64,8 @@ async function parseFreeStyle() {
     document.getElementById('tripTime').value = parsed.time;
     parsedTimeLabel = parsed.time;
   }
-  
-  // Update parsed information display with additional details
-  const pickup = document.getElementById('pickupLocation').value;
-  const dropoff = document.getElementById('dropoffLocation').value;
-  const price = document.getElementById('tripPrice').value;
-  const date = document.getElementById('tripDateDisplay').value;
-  const time = document.getElementById('tripTime').value;
-  const baseLocation = document.getElementById('baseLocation').value;
-  
-  const timeOfDay = parsed.timeOfDay ? ` (${parsed.timeOfDay})` : '';
-  const vehicleType = parsed.vehicleType || 'Not Specified';
-  
-  // Get total distance and time if calculated
-  const totalDistance = document.getElementById('totalDistance').textContent;
-  const totalTime = document.getElementById('totalTime').textContent;
-  
-  // Get profit, CC, and profit per hour if calculated
-  const profit = document.getElementById('estimatedProfit').textContent;
-  const profitPerHour = document.getElementById('profitPerHour').textContent;
-  const fuelCostText = document.getElementById('fuelCost').textContent;
-  const hasCongestionCharge = fuelCostText.includes('CC');
-  const ccBadge = hasCongestionCharge ? ' <span style="background: #e67e22; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">CC £15</span>' : '';
-  
-  // Determine profit level badge
-  let profitBadge = '';
-  if (profitPerHour !== '-' && profitPerHour !== 'Not calculated') {
-    let profitPerHourValue = 0;
-    if (profitPerHour === 'No Profit') {
-      profitPerHourValue = 0;
-    } else if (profitPerHour.startsWith('-')) {
-      profitPerHourValue = -parseFloat(profitPerHour.replace('-£', '').replace('/hr', ''));
-    } else {
-      profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
-    }
-    
-    if (profitPerHourValue < 4) {
-      profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
-    } else if (profitPerHourValue < 5) {
-      profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
-    } else if (profitPerHourValue < 10) {
-      profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOW</span>';
-    } else if (profitPerHourValue < 13) {
-      profitBadge = ' <span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">MEDIUM</span>';
-    } else {
-      profitBadge = ' <span style="background: #27ae60; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">GOOD</span>';
-    }
-  }
-  
-  document.getElementById('parsedDetails').innerHTML = `
-    <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
-    <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
-    <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
-    <strong>Date:</strong> ${date || 'Not set'}<br>
-    <strong>Time:</strong> ${time || 'Not set'}${timeOfDay}<br>
-    <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
-    <strong>Vehicle:</strong> ${vehicleType}<br>
-    <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
-    <strong>Total Time:</strong> ${totalTime !== '-' ? totalTime : 'Not calculated'}<br>
-    <strong>Profit:</strong> ${profit !== '-' ? profit : 'Not calculated'}${profitBadge}${ccBadge}<br>
-    <strong>Profit/h:</strong> ${profitPerHour !== '-' ? profitPerHour : 'Not calculated'}
-  `;
+
+  // ...existing code...
   
   document.getElementById('parsedInfo').style.display = 'block';
   
@@ -163,21 +114,30 @@ async function parseFreeStyleText(text) {
   }
   
   // Extract price with better pattern matching including PAYMENT format
-  const priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
+  let priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
                     cleanText.match(/payment[\s\-]*£(\d+(?:\.\d{2})?)/i) || // PAYMENT- £75
                     cleanText.match(/(\d+)£\s*net/i) || // 48£ Net
                     cleanText.match(/price\s*[;:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/fare\s*[;:\-]\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net)?/i) || // Fare; £107 net or Fare: 60
-                    cleanText.match(/net\s*fare\s*[;:]\s*£?\s*(\d+(?:\.\d{2})?)/i) ||
+                    cleanText.match(/net\s*fare\s*[;:]\s*£?(\d+(?:\.\d{2})?)/i) ||
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/(?:net\s*fare|price|fare|net|clear)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)/i) || 
                     cleanText.match(/saloon\s*:\s*(\d+)£/i) || // Saloon : 65£
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)/) ||
                     cleanText.match(/(\d+)\s*(?:pounds|gbp)\b/i) ||
                     cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)/); // Standalone 2-3 digit numbers
-  
+
+  // Prevent time-like patterns (e.g., '05 40', '05:40', '05 40 AM') from being parsed as price
   if (priceMatch) {
-    result.price = parseFloat(priceMatch[1]);
+    const val = priceMatch[1];
+    // If the matched value is part of a time pattern, skip it as price
+    // Check for 'HH MM', 'HH:MM', or 'HH MM AM/PM' in the original text
+    const timeLikePattern = new RegExp(`\\b${val}(:|\\s)\\d{2}(\\s*(AM|PM))?\\b`, 'i');
+    if (timeLikePattern.test(cleanText)) {
+      // Looks like a time, do not parse as price
+    } else {
+      result.price = parseFloat(val);
+    }
   }
   
   // Enhanced date parsing with full date format support
@@ -323,13 +283,17 @@ async function parseFreeStyleText(text) {
     passengerCount = redDotsMatch[1].length;
   }
   
-  // Parse vehicle type - comprehensive patterns for all variations including passenger count
-  const vehicleMatch = cleanText.match(/\b(exec\s*\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|7\s*seater|8\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
+  // Parse vehicle type - comprehensive patterns for all variations including passenger count and 'X seater' patterns
+  let vehicleMatch = cleanText.match(/\b(exec\s*\/\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|8\s*seater|7\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
+  // Add support for '4 seater', '5 seater', etc.
+  if (!vehicleMatch) {
+    vehicleMatch = cleanText.match(/\b(\d{1,2}\s*seater)\b/i);
+  }
   if (vehicleMatch) {
     // Get the first match and format it nicely
     let vehicle = vehicleMatch[0].trim();
-    // Standardize the formatting
-    if (vehicle.match(/exec\s*\/?\s*e\s*class\s*or\s*similar/i)) {
+    // Standardize the formatting for known types
+    if (vehicle.match(/exec\s*\/\/?\s*e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'Exec/E Class or Similar';
     } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'E Class or Similar';
@@ -363,12 +327,14 @@ async function parseFreeStyleText(text) {
       result.vehicleType = 'Saloon';
     } else if (vehicle.match(/mpv/i)) {
       result.vehicleType = 'MPV';
+    } else if (vehicle.match(/\d{1,2}\s*seater/i)) {
+      // For '4 seater', '5 seater', etc., use as-is with capitalization
+      result.vehicleType = vehicle.charAt(0).toUpperCase() + vehicle.slice(1);
     } else {
       result.vehicleType = vehicle.charAt(0).toUpperCase() + vehicle.slice(1).toLowerCase();
     }
-    
-    // Add passenger count to vehicle type if available
-    if (passengerCount) {
+    // Add passenger count to vehicle type if available and not already present
+    if (passengerCount && !result.vehicleType.match(/\d+\s*seater/)) {
       result.vehicleType += ` (${passengerCount} ${passengerCount === 1 ? 'Person' : 'Persons'})`;
     }
   } else {
