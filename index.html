@@ -3,7 +3,9 @@
 <head>
   <title>SMART TRIP v1</title>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, maximum-scale=5.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   
   <!-- CSS -->
   <link rel="stylesheet" href="css/styles.css">
@@ -73,22 +75,7 @@
       <p>Enter trip details in any format. First location is pickup, second is dropoff.</p>
       <textarea id="freeStyleInput" rows="6" placeholder="Paste WhatsApp messages here...
 Examples:
-LHR TO W1J PRICE 50 NET
-STN TO CB10 PRICE 55 NET
-Heathrow T2 to NW1 8YN £45
-Gatwick to SW1V 1LH £60
-
-Saloon Car (1 Persons) 🔴🔴
-*TONIGHT @ 21:25 pm*
-Pick Up: Heathrow Airport, Terminal 5
-Drop Off: BN11 4NS
-*PAYMENT- £75 SAME DAY*
-
-Wednesday 19th 2025, 06:30 am
-Pick Up: CB3 9HY
-Drop Off: LHR 2
-Estate Car (3 Persons) 🔴🔴🔴
-£80 Same day"></textarea>
+"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
         <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Parse</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>

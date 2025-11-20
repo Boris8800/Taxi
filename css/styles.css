@@ -219,6 +219,13 @@ input::placeholder, textarea::placeholder {
   opacity: 0.6;
 }
 
+#freeStyleInput {
+  min-height: 120px;
+  resize: vertical;
+  font-family: 'Courier New', monospace;
+  line-height: 1.4;
+}
+
 button {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -663,23 +670,69 @@ h2 {
   }
 }
 
+/* Medium screens (tablets) */
+@media (max-width: 768px) and (min-width: 481px) {
+  .container {
+    padding: 15px;
+  }
+  
+  .analysis-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+  }
+  
+  .earnings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  input, select, textarea {
+    font-size: 16px;
+    padding: 10px;
+  }
+  
+  #freeStyleInput {
+    min-height: 110px;
+  }
+  
+  button {
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+}
+
 @media (max-width: 480px) {
   body {
     margin: 5px auto;
     padding: 0 5px;
+    font-size: 16px; /* Prevents zoom on iOS */
   }
   
   .container {
-    padding: 10px;
+    padding: 8px;
     margin: 0 auto;
+  }
+  
+  h2 {
+    font-size: 1.5rem;
+    text-align: center;
+    margin-bottom: 15px;
+  }
+  
+  h3 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
   }
   
   #map {
     height: 250px;
+    margin-bottom: 15px;
   }
   
   .input-section, .free-style-section, .analysis-box {
     padding: 12px;
+    margin-bottom: 15px;
+    border-radius: 6px;
   }
   
   .metric-group {
@@ -695,27 +748,81 @@ h2 {
   }
   
   input, select, textarea {
-    padding: 10px;
+    padding: 12px 10px;
     font-size: 16px; /* Prevents zoom on iOS */
+    border-radius: 8px;
+    min-height: 44px; /* Touch target size */
+  }
+  
+  #freeStyleInput {
+    min-height: 100px;
+    font-size: 15px;
+    line-height: 1.3;
   }
   
   button {
-    padding: 12px 16px;
-    font-size: 15px;
+    padding: 14px 18px;
+    font-size: 16px;
+    min-height: 48px; /* Touch target size */
+    border-radius: 8px;
+    margin: 4px 0;
+  }
+  
+  .theme-toggle {
+    top: 8px;
+    right: 8px;
+    padding: 8px 12px;
+    font-size: 14px;
+    min-height: 44px;
   }
   
   .free-style-section button {
     flex: 1;
+    margin: 0 2px;
   }
   
   .free-style-section button:last-child {
-    flex: 0 0 70px;
-    padding: 12px 8px;
+    flex: 0 0 80px;
+    padding: 14px 10px;
     font-size: 14px;
   }
-}
+  
+  .input-group {
+    margin-bottom: 15px;
+  }
+  
+  .input-group label {
+    font-size: 15px;
+    margin-bottom: 6px;
+    display: block;
+  }
+  
+  .input-group small {
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  
+  .analysis-grid, .earnings-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .earnings-value {
+    font-size: 1.3rem;
+  }
+  
+  .route-segment {
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+  }
+  
+  .segment-info {
+    flex-direction: column;
+    gap: 6px;
+  }
 
-/* Fix for iOS Safari input styling */
+}\n\n/* Fix for iOS Safari input styling */
 input[type="text"], input[type="number"], textarea {
   -webkit-appearance: none;
   appearance: none;
