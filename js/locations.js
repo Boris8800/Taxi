@@ -103,16 +103,17 @@ function extractLocations(text) {
   
   // PRIORITY 3: Check for "Pickup:" and "Drop off:" format with bullet points or asterisks
   // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY" and "Pick Up: Location"
+  // Patterns for explicit pickup and dropoff lines (case-insensitive, robust)
   const pickupPatterns = [
-    /[\*\•\-]\s*pickup\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
-    /pickup\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /pick\s+up\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Pick Up:" pattern
+    /[\*\•\-]?\s*pick\s*up\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi,
+    /pickup\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
+    /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
   ];
-  
+
   const dropoffPatterns = [
-    /[\*\•\-]\s*drop\s*off\s*:\s*([^\n\*\•]+?)(?=\n|[\*\•]|$)/gi,
-    /drop\s*off\s*:\s*([^\n]+?)(?=\n|$)/gi,
-    /drop\s+off\s*:\s*([^\n]+?)(?=\n|$)/gi  // Added "Drop Off:" pattern
+    /[\*\•\-]?\s*drop\s*off\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi,
+    /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
+    /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
   ];
   
   let pickupFound = false;
@@ -122,26 +123,26 @@ function extractLocations(text) {
   for (const pattern of pickupPatterns) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
-      const pickup = matches[0][1].trim().toLowerCase();
+      const pickup = matches[0][1].trim();
       // Clean up any trailing special characters
       const cleanPickup = pickup.replace(/[\*\•\-\⁠]+$/, '').trim();
       if (cleanPickup) {
-        locations.push(cleanPickup);
+        locations[0] = cleanPickup; // Always set as pickup
         pickupFound = true;
         break;
       }
     }
   }
-  
+
   // Try to find dropoff location
   for (const pattern of dropoffPatterns) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
-      const dropoff = matches[0][1].trim().toLowerCase();
+      const dropoff = matches[0][1].trim();
       // Clean up any trailing special characters and invisible characters
       const cleanDropoff = dropoff.replace(/[\*\•\-\⁠\u200B-\u200D\uFEFF]+/g, '').trim();
       if (cleanDropoff) {
-        locations.push(cleanDropoff);
+        locations[1] = cleanDropoff; // Always set as dropoff
         dropoffFound = true;
         break;
       }

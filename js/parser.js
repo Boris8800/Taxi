@@ -79,7 +79,16 @@ async function parseFreeStyleText(text) {
   const result = {};
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
-  const locations = extractLocations(text);
+  // Support for "Pick Up - ... Drop Off: ..." format
+  let locations = extractLocations(text);
+  // If not found, try explicit "Pick Up - ... Drop Off: ..." pattern
+  if (locations.length < 2) {
+    const pickDropPattern = /Pick\s*Up\s*[-:]?\s*([^\n\r]+)[\n\r]+Drop\s*Off\s*[:\-]?\s*([^\n\r]+)/i;
+    const pickDropMatch = text.match(pickDropPattern);
+    if (pickDropMatch && pickDropMatch[1] && pickDropMatch[2]) {
+      locations = [pickDropMatch[1].trim(), pickDropMatch[2].trim()];
+    }
+  }
 
   // Fallback: Extract Passengers/luggage, Vehicle type, and Price from explicit labels if present
   // Passengers/luggage: 1/0
@@ -89,14 +98,24 @@ async function parseFreeStyleText(text) {
     result.luggage = parseInt(paxLuggageMatch[2]);
   }
 
-  // Vehicle type: Saloon
-  const vehicleTypeMatch = text.match(/Vehicle type\s*:\s*([A-Za-z0-9\s\-]+)/i);
-  if (vehicleTypeMatch) {
+  // Vehicle type: Saloon or "Executive Car (1 Persons)"
+  let vehicleTypeMatch = text.match(/Vehicle type\s*:\s*([A-Za-z0-9\s\-]+)/i);
+  if (!vehicleTypeMatch) {
+    // Try to match at start: "Executive Car (1 Persons)"
+    vehicleTypeMatch = text.match(/^([A-Za-z ]+Car)\s*\((\d+) Persons?\)/i);
+    if (vehicleTypeMatch) {
+      result.vehicleType = vehicleTypeMatch[1].trim();
+      result.passengers = parseInt(vehicleTypeMatch[2]);
+    }
+  } else {
     result.vehicleType = vehicleTypeMatch[1].trim();
   }
 
-  // Price: £90 or Price: 90
-  const priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY
+  let priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£(\d+(?:\.\d{2})?)/i);
+  }
   if (priceLabelMatch) {
     result.price = parseFloat(priceLabelMatch[1]);
   }

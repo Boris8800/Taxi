@@ -209,4 +209,17 @@ function updateParsedInfoFromStandardInput() {
 window.onload = function() {
   loadTheme();
   initMap();
+  // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
+  showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
 };
+
+// Show a message for a given pickup and dropoff (for demo or logic injection)
+function showPickupDropoffMessage(pickup, dropoff) {
+  // Option 1: Set the fields directly
+  document.getElementById('pickupLocation').value = pickup;
+  document.getElementById('dropoffLocation').value = dropoff;
+  updateParsedInfoFromStandardInput();
+
+  // Option 2: Show an alert or custom message (uncomment if needed)
+  // alert(`Pick Up - ${pickup}\nDrop Off: ${dropoff}`);
+}
