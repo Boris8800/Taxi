@@ -748,10 +748,10 @@ h2 {
   }
   
   input, select, textarea {
-    padding: 12px 10px;
+    padding: 8px 10px;
     font-size: 16px; /* Prevents zoom on iOS */
     border-radius: 8px;
-    min-height: 44px; /* Touch target size */
+    min-height: 40px; /* Touch target size */
   }
   
   #freeStyleInput {
