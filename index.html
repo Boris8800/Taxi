@@ -234,6 +234,7 @@
       border-left: 4px solid #28a745;
       display: none;
       color: var(--text-primary);
+      font-size: 18px;
     }
     .analysis-box {
       background: var(--bg-secondary);
@@ -905,7 +906,7 @@ Saloon Car
   <script>
     // Default trip data
     const defaultTrip = {
-      date: "18 Nov",
+      date: "18 November",
       pickupTime: "19:35",
       pickup: "London Stansted Airport, STN",
       dropoff: "Royal National Hotel, 38-51 Bedford Way, London WC1H 0DG, UK",
@@ -1072,11 +1073,11 @@ Saloon Car
           profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
         }
         
-        if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
-          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
-        } else if (profitPerHourValue < 0) {
+        if (profitPerHourValue < 4) {
           profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
-        } else if (profitPerHourValue < 8) {
+        } else if (profitPerHourValue < 5) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
+        } else if (profitPerHourValue < 10) {
           profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOW</span>';
         } else if (profitPerHourValue < 13) {
           profitBadge = ' <span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">MEDIUM</span>';
@@ -1257,24 +1258,24 @@ Saloon Car
       const profitPerHourHeader = document.getElementById('profitPerHourHeader');
       
       // Handle different profit scenarios
-      if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
-        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ NO PROFIT</span>';
-        profitPerHourHeader.textContent = 'No Profit';
+      if (profitPerHourValue < 4) {
+        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOSS</span>';
+        profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
         profitPerHourHeader.style.color = '#e74c3c';
-      } else if (profitPerHourValue < 0) {
-        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOSS!</span>';
-        profitPerHourHeader.textContent = `-£${Math.abs(profitPerHourValue).toFixed(2)}/hr`;
+      } else if (profitPerHourValue < 5) {
+        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ NO PROFIT</span>';
+        profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
         profitPerHourHeader.style.color = '#e74c3c';
       } else if (profitPerHourValue < 10) {
-        alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOW PROFIT!</span>';
+        alertBadge.innerHTML = '<span class="alert-badge alert-danger">🔴 LOW PROFIT</span>';
         profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
         profitPerHourHeader.style.color = '#e74c3c';
       } else if (profitPerHourValue < 13) {
-        alertBadge.innerHTML = '<span class="alert-badge alert-warning">⚡ Medium Profit</span>';
+        alertBadge.innerHTML = '<span class="alert-badge alert-warning">🟡 Medium Profit</span>';
         profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
         profitPerHourHeader.style.color = '#f39c12';
       } else {
-        alertBadge.innerHTML = '<span class="alert-badge alert-success">✓ High Profit</span>';
+        alertBadge.innerHTML = '<span class="alert-badge alert-success">🟢 High Profit</span>';
         profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
         profitPerHourHeader.style.color = '#00b894';
       }
@@ -1418,16 +1419,16 @@ Saloon Car
         }
         
         let profitLevel = '';
-        if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
-          profitLevel = '⚠️ NO PROFIT';
-        } else if (profitPerHourValue < 0) {
+        if (profitPerHourValue < 4) {
           profitLevel = '⚠️ LOSS';
+        } else if (profitPerHourValue < 5) {
+          profitLevel = '⚠️ NO PROFIT';
         } else if (profitPerHourValue < 10) {
-          profitLevel = '⚠️ LOW PROFIT';
+          profitLevel = '🔴 LOW PROFIT';
         } else if (profitPerHourValue < 13) {
-          profitLevel = '⚡ Medium Profit';
+          profitLevel = '🟡 Medium Profit';
         } else {
-          profitLevel = '✓ High Profit';
+          profitLevel = '🟢 High Profit';
         }
         
         const summary = `📊 SMART TRIP v1 - Trip Summary\n\n` +
@@ -1488,7 +1489,7 @@ Saloon Car
         selectedDate.setHours(0, 0, 0, 0);
         
         const dayName = date.toLocaleDateString('en-GB', { weekday: 'long' });
-        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        const formattedDate = date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
         
         if (selectedDate.getTime() === today.getTime()) {
           dateDisplay.value = `${formattedDate} - Today (${dayName})`;
@@ -1513,12 +1514,15 @@ Saloon Car
       let cleanDate = dateStr.replace(/\s*-\s*(Today|Tomorrow)\s*\([^)]+\)/i, '');
       cleanDate = cleanDate.replace(/\s*\([^)]+\)/i, '');
       
-      // Parse "20 Nov" format
-      const match = cleanDate.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      // Parse both "20 Nov" and "20 November" formats
+      const shortMatch = cleanDate.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+      const fullMatch = cleanDate.match(/(\d{1,2})\s+(January|February|March|April|May|June|July|August|September|October|November|December)/i);
+      
+      const match = fullMatch || shortMatch;
       if (match) {
         const day = match[1];
-        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const month = monthNames.findIndex(m => m.toLowerCase() === match[2].toLowerCase()) + 1;
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const month = monthNames.findIndex(m => m.toLowerCase().startsWith(match[2].toLowerCase().substring(0, 3))) + 1;
         const year = new Date().getFullYear();
         return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       }
@@ -1614,11 +1618,11 @@ Saloon Car
           profitPerHourValue = parseFloat(profitPerHour.replace('£', '').replace('/hr', ''));
         }
         
-        if (profitPerHourValue <= 0.5 && profitPerHourValue >= -0.5) {
-          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
-        } else if (profitPerHourValue < 0) {
+        if (profitPerHourValue < 4) {
           profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOSS</span>';
-        } else if (profitPerHourValue < 8) {
+        } else if (profitPerHourValue < 5) {
+          profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">NO PROFIT</span>';
+        } else if (profitPerHourValue < 10) {
           profitBadge = ' <span style="background: #e74c3c; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">LOW</span>';
         } else if (profitPerHourValue < 13) {
           profitBadge = ' <span style="background: #f39c12; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">MEDIUM</span>';
@@ -1703,6 +1707,7 @@ Saloon Car
       // Enhanced date parsing with full date format support
       const dateMatch = cleanText.match(/\b(tonight)\b/i) || // TONIGHT
                        cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4})/i) || // Nov 20, 2025
+                       cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{4})?)/i) || // 20th Nov or 21st Nov 2025
                        cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 21 Nov 2025
                        cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
                        cleanText.match(/\b(today|tomorrow)\b/i) ||
@@ -1718,12 +1723,12 @@ Saloon Car
           const today = new Date();
           const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
           const label = dateMatch[0].toLowerCase() === 'tonight' ? 'Tonight' : 'Today';
-          result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - ${label} (${dayName})`;
+          result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} - ${label} (${dayName})`;
         } else if (dateMatch[0].toLowerCase() === 'tomorrow') {
           const tomorrow = new Date();
           tomorrow.setDate(tomorrow.getDate() + 1);
           const dayName = tomorrow.toLocaleDateString('en-GB', { weekday: 'long' });
-          result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - Tomorrow (${dayName})`;
+          result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} - Tomorrow (${dayName})`;
         } else {
           // Format the date properly
           const dateStr = dateMatch[0];
@@ -1732,21 +1737,22 @@ Saloon Car
             const parts = dateStr.split(/\s+/);
             const day = parts[1].replace(/(st|nd|rd|th)/i, '');
             const year = parts[2];
-            const month = new Date().toLocaleDateString('en-GB', { month: 'short' });
+            const month = new Date().toLocaleDateString('en-GB', { month: 'long' });
             const parsedDate = new Date(year, new Date().getMonth(), day);
             const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
             result.date = `${day} ${month} (${dayName})`;
           } else {
             // Parse other date formats and add day name
             let parsedDate;
-            const shortMonthMatch = dateStr.match(/(\d{1,2})\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+            const shortMonthMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
             if (shortMonthMatch) {
               const day = shortMonthMatch[1];
-              const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-              const monthIndex = monthNames.findIndex(m => m.toLowerCase() === shortMonthMatch[2].toLowerCase());
+              const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+              const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(shortMonthMatch[2].toLowerCase()));
               parsedDate = new Date(new Date().getFullYear(), monthIndex, day);
               const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
-              result.date = `${day} ${shortMonthMatch[2]} (${dayName})`;
+              const fullMonth = monthNames[monthIndex];
+              result.date = `${day} ${fullMonth} (${dayName})`;
             } else {
               result.date = dateStr;
             }
@@ -1770,12 +1776,10 @@ Saloon Car
         const targetDate = new Date();
         targetDate.setDate(today.getDate() + daysUntil);
         const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
-        result.date = `${targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} (${dayName})`;
+        result.date = `${targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} (${dayName})`;
       } else {
-        // If no date found, default to today
-        const today = new Date();
-        const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
-        result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} - Today (${dayName})`;
+        // If no date found, indicate date not recognized
+        result.date = 'Date not recognised';
       }
       
       // Enhanced time parsing with AM/PM support and time-of-day descriptions
@@ -1785,6 +1789,7 @@ Saloon Car
                                cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i); // @ 11:12 PM (Landing)
       
       const timeMatch = landingTimeMatch ||
+                       cleanText.match(/\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}:\d{2})/i) || // 20th Nov 11:15
                        cleanText.match(/booking\s+pickup\s+time[:\s]+(?:[a-z]+\s+\d+,\s+\d{4}\s*\|\s*)?(\d{1,2}:\d{2})/i) || // Booking pickup time: Nov 20, 2025 | 20:20
                        cleanText.match(/(?:\d{1,2}\s+[a-z]+\s+\d{4})\s+(\d{1,2}:\d{2})\s*(?:AM|PM)/i) || // 21 Nov 2025 21:00 PM
                        cleanText.match(/(?:tomorrow|today|tonight)\s+(\d{1,2}:\d{2})/i) || // TOMORROW 07:25 or TODAY 13:50
@@ -1797,7 +1802,8 @@ Saloon Car
                        cleanText.match(/(?:tomorrow|today)\s+(\d{2}\s+\d{2})\b/i) || // TOMORROW 07 45
                        cleanText.match(/\b(\d{1,2}\s+\d{2})\b(?!\s*(?:to|net|fare))/i) ||  // 13 50 format (space instead of colon)
                        cleanText.match(/\b(\d{1,2}\s*(?:am|pm))\b/i) ||
-                       cleanText.match(/\b(\d{1,2}\s*(?:AM|PM))\b/i);
+                       cleanText.match(/\b(\d{1,2}\s*(?:AM|PM))\b/i) ||
+                       cleanText.match(/\b(\d{1,2}:\d{2})\b/i); // Generic HH:MM format with colon
       
       if (timeMatch) {
         let time = timeMatch[1].trim();
@@ -2043,6 +2049,18 @@ Saloon Car
         }
       }
       
+      // Check for arrow format: "Stansted ➝ WC2B 5SN" or "LHR → E1 1DU"
+      const arrowMatch = text.match(/([^\n➝→]+?)\s*[➝→]\s*([^\n➝→]+)/);
+      if (arrowMatch && arrowMatch[1] && arrowMatch[2]) {
+        const loc1 = arrowMatch[1].trim().replace(/,$/, '').trim(); // Remove trailing comma, keep case
+        const loc2 = arrowMatch[2].trim(); // Keep original case
+        if (loc1 && loc2) {
+          locations.push(loc1); // First location = pickup
+          locations.push(loc2); // Second location = dropoff
+          return locations;
+        }
+      }
+      
       // Check for dash-separated format: "Heathrow------SW1X 9NU" or "LHR----E4 8YY"
       const dashMatch = text.match(/\b([A-Za-z][A-Za-z0-9\s,]*?)\s*-{2,}\s*([A-Z]{1,2}\d{1,2}[A-Z]?(?:\s+\d[A-Z]{2})?)\b/i);
       if (dashMatch && dashMatch[1] && dashMatch[2]) {
@@ -2126,7 +2144,7 @@ Saloon Car
         /\b(heathrow\s+(?:airport\s+)?t[1-5]|heathrow\s+(?:airport\s+)?terminal\s+[1-5])\b/gi,
         /\b(gatwick\s+(?:airport\s+)?(?:north|south)\s+terminal?)\b/gi,
         // Simple location names
-        /\b(lhr|lgw|stn|ltn|lcy|bhx|man|gatwick|heathrow|stansted|luton)\b/gi
+        /\b(lhr|lgw|stn|ltn|lcy|brs|bhx|man|gatwick|heathrow|stansted|luton|bristol)\b/gi
       ];
       
       // Try each pattern
@@ -2216,7 +2234,8 @@ Saloon Car
         { regex: /^lgw\s*[ns]\s*$/i, name: 'London Gatwick Airport' }, // LGW N, LGW S
         { regex: /^stn\s*$/i, name: 'London Stansted Airport' },
         { regex: /^ltn\s*$/i, name: 'London Luton Airport' },
-        { regex: /^lcy\s*$/i, name: 'London City Airport' }
+        { regex: /^lcy\s*$/i, name: 'London City Airport' },
+        { regex: /^brs\s*$/i, name: 'Bristol Airport' }
       ];
       
       for (const pattern of airportTerminalPatterns) {
@@ -2255,13 +2274,14 @@ Saloon Car
         }
       }
       
-      // PRIORITY 4: Handle bare airport codes (LHR, LGW, STN, LTN, LCY)
+      // PRIORITY 4: Handle bare airport codes (LHR, LGW, STN, LTN, LCY, BRS)
       const airportCodes = {
         'lhr': 'London Heathrow Airport',
         'lgw': 'London Gatwick Airport',
         'stn': 'London Stansted Airport',
         'ltn': 'London Luton Airport',
-        'lcy': 'London City Airport'
+        'lcy': 'London City Airport',
+        'brs': 'Bristol Airport'
       };
       
       if (airportCodes[locLower]) {
