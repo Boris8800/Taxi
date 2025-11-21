@@ -44,6 +44,8 @@ async function parseFreeStyle() {
 
   // Store vehicle type globally
   parsedVehicleType = parsed.vehicleType || '';
+  // Store last freestyle parse globally for extra info
+  window.lastParsedFreeStyle = parsed;
 
   // Update form with parsed values
   if (parsed.pickup) {
@@ -80,13 +82,50 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+      // Support 'Pickup from Heathrow terminal 5 to NR32 4AA' in one line
+      const oneLinePickupMatch = text.match(/pickup\s*from\s*([\w\s]*heathrow[\w\s]*t(?:erminal)?\s*5)\s*to\s*([A-Z0-9\s]{4,15})/i);
+      if (oneLinePickupMatch) {
+        result.pickup = oneLinePickupMatch[1].replace(/\s+/g, ' ').trim();
+        result.dropoff = oneLinePickupMatch[2].replace(/\s+/g, '').toUpperCase();
+        result.specialFormat = 'HeathrowT5_NR324AA_OneLine';
+      }
+    // Support 'AT 10:20 pickup From Heathrow T5 to NR32 4AA £200+Car Park' style
+    // Improved: allow dropoff to be any postcode or location, with/without spaces, and multi-line
+    const atTimePickupMatch = text.match(/at\s*(\d{1,2}:\d{2})\s*pickup\s*from\s*([\w\s]*heathrow[\w\s]*t5)[\s\S]*?to\s*([A-Z0-9\s]{4,15})[\s\S]*?(?:£|\b)(\d{2,4})(?:\s*\+\s*Car Park)?/i);
+    if (atTimePickupMatch) {
+      result.time = atTimePickupMatch[1];
+      result.pickup = atTimePickupMatch[2].replace(/\s+/g, ' ').trim();
+      result.dropoff = atTimePickupMatch[3].replace(/\s+/g, '').toUpperCase();
+      result.price = parseFloat(atTimePickupMatch[4]);
+      if (/car park/i.test(text)) {
+        result.carPark = true;
+      }
+      result.specialFormat = 'HeathrowT5_NR324AA_Time';
+    }
   const result = {};
+  // Robustly handle 'pickup From Heathrow T5 to NR32 4AA £200+Car Park' format, even with line breaks and extra whitespace
+  const multiLinePickupMatch = text.match(/pickup\s*from\s*([\w\s]*heathrow[\w\s]*t5)[\s\S]*?to\s*([A-Z0-9 ]{5,8})[\s\S]*?(?:£|\b)(\d{2,4})(?:\s*\+\s*Car Park)?/i);
+  if (multiLinePickupMatch) {
+    result.pickup = multiLinePickupMatch[1].replace(/\s+/g, ' ').trim();
+    result.dropoff = multiLinePickupMatch[2].replace(/\s+/g, '').toUpperCase();
+    result.price = parseFloat(multiLinePickupMatch[3]);
+    if (/car park/i.test(text)) {
+      result.carPark = true;
+    }
+    result.specialFormat = 'HeathrowT5_NR324AA';
+  }
   // Special handling for 'ASAP' as date/time and 'ANY' vehicle
   const asapPresent = /\bASAP\b/i.test(text);
 
+  // Explicitly detect 'No Prius' (case-insensitive)
+  if (/no\s*prius/i.test(text)) {
+    result.noPrius = true;
+    result.vehicleType = 'No Prius';
+  }
+
   // If any line contains 'ANY' or 'any' (case-insensitive, with extra info), set vehicleType to that line
   const anyLineMatch = text.match(/^\s*.*any.*$/gim);
-  if (anyLineMatch && anyLineMatch.length > 0) {
+  if (anyLineMatch && anyLineMatch.length > 0 && !result.vehicleType) {
     result.vehicleType = anyLineMatch[0].trim();
   }
 
@@ -178,6 +217,15 @@ async function parseFreeStyleText(text) {
     if (/\bCash\b/i.test(text)) {
       result.priceType = 'Cash';
     }
+    // If 'same day payment' or 'same day' is present, mark as sameDayPayment
+    if (/same day payment|same day/i.test(text)) {
+      result.sameDayPayment = true;
+    }
+  }
+
+  // Detect 'Car Park' as an extra charge or note
+  if (/car park/i.test(text)) {
+    result.carPark = true;
   }
   
   // Clean the text - remove WhatsApp timestamps and phone numbers

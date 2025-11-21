@@ -188,6 +188,20 @@ function updateParsedInfoFromStandardInput() {
   // Update parsed information display
   const vehicleType = parsedVehicleType || 'Not Specified';
 
+  // Try to get extra parsed info from the freestyle parser if available
+  let extraInfo = '';
+  if (window.lastParsedFreeStyle) {
+    if (window.lastParsedFreeStyle.noPrius) {
+      extraInfo += '<strong>No Prius:</strong> Yes<br>';
+    }
+    if (window.lastParsedFreeStyle.carPark) {
+      extraInfo += '<strong>Car Park:</strong> Required<br>';
+    }
+    if (window.lastParsedFreeStyle.sameDayPayment) {
+      extraInfo += '<strong>Same Day Payment:</strong> Yes<br>';
+    }
+  }
+
   document.getElementById('parsedDetails').innerHTML = `
     <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
@@ -196,6 +210,7 @@ function updateParsedInfoFromStandardInput() {
     <strong>Time:</strong> ${time || 'Not set'}<br>
     <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
     <strong>Vehicle:</strong> ${vehicleType}<br>
+    ${extraInfo}
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
     <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
