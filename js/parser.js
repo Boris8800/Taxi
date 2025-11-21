@@ -77,14 +77,31 @@ async function parseFreeStyle() {
 
 async function parseFreeStyleText(text) {
   const result = {};
-  // Special handling for 'ASAP' as date/time and 'ANY CAR (NO TOYOTA)' etc.
+  // Special handling for 'ASAP' as date/time and 'ANY' vehicle
   const asapPresent = /\bASAP\b/i.test(text);
 
-  // Support for 'ANY CAR (NO TOYOTA)\nASAP\nCR9 TO LCY\nPRICE 60 NET' format
-  // Extract vehicle type if line starts with 'ANY CAR' or similar
-  const anyCarMatch = text.match(/^\s*(ANY CAR.*)$/im);
-  if (anyCarMatch) {
-    result.vehicleType = anyCarMatch[1].trim();
+  // If any line contains 'ANY' or 'any' (case-insensitive, with extra info), set vehicleType to that line
+  const anyLineMatch = text.match(/^\s*.*any.*$/gim);
+  if (anyLineMatch && anyLineMatch.length > 0) {
+    result.vehicleType = anyLineMatch[0].trim();
+  }
+
+  // Handle 'PICK TODAY AT 05.45AM' or similar
+  const pickTodayAtMatch = text.match(/PICK\s+TODAY\s+AT\s+(\d{1,2}[.:]\d{2}\s*(AM|PM)?)/i);
+  if (pickTodayAtMatch) {
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+    result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
+    // Normalize time to HH:MM AM/PM
+    let time = pickTodayAtMatch[1].replace('.', ':').toUpperCase();
+    result.time = time;
+  }
+
+  // Support 'Pick - ...' and 'Drop - ...' for locations
+  const pickDropSimple = text.match(/Pick\s*-\s*([^\n\r]+)[\n\r]+Drop\s*-\s*([^\n\r]+)/i);
+  if (pickDropSimple && pickDropSimple[1] && pickDropSimple[2]) {
+    result.pickup = (await expandLocation(pickDropSimple[1].trim()));
+    result.dropoff = (await expandLocation(pickDropSimple[2].trim()));
   }
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
