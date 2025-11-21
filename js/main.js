@@ -137,11 +137,11 @@ function setupInputListeners() {
 
 function updateParsedInfoFromStandardInput() {
   // Get current values from standard input fields
-  const pickup = document.getElementById('pickupLocation').value;
-  const dropoff = document.getElementById('dropoffLocation').value;
-  const date = document.getElementById('tripDateDisplay').value;
-  const time = document.getElementById('tripTime').value;
-  const price = document.getElementById('tripPrice').value;
+  const pickup = document.getElementById('pickupLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.pickup) || '';
+  const dropoff = document.getElementById('dropoffLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.dropoff) || '';
+  const date = document.getElementById('tripDateDisplay').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.date) || '';
+  const time = document.getElementById('tripTime').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.time) || '';
+  const price = document.getElementById('tripPrice').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.price) || '';
   const baseLocation = document.getElementById('baseLocation').value;
   
   // Get total distance and time if calculated
@@ -202,10 +202,20 @@ function updateParsedInfoFromStandardInput() {
     }
   }
 
+  let paymentOnPOBLabel = '';
+  let isPOB = false;
+  if (window.lastParsedFreeStyle) {
+    if (window.lastParsedFreeStyle.paymentOnPOB || (window.lastParsedFreeStyle.extraMessage && window.lastParsedFreeStyle.extraMessage.toLowerCase().includes('payment on pob'))) {
+      isPOB = true;
+    }
+  }
+  if (isPOB) {
+    paymentOnPOBLabel = ' <span style="background: #00b894; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">Payment on POB</span>';
+  }
   document.getElementById('parsedDetails').innerHTML = `
     <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
-    <strong>Price:</strong> ${price ? '£' + price : 'Not set'}<br>
+    <strong>Price:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
     <strong>Date:</strong> ${date || 'Not set'}<br>
     <strong>Time:</strong> ${time || 'Not set'}<br>
     <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
@@ -217,7 +227,7 @@ function updateParsedInfoFromStandardInput() {
     <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}
   `;
 
-  // Show the parsed info section
+  // Always show the parsed info section after parsing
   document.getElementById('parsedInfo').style.display = 'block';
 }
 

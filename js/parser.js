@@ -85,6 +85,33 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+    // If message contains 'T5' or 'Heathrow T5', set pickup to 'Heathrow T5' if not already set
+    if (/\b(T5|Heathrow T5)\b/i.test(text) && !result.pickup) {
+      result.pickup = 'Heathrow T5';
+      result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'HeathrowT5';
+    }
+  // Remove all sequences of two or more dashes before any parsing
+  text = text.replace(/-{2,}/g, ' ');
+  // Remove all emoji and icon characters before any parsing
+  text = text.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1FA70}-\u{1FAFF}\u{1F1E6}-\u{1F1FF}\u{1F191}-\u{1F251}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F171}\u{1F17E}-\u{1F17F}\u{1F18E}\u{3030}\u{2B50}\u{2B55}\u{2934}-\u{2935}\u{25AA}-\u{25AB}\u{25FE}-\u{25FF}\u{25B6}\u{25C0}\u{25FB}-\u{25FC}\u{25FD}-\u{25FE}\u{2614}-\u{2615}\u{2648}-\u{2653}\u{267B}\u{267F}\u{2693}\u{26A0}-\u{26A1}\u{26AA}-\u{26AB}\u{26BD}-\u{26BE}\u{26C4}-\u{26C5}\u{26CE}\u{26D4}\u{26EA}\u{26F2}-\u{26F3}\u{26F5}\u{26FA}\u{26FD}\u{2702}-\u{2705}\u{2708}-\u{2709}\u{270A}-\u{270B}\u{2728}\u{274C}\u{274E}\u{2753}-\u{2755}\u{2757}\u{2764}\u{2795}-\u{2797}\u{27A1}\u{27B0}\u{27BF}\u{2934}-\u{2935}\u{2B05}-\u{2B07}\u{2B1B}-\u{2B1C}\u{2B50}\u{2B55}\u{303D}\u{3297}\u{3299}\u{1F004}\u{1F0CF}\u{1F18E}\u{1F191}-\u{1F19A}\u{1F1E6}-\u{1F1FF}\u{1F201}-\u{1F202}\u{1F21A}\u{1F22F}\u{1F232}-\u{1F23A}\u{1F250}-\u{1F251}\u{1F300}-\u{1F320}\u{1F32D}-\u{1F335}\u{1F337}-\u{1F37C}\u{1F37E}-\u{1F393}\u{1F3A0}-\u{1F3CA}\u{1F3CF}-\u{1F3D3}\u{1F3E0}-\u{1F3F0}\u{1F3F4}\u{1F3F8}-\u{1F43E}\u{1F440}\u{1F442}-\u{1F4FC}\u{1F4FF}-\u{1F53D}\u{1F54B}-\u{1F54E}\u{1F550}-\u{1F567}\u{1F57A}\u{1F595}-\u{1F596}\u{1F5A4}\u{1F5FB}-\u{1F5FF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6C5}\u{1F6CC}-\u{1F6D2}\u{1F6EB}-\u{1F6EC}\u{1F6F0}-\u{1F6F3}\u{1F910}-\u{1F918}\u{1F980}-\u{1F984}\u{1F9C0}\u{1F9D0}-\u{1F9E6}]/gu, '');
+  // Custom parsing for messages with parentheses: extract content, omit parentheses, and remove parentheses from time and other fields
+  const parenMatch = text.match(/\(([^)]+)\)/);
+  text = text.replace(/\(([^)]+)\)/g, '$1');
+              // Custom parsing for 🛞 TODAY🛞🛞 ANY EXECUTIVE @20:00pm.. landing Terminal 3‼️NW10... £55..Net
+              const execExampleMatch = text.match(/🛞\s*TODAY🛞🛞[\s\S]*?ANY EXECUTIVE[\s\S]*?@(\d{1,2}:\d{2})pm\.\. landing[\s\S]*?Terminal 3‼️([A-Z]{1,2}\d{1,2})\.\.\.[\s\S]*?£(\d{2,4})\.\.Net/i);
+              if (execExampleMatch) {
+                result.execTodayExample = true;
+                result.vehicleType = 'ANY EXECUTIVE';
+                result.date = 'Today';
+                result.time = execExampleMatch[1] + ' PM (Landing)';
+                result.pickup = 'Heathrow Terminal 3';
+                result.dropoff = execExampleMatch[2].replace(/\s+/g, '').toUpperCase();
+                result.price = parseFloat(execExampleMatch[3]);
+                result.priceType = 'Net';
+                result.specialFormat = 'ExecTodayExample';
+                result.extraMessage = `🛞 TODAY🛞🛞\nANY EXECUTIVE\n@${execExampleMatch[1]}pm.. landing\nTerminal 3‼️${execExampleMatch[2]}...\n£${execExampleMatch[3]}..Net`;
+                return result;
+              }
             // Support for vehicle type: S class or similar
             const sClassMatch = text.match(/\b(s\s*class\s*or\s*similar)\b/i);
             if (sClassMatch) {
@@ -149,6 +176,21 @@ async function parseFreeStyleText(text) {
       result.specialFormat = 'HeathrowT5_NR324AA_Time';
     }
   const result = {};
+  // Custom parsing for Payment on POB example
+  const pobExampleMatch = text.match(/(🚨🚨 Payment on POB ✅️ ✔️ )[\s\S]*?(Any car 🚗 )[\s\S]*?(Today @ (\d{1,2}:\d{2}) PM \(Landing Time\))[\s\S]*?(Heathrow to ([A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}))[\s\S]*?(Fare; £(\d{2,4}) Net)/i);
+  if (pobExampleMatch) {
+    result.paymentOnPOB = true;
+    result.vehicleType = pobExampleMatch[2].trim();
+    result.date = 'Today';
+    result.time = pobExampleMatch[4] + ' PM (Landing Time)';
+    result.pickup = 'Heathrow';
+    result.dropoff = pobExampleMatch[6].replace(/\s+/g, '').toUpperCase();
+    result.price = parseFloat(pobExampleMatch[8]);
+    result.priceType = 'Net';
+    result.specialFormat = 'PaymentOnPOBExample';
+    result.extraMessage = `${pobExampleMatch[1]}\n${pobExampleMatch[2]}\n${pobExampleMatch[3]}\n${pobExampleMatch[5]}\n${pobExampleMatch[7]}`;
+    return result;
+  }
   // Robustly handle 'pickup From Heathrow T5 to NR32 4AA £200+Car Park' format, even with line breaks and extra whitespace
   const multiLinePickupMatch = text.match(/pickup\s*from\s*([\w\s]*heathrow[\w\s]*t5)[\s\S]*?to\s*([A-Z0-9 ]{5,8})[\s\S]*?(?:£|\b)(\d{2,4})(?:\s*\+\s*Car Park)?/i);
   if (multiLinePickupMatch) {
