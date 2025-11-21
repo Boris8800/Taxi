@@ -1,4 +1,5 @@
 // Free-style text parsing functions
+window.pasteFromClipboard = pasteFromClipboard;
 async function pasteFromClipboard() {
   try {
     const text = await navigator.clipboard.readText();
@@ -11,6 +12,7 @@ async function pasteFromClipboard() {
   }
 }
 
+window.clearFreeStyleInput = clearFreeStyleInput;
 function clearFreeStyleInput() {
   document.getElementById('freeStyleInput').value = '';
   document.getElementById('pickupLocation').value = '';
@@ -23,6 +25,7 @@ function clearFreeStyleInput() {
   document.getElementById('parsedInfo').style.display = 'none';
 }
 
+window.parseFreeStyle = parseFreeStyle;
 async function parseFreeStyle() {
   // Clear all relevant fields before parsing
   document.getElementById('pickupLocation').value = '';

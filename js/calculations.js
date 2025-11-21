@@ -1,4 +1,5 @@
 // Trip calculation functions
+window.calculateTrip = calculateTrip;
 function calculateTrip() {
   // Get values from form
   const baseLocation = document.getElementById('baseLocation').value || "Birmingham";

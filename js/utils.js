@@ -55,6 +55,7 @@ function convertToISODate(dateStr) {
   return null;
 }
 
+window.openInGoogleMaps = openInGoogleMaps;
 function openInGoogleMaps() {
   const pickup = document.getElementById('pickupLocation').value;
   const dropoff = document.getElementById('dropoffLocation').value;
@@ -76,6 +77,7 @@ function openInGoogleMaps() {
   window.open(mapsUrl, '_blank');
 }
 
+window.shareTrip = shareTrip;
 function shareTrip() {
   try {
     const pickup = document.getElementById('pickupLocation').value;
