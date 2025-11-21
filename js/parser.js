@@ -82,6 +82,43 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+          // Extract pickup and dropoff if only 'Pick up =' or 'Pickup =' and 'To' are present
+          const pickupDropOnlyMatch = text.match(/pick\s*up\s*[=:]?\s*([\w\s]+)[\s\S]*?to\s*([A-Z0-9 ]{4,15})/i);
+          if (pickupDropOnlyMatch) {
+            result.pickup = pickupDropOnlyMatch[1].replace(/\s+/g, ' ').trim();
+            result.dropoff = pickupDropOnlyMatch[2].replace(/\s+/g, '').toUpperCase();
+            result.specialFormat = 'PickupDropOnly';
+          }
+        // Support 'Date=today', 'Time=1455', 'Pick up = Heathrow', 'To BR51JJ' style
+        const eqStyleMatch = text.match(/date\s*[=:]\s*(today|tomorrow|\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})[\s\S]*?time\s*[=:]\s*(\d{3,4})[\s\S]*?pick\s*up\s*[=:]\s*([\w\s]+)[\s\S]*?to\s*([A-Z0-9 ]{4,10})/i);
+        if (eqStyleMatch) {
+          // Date
+          const dateRaw = eqStyleMatch[1].trim().toLowerCase();
+          if (dateRaw === 'today') {
+            const today = new Date();
+            const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+            result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
+          } else if (dateRaw === 'tomorrow') {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const dayName = tomorrow.toLocaleDateString('en-GB', { weekday: 'long' });
+            result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Tomorrow, ${dayName})`;
+          } else {
+            result.date = dateRaw;
+          }
+          // Time (convert 1455 to 14:55)
+          let timeRaw = eqStyleMatch[2].trim();
+          if (/^\d{4}$/.test(timeRaw)) {
+            result.time = timeRaw.slice(0,2) + ':' + timeRaw.slice(2);
+          } else {
+            result.time = timeRaw;
+          }
+          // Pickup
+          result.pickup = eqStyleMatch[3].replace(/\s+/g, ' ').trim();
+          // Dropoff
+          result.dropoff = eqStyleMatch[4].replace(/\s+/g, '').toUpperCase();
+          result.specialFormat = 'EqStyle_DateTimePickupTo';
+        }
       // Support 'Pickup from Heathrow terminal 5 to NR32 4AA' in one line
       const oneLinePickupMatch = text.match(/pickup\s*from\s*([\w\s]*heathrow[\w\s]*t(?:erminal)?\s*5)\s*to\s*([A-Z0-9\s]{4,15})/i);
       if (oneLinePickupMatch) {
