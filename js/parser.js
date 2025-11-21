@@ -77,9 +77,18 @@ async function parseFreeStyle() {
 
 async function parseFreeStyleText(text) {
   const result = {};
+  // Special handling for 'ASAP' as date/time and 'ANY CAR (NO TOYOTA)' etc.
+  const asapPresent = /\bASAP\b/i.test(text);
+
+  // Support for 'ANY CAR (NO TOYOTA)\nASAP\nCR9 TO LCY\nPRICE 60 NET' format
+  // Extract vehicle type if line starts with 'ANY CAR' or similar
+  const anyCarMatch = text.match(/^\s*(ANY CAR.*)$/im);
+  if (anyCarMatch) {
+    result.vehicleType = anyCarMatch[1].trim();
+  }
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
-  // Support for "Pick Up - ... Drop Off: ..." format
+  // Support for "Pick Up - ... Drop Off: ..." format and 'X TO Y' format
   let locations = extractLocations(text);
   // If not found, try explicit "Pick Up - ... Drop Off: ..." pattern
   if (locations.length < 2) {
@@ -87,6 +96,12 @@ async function parseFreeStyleText(text) {
     const pickDropMatch = text.match(pickDropPattern);
     if (pickDropMatch && pickDropMatch[1] && pickDropMatch[2]) {
       locations = [pickDropMatch[1].trim(), pickDropMatch[2].trim()];
+    } else {
+      // Try 'X TO Y' format (e.g., 'CR9 TO LCY')
+      const toMatch = text.match(/([A-Z0-9 ]{2,})\s+TO\s+([A-Z0-9 ]{2,})/i);
+      if (toMatch && toMatch[1] && toMatch[2]) {
+        locations = [toMatch[1].trim(), toMatch[2].trim()];
+      }
     }
   }
 
@@ -117,10 +132,16 @@ async function parseFreeStyleText(text) {
     result.vehicleType = vehicleTypeMatch[1].trim();
   }
 
-  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY
+  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET'
   let priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£(\d+(?:\.\d{2})?)/i);
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/PRICE\s*:?\s*£?\s*(\d+(?:\.\d{2})?)\s*NET/i);
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/(\d+)\s*NET/i);
   }
   if (priceLabelMatch) {
     result.price = parseFloat(priceLabelMatch[1]);
@@ -200,7 +221,13 @@ async function parseFreeStyleText(text) {
   // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
   const dayNameMatch = cleanText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
   
-  if (dateMatch) {
+  if (asapPresent) {
+    // If ASAP is present anywhere, always set date to today and time to ASAP
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+    result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
+    result.time = 'ASAP';
+  } else if (dateMatch) {
     if (dateMatch[0].toLowerCase() === 'today' || dateMatch[0].toLowerCase() === 'tonight') {
       const today = new Date();
       const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
