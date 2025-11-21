@@ -82,6 +82,12 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+            // Support for vehicle type: S class or similar
+            const sClassMatch = text.match(/\b(s\s*class\s*or\s*similar)\b/i);
+            if (sClassMatch) {
+              result.vehicleType = 'S Class or Similar';
+              result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'SClassOrSimilar';
+            }
           // Extract pickup and dropoff if only 'Pick up =' or 'Pickup =' and 'To' are present
           const pickupDropOnlyMatch = text.match(/pick\s*up\s*[=:]?\s*([\w\s]+)[\s\S]*?to\s*([A-Z0-9 ]{4,15})/i);
           if (pickupDropOnlyMatch) {
