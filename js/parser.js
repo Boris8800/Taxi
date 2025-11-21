@@ -53,7 +53,11 @@ async function parseFreeStyle() {
     document.getElementById('dropoffLocation').value = parsed.dropoff;
   }
   if (parsed.price) {
-    document.getElementById('tripPrice').value = parsed.price;
+    if (parsed.priceType === 'Cash') {
+      document.getElementById('tripPrice').value = `${parsed.price} Cash`;
+    } else {
+      document.getElementById('tripPrice').value = parsed.price;
+    }
   }
   if (parsed.date) {
     parsedDateLabel = parsed.date;
@@ -149,10 +153,13 @@ async function parseFreeStyleText(text) {
     result.vehicleType = vehicleTypeMatch[1].trim();
   }
 
-  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET'
+  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET' or 'PAYMENT - 80 SAME DAY'
   let priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£(\d+(?:\.\d{2})?)/i);
+    priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£?(\d+(?:\.\d{2})?)(?:\s*SAME DAY)?/i);
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/\bPAYMENT\b\s*£?(\d+(?:\.\d{2})?)/i);
   }
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/PRICE\s*:?\s*£?\s*(\d+(?:\.\d{2})?)\s*NET/i);
@@ -160,8 +167,17 @@ async function parseFreeStyleText(text) {
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/(\d+)\s*NET/i);
   }
-  if (priceLabelMatch) {
+  // Add support for 'Cash' payments: look for 'Cash' and a price
+  let cashMatch = text.match(/(\d+(?:\.\d{2})?)\s*Cash/i);
+  if (!priceLabelMatch && cashMatch) {
+    result.price = parseFloat(cashMatch[1]);
+    result.priceType = 'Cash';
+  } else if (priceLabelMatch) {
     result.price = parseFloat(priceLabelMatch[1]);
+    // If 'Cash' is present anywhere, mark as cash
+    if (/\bCash\b/i.test(text)) {
+      result.priceType = 'Cash';
+    }
   }
   
   // Clean the text - remove WhatsApp timestamps and phone numbers

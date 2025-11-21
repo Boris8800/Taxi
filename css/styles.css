@@ -1,3 +1,46 @@
+/* Free-Style Input section description margin */
+.free-style-section p {
+  margin: 10px 0;
+}
+/* Free-Style Input section heading style (was h3, now h4) */
+.free-style-section h4 {
+  margin: 0 0px 10px 0px;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-direction: row;
+}
+
+.free-style-section h4::before {
+  content: '📝';
+  font-size: 22px;
+  display: inline-block;
+  vertical-align: middle;
+  line-height: 1;
+  margin-right: 6px;
+}
+h3 {
+  font-size: 13px;
+}
+/* Set page counter font size to 8px */
+#pageCounter {
+  font-size: 8px !important;
+}
+/* Set @Boris mail link font size to 13px */
+#borisMail {
+  font-size: 10px !important;
+}
+/* Make h5 headings (e.g., Standard Input) font size 15px */
+h5 {
+  font-size: 18px;
+  margin-top: 0px;
+  margin-bottom: 10px;
+}
 /* Theme Variables */
 :root {
   --bg-primary: #f5f7fa;
@@ -194,7 +237,7 @@ label {
 }
 
 input, select, textarea {
-  width: 100%;
+  width: 94%;
   padding: 6px 8px;
   border: 2px solid var(--border-color);
   border-radius: 6px;
