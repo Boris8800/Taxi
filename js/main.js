@@ -271,15 +271,43 @@ function updateTripAnalysis() {
   updateParsedInfoFromStandardInput();
 }
 
+function openInGoogleMaps() {
+  // Use 'Current Location' for base in Google Maps navigation
+  const base = 'Current Location';
+  // Sanitize pickup and dropoff: remove commas, extra spaces, and line breaks
+  const pickup = document.getElementById('pickupLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
+  const dropoff = document.getElementById('dropoffLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
+  
+  // Debug logs
+  console.log('Pickup:', pickup);
+  console.log('Dropoff:', dropoff);
+  console.log('Return to Base:', window.returnToBase);
+  
+  let url;
+  if (window.returnToBase !== false) {
+    // Return to Base ON: Current Location → pickup → dropoff → Current Location
+    url = `https://www.google.com/maps/dir/${encodeURIComponent(base)}/${encodeURIComponent(pickup)}/${encodeURIComponent(dropoff)}/${encodeURIComponent(base)}`;
+  } else {
+    // Return to Base OFF: Use Directions API format with empty origin for current location
+    url = `https://www.google.com/maps/dir/?api=1&origin=&destination=${encodeURIComponent(dropoff)}&waypoints=${encodeURIComponent(pickup)}`;
+  }
+  
+  console.log('Navigation URL:', url);
+  window.open(url, '_blank');
+}
+
 window.onload = function() {
   loadTheme();
   initMap();
-  // Set Return to Base button color to red by default
+  // Set Return to Base OFF by default
+  returnToBase = false;
+  window.returnToBase = false;
   const toggleBtn = document.getElementById('returnToBaseToggle');
   if (toggleBtn) {
     toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
     document.getElementById('returnToBaseStatus').textContent = 'OFF';
   }
+  updateTripAnalysis();
   // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
   showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
 };
