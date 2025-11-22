@@ -17,7 +17,7 @@ let routeResults = {
 let parsedVehicleType = '';
 let parsedDateLabel = '';
 let parsedTimeLabel = '';
-let returnToBase = true;
+let returnToBase = false;
 window.returnToBase = returnToBase;
 
 // Location database is now loaded from locations.js
@@ -217,15 +217,20 @@ function updateParsedInfoFromStandardInput() {
   document.getElementById('parsedDetails').innerHTML = `
     <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Price:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
+    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Date:</strong> ${date || 'Not set'}<br>
     <strong>Time:</strong> ${time || 'Not set'}<br>
+    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
-    <strong>Vehicle:</strong> ${vehicleType}<br>
     <strong>Return to Base:</strong> <span style="font-weight:700;color:${returnToBase ? '#00b894' : '#e74c3c'}">${returnToBase ? 'ON' : 'OFF'}</span><br>
+    <strong>Vehicle:</strong> ${vehicleType}<br>
+    <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
     ${extraInfo}
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
+    <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
     <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
     <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}
   `;
@@ -238,6 +243,12 @@ function toggleReturnToBase() {
   returnToBase = !returnToBase;
   window.returnToBase = returnToBase;
   document.getElementById('returnToBaseStatus').textContent = returnToBase ? 'ON' : 'OFF';
+  const toggleBtn = document.getElementById('returnToBaseToggle');
+  if (!returnToBase) {
+    toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+  } else {
+    toggleBtn.style.background = 'linear-gradient(135deg, #00b894 0%, #00cec9 100%)';
+  }
   updateTripAnalysis();
 }
 
@@ -263,6 +274,12 @@ function updateTripAnalysis() {
 window.onload = function() {
   loadTheme();
   initMap();
+  // Set Return to Base button color to red by default
+  const toggleBtn = document.getElementById('returnToBaseToggle');
+  if (toggleBtn) {
+    toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+    document.getElementById('returnToBaseStatus').textContent = 'OFF';
+  }
   // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
   showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
 };

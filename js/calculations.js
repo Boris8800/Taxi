@@ -271,9 +271,11 @@ function isInCongestionZone(location) {
     'e1'
   ];
   
-  // Check if location contains central London postcode
+  // Check if location contains central London postcode (match only valid prefixes, not substrings)
   for (const zone of congestionZones) {
-    if (locLower.includes(zone)) {
+    // Match zone at start, after space, or with full word boundary
+    const regex = new RegExp(`\\b${zone}\\d?\\b`, 'i');
+    if (regex.test(location)) {
       return true;
     }
   }
@@ -284,7 +286,13 @@ function isInCongestionZone(location) {
     'city of london', 'shoreditch', 'southwark', 'waterloo',
     'kings cross', 'euston', 'paddington', 'victoria', 'liverpool street'
   ];
-  
+  // Exclude Heathrow, other airports, and 'london' from CC
+  const excludeKeywords = ['heathrow', 'gatwick', 'stansted', 'luton', 'city airport', 'london'];
+  for (const keyword of excludeKeywords) {
+    if (locLower.includes(keyword)) {
+      return false;
+    }
+  }
   for (const keyword of centralLondonKeywords) {
     if (locLower.includes(keyword)) {
       return true;
