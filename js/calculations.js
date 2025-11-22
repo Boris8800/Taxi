@@ -85,16 +85,15 @@ function updateResults() {
     currentTrip: currentTrip
   });
   
-  // Calculate totals
-  const totalDistance = 
-    routeResults.baseToPickup.distance + 
-    routeResults.pickupToDropoff.distance + 
-    routeResults.dropoffToBase.distance;
-    
-  const totalTime = 
-    routeResults.baseToPickup.duration + 
-    routeResults.pickupToDropoff.duration + 
-    routeResults.dropoffToBase.duration;
+  // Calculate totals, respecting Return to Base toggle
+  let totalDistance, totalTime;
+  if (window.returnToBase !== false) {
+    totalDistance = routeResults.baseToPickup.distance + routeResults.pickupToDropoff.distance + routeResults.dropoffToBase.distance;
+    totalTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration + routeResults.dropoffToBase.duration;
+  } else {
+    totalDistance = routeResults.baseToPickup.distance + routeResults.pickupToDropoff.distance;
+    totalTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration;
+  }
   
   // Check for congestion charge (£15 per day if in zone)
   const pickup = document.getElementById('pickupLocation').value;
@@ -122,18 +121,29 @@ function updateResults() {
     `${routeResults.pickupToDropoff.distance} mi`;
   document.getElementById('dropoffToBaseDistance').textContent = 
     `${routeResults.dropoffToBase.distance} mi`;
-  document.getElementById('totalDistance').textContent = 
-    `${totalDistance.toFixed(1)} mi`;
+  if (window.returnToBase !== false) {
+    document.getElementById('totalDistance').textContent = `${totalDistance.toFixed(1)} mi`;
+    document.getElementById('totalTime').textContent = formatMinutesToText(totalTime);
+  } else {
+    const noReturnTotal = (routeResults.baseToPickup.distance + routeResults.pickupToDropoff.distance).toFixed(1);
+    const returnLeg = routeResults.dropoffToBase.distance.toFixed(1);
+    document.getElementById('totalDistance').textContent = `${noReturnTotal} mi (-- ${returnLeg} mi)`;
+    const noReturnTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration;
+    const returnTime = routeResults.dropoffToBase.duration;
+    document.getElementById('totalTime').textContent = `${formatMinutesToText(noReturnTime)} (-- ${formatMinutesToText(returnTime)})`;
+  }
   
   // Update time metrics
-  document.getElementById('baseToPickupTime').textContent = 
-    routeResults.baseToPickup.text;
-  document.getElementById('pickupToDropoffTime').textContent = 
-    routeResults.pickupToDropoff.text;
-  document.getElementById('dropoffToBaseTime').textContent = 
-    routeResults.dropoffToBase.text;
-  document.getElementById('totalTime').textContent = 
-    formatMinutesToText(totalTime);
+  document.getElementById('baseToPickupTime').textContent = routeResults.baseToPickup.text || '--';
+  document.getElementById('pickupToDropoffTime').textContent = routeResults.pickupToDropoff.text || '--';
+  document.getElementById('dropoffToBaseTime').textContent = routeResults.dropoffToBase.text || '--';
+  if (window.returnToBase !== false) {
+    document.getElementById('totalTime').textContent = formatMinutesToText(totalTime);
+  } else {
+    const noReturnTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration;
+    const returnTime = routeResults.dropoffToBase.duration;
+    document.getElementById('totalTime').textContent = `${formatMinutesToText(noReturnTime)} (-- ${formatMinutesToText(returnTime)})`;
+  }
   
   // Update financial metrics
   document.getElementById('netFare').textContent = `£${currentTrip.price}`;

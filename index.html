@@ -114,9 +114,12 @@
     
     <!-- Free-Style Input Section -->
     <div class="free-style-section">
-      <h4>Free-Style Input</h4>
-      <textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff.
-    "></textarea>
+      <div style="display: flex; align-items: center; gap: 16px;">
+  <h4 style="margin: 0;">Free-Style Input</h4>
+  <button id="returnToBaseToggle" onclick="toggleReturnToBase()" style="padding: 8px 18px; font-size: 15px; font-weight: 700; border-radius: 8px; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; box-shadow: 0 2px 8px rgba(0,184,148,0.15); border: none; cursor: pointer; transition: background 0.2s;">Return to Base: <span id="returnToBaseStatus">ON</span></button>
+</div>
+<textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff.
+"></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
         <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Parse</button>
         <button onclick="parseFreeStyle()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Parse</button>

@@ -17,6 +17,8 @@ let routeResults = {
 let parsedVehicleType = '';
 let parsedDateLabel = '';
 let parsedTimeLabel = '';
+let returnToBase = true;
+window.returnToBase = returnToBase;
 
 // Location database is now loaded from locations.js
 
@@ -220,6 +222,7 @@ function updateParsedInfoFromStandardInput() {
     <strong>Time:</strong> ${time || 'Not set'}<br>
     <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
     <strong>Vehicle:</strong> ${vehicleType}<br>
+    <strong>Return to Base:</strong> <span style="font-weight:700;color:${returnToBase ? '#00b894' : '#e74c3c'}">${returnToBase ? 'ON' : 'OFF'}</span><br>
     ${extraInfo}
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
@@ -229,6 +232,32 @@ function updateParsedInfoFromStandardInput() {
 
   // Always show the parsed info section after parsing
   document.getElementById('parsedInfo').style.display = 'block';
+}
+
+function toggleReturnToBase() {
+  returnToBase = !returnToBase;
+  window.returnToBase = returnToBase;
+  document.getElementById('returnToBaseStatus').textContent = returnToBase ? 'ON' : 'OFF';
+  updateTripAnalysis();
+}
+
+function updateTripAnalysis() {
+  // Update map, summary, and statistics based on returnToBase
+  // For demonstration, just update the dropoff to base stats visibility
+  // Hide/show the entire metric row for Dropoff → Base (distance and time)
+  const dropoffToBaseDistanceRow = document.getElementById('dropoffToBaseDistance').closest('.metric');
+  const dropoffToBaseTimeRow = document.getElementById('dropoffToBaseTime').closest('.metric');
+  if (returnToBase) {
+    dropoffToBaseDistanceRow.style.display = '';
+    dropoffToBaseTimeRow.style.display = '';
+  } else {
+    dropoffToBaseDistanceRow.style.display = 'none';
+    dropoffToBaseTimeRow.style.display = 'none';
+  }
+  // Only recalculate trip if toggle changes
+  calculateTrip();
+  // You can add more logic here to update map routes, profit, etc.
+  updateParsedInfoFromStandardInput();
 }
 
 window.onload = function() {

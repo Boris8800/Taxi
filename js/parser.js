@@ -529,7 +529,7 @@ async function parseFreeStyleText(text) {
   }
   
   // Parse vehicle type - comprehensive patterns for all variations including passenger count and 'X seater' patterns
-  let vehicleMatch = cleanText.match(/\b(exec\s*\/\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|8\s*seater|7\s*seater|minivan|minibus|estate|saloon|any\s*car)\b/gi);
+  let vehicleMatch = cleanText.match(/\b(exec\s*\/\/\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|8\s*seater|7\s*seater|minivan|minibus|estate|saloon|any\s*car|any\s*tesla|tesla|electric\s*car|electric)\b/gi);
   // Add support for '4 seater', '5 seater', etc.
   if (!vehicleMatch) {
     vehicleMatch = cleanText.match(/\b(\d{1,2}\s*seater)\b/i);
@@ -538,7 +538,7 @@ async function parseFreeStyleText(text) {
     // Get the first match and format it nicely
     let vehicle = vehicleMatch[0].trim();
     // Standardize the formatting for known types
-    if (vehicle.match(/exec\s*\/\/?\s*e\s*class\s*or\s*similar/i)) {
+    if (vehicle.match(/exec\s*\/\/\/?\s*e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'Exec/E Class or Similar';
     } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'E Class or Similar';
@@ -562,6 +562,14 @@ async function parseFreeStyleText(text) {
       result.vehicleType = '7 Seater';
     } else if (vehicle.match(/any\s*car/i)) {
       result.vehicleType = 'Any Car';
+    } else if (vehicle.match(/any\s*tesla/i)) {
+      result.vehicleType = 'Any Tesla';
+    } else if (vehicle.match(/tesla/i)) {
+      result.vehicleType = 'Tesla';
+    } else if (vehicle.match(/electric\s*car/i)) {
+      result.vehicleType = 'Electric Car';
+    } else if (vehicle.match(/electric/i)) {
+      result.vehicleType = 'Electric';
     } else if (vehicle.match(/minivan/i)) {
       result.vehicleType = 'Minivan';
     } else if (vehicle.match(/minibus/i)) {
