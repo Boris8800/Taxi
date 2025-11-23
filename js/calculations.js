@@ -263,7 +263,6 @@ function updateResults() {
     document.getElementById('ttBase').textContent = baseLocation || '-';
     document.getElementById('ttPickup').textContent = pickupLocation || '-';
     document.getElementById('ttDropoff').textContent = dropoffLocation || '-';
-    document.getElementById('ttDate').textContent = tripDate || '-';
     document.getElementById('ttStartJourney').textContent = startJourney;
     document.getElementById('ttPickupTime').textContent = pickupTime || '-';
     document.getElementById('ttDropoffTime').textContent = dropoffTime;

@@ -31,26 +31,55 @@ function initMap() {
 
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 10,
-    center: { lat: 51.5, lng: -0.12 }, // London center
+    center: window.liveLocationCoords ? { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng } : { lat: 51.5, lng: -0.12 },
     mapTypeId: 'roadmap'
   });
   directionsRenderer.setMap(map);
-  
+
   // Set default values in form
-  document.getElementById('baseLocation').value = "Birmingham";
+  if (window.liveLocationCoords && window.liveLocationCoords.text) {
+    document.getElementById('baseLocation').value = window.liveLocationCoords.text;
+  } else {
+    document.getElementById('baseLocation').value = "Birmingham";
+  }
   document.getElementById('pickupLocation').value = "";
   document.getElementById('dropoffLocation').value = "";
   document.getElementById('tripDate').value = "";
   document.getElementById('tripTime').value = "";
   document.getElementById('tripPrice').value = "";
   document.getElementById('fuelCostPer100Miles').value = "10.00";
-  
+
+  // Show live location marker if available
+  addLiveLocationMarker();
+// Helper to add live location marker to map
+function addLiveLocationMarker() {
+  if (window.liveLocationCoords && window.map) {
+    if (window.liveLocationMarker) {
+      window.liveLocationMarker.setMap(null);
+    }
+    window.liveLocationMarker = new google.maps.Marker({
+      position: { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng },
+      map: window.map,
+      title: 'Your Live Location',
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#00b894',
+        fillOpacity: 1,
+        strokeWeight: 2,
+        strokeColor: '#2d3436'
+      }
+    });
+    window.map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
+  }
+}
+
   // Initialize Google Maps Autocomplete for location inputs
   setupGoogleAutocomplete();
-  
+
   // Add event listeners to standard input fields
   setupInputListeners();
-  
+
   // Update parsed info initially
   updateParsedInfoFromStandardInput();
 }
@@ -298,18 +327,110 @@ function openInGoogleMaps() {
 
 window.onload = function() {
   loadTheme();
-  initMap();
-  // Set Return to Base OFF by default
-  returnToBase = false;
-  window.returnToBase = false;
-  const toggleBtn = document.getElementById('returnToBaseToggle');
-  if (toggleBtn) {
-    toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-    document.getElementById('returnToBaseStatus').textContent = 'OFF';
+  // Ask user to allow access to live location
+  const locationPrompt = document.createElement('div');
+  locationPrompt.id = 'locationPrompt';
+  locationPrompt.style.position = 'fixed';
+  locationPrompt.style.top = '0';
+  locationPrompt.style.left = '0';
+  locationPrompt.style.width = '100%';
+  locationPrompt.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+  locationPrompt.style.color = 'white';
+  locationPrompt.style.padding = '18px 0';
+  locationPrompt.style.textAlign = 'center';
+  locationPrompt.style.zIndex = '9999';
+  locationPrompt.style.fontSize = '1.1rem';
+  locationPrompt.innerHTML = '🚕 Please allow access to your live location for accurate base detection.';
+  document.body.appendChild(locationPrompt);
+
+  // Try to get user's current location and set as base
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(position) {
+      document.body.removeChild(locationPrompt);
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      // Use Google Maps Geocoding API to get address from lat/lng
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, function(results, status) {
+        let liveLocationText = '';
+        if (status === 'OK' && results[0]) {
+          liveLocationText = results[0].formatted_address;
+        } else {
+          liveLocationText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        }
+        // Set base location in Standard Input
+        document.getElementById('baseLocation').value = liveLocationText;
+        // Set base location in Time Table
+        document.getElementById('ttBase').textContent = liveLocationText;
+        // Store live location for map marker
+        window.liveLocationCoords = { lat, lng, text: liveLocationText };
+        initMap();
+        // Set Return to Base OFF by default
+        returnToBase = false;
+        window.returnToBase = false;
+        const toggleBtn = document.getElementById('returnToBaseToggle');
+        if (toggleBtn) {
+          toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+          document.getElementById('returnToBaseStatus').textContent = 'OFF';
+        }
+        updateTripAnalysis();
+        // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
+        showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
+        // Show live location marker on map
+        if (window.map && window.liveLocationCoords) {
+          if (window.liveLocationMarker) {
+            window.liveLocationMarker.setMap(null);
+          }
+          window.liveLocationMarker = new google.maps.Marker({
+            position: { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng },
+            map: window.map,
+            title: 'Your Live Location',
+            icon: {
+              path: google.maps.SymbolPath.CIRCLE,
+              scale: 10,
+              fillColor: '#00b894',
+              fillOpacity: 1,
+              strokeWeight: 2,
+              strokeColor: '#2d3436'
+            }
+          });
+          // Optionally center map on live location
+          window.map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
+        }
+      });
+    }, function(error) {
+      locationPrompt.innerHTML = '⚠️ Location access denied. Using default base location.';
+      setTimeout(() => {
+        if (document.body.contains(locationPrompt)) document.body.removeChild(locationPrompt);
+      }, 3500);
+      initMap();
+      returnToBase = false;
+      window.returnToBase = false;
+      const toggleBtn = document.getElementById('returnToBaseToggle');
+      if (toggleBtn) {
+        toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+        document.getElementById('returnToBaseStatus').textContent = 'OFF';
+      }
+      updateTripAnalysis();
+      showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
+    });
+  } else {
+    // Geolocation not supported
+    locationPrompt.innerHTML = '⚠️ Geolocation not supported. Using default base location.';
+    setTimeout(() => {
+      if (document.body.contains(locationPrompt)) document.body.removeChild(locationPrompt);
+    }, 3500);
+    initMap();
+    returnToBase = false;
+    window.returnToBase = false;
+    const toggleBtn = document.getElementById('returnToBaseToggle');
+    if (toggleBtn) {
+      toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+      document.getElementById('returnToBaseStatus').textContent = 'OFF';
+    }
+    updateTripAnalysis();
+    showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
   }
-  updateTripAnalysis();
-  // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
-  showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
 };
 
 // Show a message for a given pickup and dropoff (for demo or logic injection)
