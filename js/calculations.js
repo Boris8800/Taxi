@@ -235,7 +235,40 @@ function updateResults() {
   document.getElementById('profitMarginProgress').style.width = `${profitMarginProgressWidth}%`;
   
   // Update parsed info with calculated totals
-  updateParsedInfoFromStandardInput();
+    // Update Time Table Card
+    const baseLocation = document.getElementById('baseLocation').value || "Birmingham";
+    const pickupLocation = document.getElementById('pickupLocation').value || currentTrip.pickup;
+    const dropoffLocation = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
+    const tripDate = document.getElementById('tripDateDisplay').value || currentTrip.date;
+    const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
+    // Calculate dropoff time
+    let dropoffTime = '-';
+    if (pickupTime && routeResults.pickupToDropoff.duration) {
+      // pickupTime format: HH:mm
+      let [h, m] = pickupTime.split(':').map(Number);
+      let dt = new Date();
+      dt.setHours(h, m, 0, 0);
+      dt.setMinutes(dt.getMinutes() + routeResults.pickupToDropoff.duration);
+      dropoffTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    // Calculate base-to-pickup arrival time (30 min early)
+    let startJourney = '-';
+    if (pickupTime && routeResults.baseToPickup.duration) {
+      let [h, m] = pickupTime.split(':').map(Number);
+      let dt = new Date();
+      dt.setHours(h, m, 0, 0);
+      dt.setMinutes(dt.getMinutes() - routeResults.baseToPickup.duration - 30);
+      startJourney = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    document.getElementById('ttBase').textContent = baseLocation || '-';
+    document.getElementById('ttPickup').textContent = pickupLocation || '-';
+    document.getElementById('ttDropoff').textContent = dropoffLocation || '-';
+    document.getElementById('ttDate').textContent = tripDate || '-';
+    document.getElementById('ttStartJourney').textContent = startJourney;
+    document.getElementById('ttPickupTime').textContent = pickupTime || '-';
+    document.getElementById('ttDropoffTime').textContent = dropoffTime;
+
+    updateParsedInfoFromStandardInput();
 }
 
 function estimateDistance(origin, destination) {
