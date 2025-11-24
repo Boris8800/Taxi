@@ -327,10 +327,87 @@
   </div>
 
   <!-- JavaScript Files -->
+  <!-- History Card for last 10 pasted messages -->
+  <div id="historyCard" style="max-width: 600px; margin: 40px auto 20px auto; background: var(--background-secondary, #f8f8f8); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 18px 22px;">
+    <h3 style="margin-top: 0;">🕑 Message History</h3>
+    <div id="historyList" style="margin-bottom: 16px;"></div>
+    <!-- Individual reload buttons will be rendered per message -->
+  </div>
   <script src="js/main.js"></script>
   <script src="js/calculations.js"></script>
   <script src="js/parser.js"></script>
   <script src="js/locations.js"></script>
   <script src="js/utils.js"></script>
+  <script>
+    // History logic
+    function saveToHistory(message) {
+      let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+      // Remove duplicates and keep only last 10
+      history = history.filter(m => m !== message);
+      history.unshift(message);
+      if (history.length > 10) history = history.slice(0, 10);
+      localStorage.setItem('messageHistory', JSON.stringify(history));
+      renderHistory();
+    }
+
+    function renderHistory() {
+      let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+      const historyList = document.getElementById('historyList');
+      if (!history.length) {
+        historyList.innerHTML = '<em>No messages yet.</em>';
+        return;
+      }
+      historyList.innerHTML = history.map((msg, idx) =>
+        `<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;'>
+          <span style='flex:1;'>${msg.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
+          <button class='reloadMsgBtn' data-idx='${idx}' style='margin-left:12px;padding:4px 12px;font-size:13px;font-weight:600;border-radius:6px;background:linear-gradient(135deg,#00b894 0%,#00cec9 100%);color:white;border:none;cursor:pointer;'>Reload</button>
+        </div>`
+      ).join('');
+      // Attach event listeners to reload buttons
+      document.querySelectorAll('.reloadMsgBtn').forEach(btn => {
+        btn.onclick = function() {
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+          if (history[idx]) {
+            freeStyleInput.value = history[idx];
+            parseFreeStyle();
+          }
+        };
+      });
+    }
+
+    // Hook into paste/parse
+    const freeStyleInput = document.getElementById('freeStyleInput');
+    const pasteBtn = document.querySelector("button[onclick='pasteFromClipboard()']");
+    const parseBtn = document.querySelector("button[onclick='parseFreeStyle()']");
+    if (pasteBtn) {
+      pasteBtn.addEventListener('click', () => {
+        setTimeout(() => {
+          if (freeStyleInput.value.trim()) saveToHistory(freeStyleInput.value.trim());
+        }, 300);
+      });
+    }
+    if (parseBtn) {
+      parseBtn.addEventListener('click', () => {
+        if (freeStyleInput.value.trim()) saveToHistory(freeStyleInput.value.trim());
+      });
+    }
+
+    // Reload selected message
+    document.getElementById('reloadHistoryBtn').onclick = function() {
+      const selected = document.querySelector('input[name="historyMsg"]:checked');
+      if (selected) {
+        const idx = parseInt(selected.value);
+        let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+        if (history[idx]) {
+          freeStyleInput.value = history[idx];
+          parseFreeStyle();
+        }
+      }
+    };
+
+    // Initial render
+    renderHistory();
+  </script>
 </body>
 </html>

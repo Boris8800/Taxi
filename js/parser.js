@@ -243,7 +243,7 @@ async function parseFreeStyleText(text) {
   }
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
-  // Support for "Pick Up - ... Drop Off: ..." format and 'X TO Y' format
+  // Support for "Pick Up - ... Drop Off: ..." format, 'X TO Y' format, and 'Destination:' as dropoff
   let locations = extractLocations(text);
   // If not found, try explicit "Pick Up - ... Drop Off: ..." pattern
   if (locations.length < 2) {
@@ -256,6 +256,18 @@ async function parseFreeStyleText(text) {
       const toMatch = text.match(/([A-Z0-9 ]{2,})\s+TO\s+([A-Z0-9 ]{2,})/i);
       if (toMatch && toMatch[1] && toMatch[2]) {
         locations = [toMatch[1].trim(), toMatch[2].trim()];
+      } else {
+        // Try 'Destination:' as dropoff
+        const destinationMatch = text.match(/Destination\s*[:\-]?\s*([^\n\r]+)/i);
+        if (destinationMatch && destinationMatch[1]) {
+          // If we already have a pickup, use it, otherwise leave pickup undefined
+          if (locations.length === 1) {
+            locations = [locations[0], destinationMatch[1].trim()];
+          } else {
+            // Only destination found, treat as dropoff
+            locations = ['', destinationMatch[1].trim()];
+          }
+        }
       }
     }
   }
