@@ -233,80 +233,42 @@
           </div>
         </div>
       </div>
-        <!-- Time Table Card -->
-        <div class="time-table-card responsive-table" style="margin: 30px 0; padding: 16px 8px; background: var(--card-bg, #f8f9fa); border-radius: 14px; box-shadow: 0 2px 12px rgba(102,126,234,0.08);">
+        <!-- Time Table Card styled like Route Efficiency -->
+        <div class="route-breakdown time-table-card" style="margin: 30px 0;">
           <h4 style="margin-top: 0; margin-bottom: 16px;">Time Table</h4>
-          <table style="width: 100%; border-collapse: collapse; font-size: 1rem;">
-            <thead>
-              <tr class="tt-header-row">
-                <th class="tt-th">Current Location</th>
-                <th class="tt-th">Pickup Location</th>
-                <th class="tt-th">Dropoff Location</th>
-                <th class="tt-th">Start Journey</th>
-                <th class="tt-th">Pickup Time</th>
-                <th class="tt-th">Dropoff Time</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td id="ttBase">-</td>
-                <td id="ttPickup">-</td>
-                <td id="ttDropoff">-</td>
-                <td id="ttStartJourney">-</td>
-                <td id="ttPickupTime">-</td>
-                <td id="ttDropoffTime">-</td>
-              </tr>
-            </tbody>
-          </table>
+          <div class="efficiency-row">
+            <span class="efficiency-label">Current Location</span>
+            <span class="efficiency-value" id="ttBase">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label">Pickup Location</span>
+            <span class="efficiency-value" id="ttPickup">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label">Dropoff Location</span>
+            <span class="efficiency-value" id="ttDropoff">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label" style="font-weight: bold;">Start Journey</span>
+            <span class="efficiency-value" id="ttStartJourney" style="font-weight: bold;">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label" style="font-weight: bold;">Arrival (30min early)</span>
+            <span class="efficiency-value" id="ttStartJourneyArrival" style="font-weight: bold;">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label" style="font-weight: bold;">Pickup Time</span>
+            <span class="efficiency-value" id="ttPickupTime" style="font-weight: bold;">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label" style="font-weight: bold;">Dropoff Time</span>
+            <span class="efficiency-value" id="ttDropoffTime" style="font-weight: bold;">-</span>
+          </div>
+          <div class="efficiency-row">
+            <span class="efficiency-label">Return to Base</span>
+            <span class="efficiency-value" id="ttReturnToBaseTime">-</span>
+          </div>
         </div>
-        <style>
-          .responsive-table {
-            overflow-x: auto;
-          }
-          .responsive-table table {
-            width: 100%;
-            min-width: 400px;
-            border-radius: 10px;
-            background: var(--card-bg, #f8f9fa);
-          }
-          .tt-header-row {
-            background: #e3e6f0;
-          }
-          .tt-th {
-            padding: 10px 6px;
-            font-weight: 700;
-            text-align: left;
-            border-bottom: 2px solid #d1d5db;
-          }
-          .responsive-table td {
-            padding: 10px 6px;
-            border-bottom: 1px solid #e0e0e0;
-            font-size: 0.98rem;
-          }
-          @media (max-width: 600px) {
-            .responsive-table table {
-              font-size: 0.92rem;
-              min-width: 320px;
-            }
-            .tt-th, .responsive-table td {
-              padding: 8px 4px;
-            }
-          }
-          [data-theme="dark"] .responsive-table table {
-            background: #23272f;
-          }
-          [data-theme="dark"] .tt-header-row {
-            background: #2d3440;
-          }
-          [data-theme="dark"] .tt-th {
-            color: #e2e8f0;
-            border-bottom: 2px solid #444b5a;
-          }
-          [data-theme="dark"] .responsive-table td {
-            color: #cbd5e1;
-            border-bottom: 1px solid #444b5a;
-          }
-        </style>
       
       <!-- Route Efficiency -->
       <div class="route-breakdown">

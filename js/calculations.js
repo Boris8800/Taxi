@@ -241,31 +241,58 @@ function updateResults() {
     const dropoffLocation = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
     const tripDate = document.getElementById('tripDateDisplay').value || currentTrip.date;
     const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
-    // Calculate dropoff time
+    // Calculate dropoff time with improved formatting
     let dropoffTime = '-';
-    if (pickupTime && routeResults.pickupToDropoff.duration) {
-      // pickupTime format: HH:mm
+    let dropoffDuration = routeResults.pickupToDropoff.duration || 0;
+    if (pickupTime && dropoffDuration) {
       let [h, m] = pickupTime.split(':').map(Number);
       let dt = new Date();
       dt.setHours(h, m, 0, 0);
-      dt.setMinutes(dt.getMinutes() + routeResults.pickupToDropoff.duration);
-      dropoffTime = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      dt.setMinutes(dt.getMinutes() + dropoffDuration);
+      let formatted = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      dropoffTime = `${formatted} (${formatMinutesToText(dropoffDuration)})`;
     }
-    // Calculate base-to-pickup arrival time (30 min early)
+    // Calculate base-to-pickup arrival time (30 min early) with improved formatting
     let startJourney = '-';
-    if (pickupTime && routeResults.baseToPickup.duration) {
+    let arrivalTime = '-';
+    let basePickupDuration = routeResults.baseToPickup.duration || 0;
+    if (pickupTime && basePickupDuration) {
       let [h, m] = pickupTime.split(':').map(Number);
-      let dt = new Date();
-      dt.setHours(h, m, 0, 0);
-      dt.setMinutes(dt.getMinutes() - routeResults.baseToPickup.duration - 30);
-      startJourney = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      let dtStart = new Date();
+      dtStart.setHours(h, m, 0, 0);
+      dtStart.setMinutes(dtStart.getMinutes() - basePickupDuration - 30);
+      let formattedStart = dtStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      startJourney = `${formattedStart} (leaves 30m early)`;
+      // Arrival time at pickup
+      let dtArrival = new Date();
+      dtArrival.setHours(h, m, 0, 0);
+      dtArrival.setMinutes(dtArrival.getMinutes() - 30);
+      let formattedArrival = dtArrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      arrivalTime = `${formattedArrival}`;
+    }
+    // Calculate return to base time
+    let returnToBaseTime = '-';
+    let dropoffToBaseDuration = routeResults.dropoffToBase.duration || 0;
+    if (dropoffTime !== '-' && dropoffToBaseDuration) {
+      // dropoffTime is in format "HH:mm (duration)"; extract HH:mm
+      let dropoffMatch = dropoffTime.match(/^(\d{2}:\d{2})/);
+      if (dropoffMatch) {
+        let [h, m] = dropoffMatch[1].split(':').map(Number);
+        let dtReturn = new Date();
+        dtReturn.setHours(h, m, 0, 0);
+        dtReturn.setMinutes(dtReturn.getMinutes() + dropoffToBaseDuration);
+        let formattedReturn = dtReturn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        returnToBaseTime = `${formattedReturn} (${formatMinutesToText(dropoffToBaseDuration)})`;
+      }
     }
     document.getElementById('ttBase').textContent = baseLocation || '-';
     document.getElementById('ttPickup').textContent = pickupLocation || '-';
     document.getElementById('ttDropoff').textContent = dropoffLocation || '-';
     document.getElementById('ttStartJourney').textContent = startJourney;
+    document.getElementById('ttStartJourneyArrival').textContent = arrivalTime;
     document.getElementById('ttPickupTime').textContent = pickupTime || '-';
     document.getElementById('ttDropoffTime').textContent = dropoffTime;
+    document.getElementById('ttReturnToBaseTime').textContent = returnToBaseTime;
 
     updateParsedInfoFromStandardInput();
 }
