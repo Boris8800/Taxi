@@ -132,13 +132,20 @@ async function parseFreeStyleText(text) {
           const dateRaw = eqStyleMatch[1].trim().toLowerCase();
           if (dateRaw === 'today') {
             const today = new Date();
-            const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
-            result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
+            // Format as YYYY-MM-DD for input field
+            const yyyy = today.getFullYear();
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            const dd = String(today.getDate()).padStart(2, '0');
+            result.date = `${yyyy}-${mm}-${dd}`;
+            result.dateLabel = today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ` (Today, ${today.toLocaleDateString('en-GB', { weekday: 'long' })})`;
           } else if (dateRaw === 'tomorrow') {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const dayName = tomorrow.toLocaleDateString('en-GB', { weekday: 'long' });
-            result.date = `${tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Tomorrow, ${dayName})`;
+            const yyyy = tomorrow.getFullYear();
+            const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+            const dd = String(tomorrow.getDate()).padStart(2, '0');
+            result.date = `${yyyy}-${mm}-${dd}`;
+            result.dateLabel = tomorrow.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) + ` (Tomorrow, ${tomorrow.toLocaleDateString('en-GB', { weekday: 'long' })})`;
           } else {
             result.date = dateRaw;
           }

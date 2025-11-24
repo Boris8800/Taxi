@@ -241,58 +241,94 @@ function updateResults() {
     const dropoffLocation = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
     const tripDate = document.getElementById('tripDateDisplay').value || currentTrip.date;
     const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
+    // Helper to build a valid Date from date and time, fallback to summary date if needed
+    function buildDateTime(dateStr, timeStr) {
+      // Accepts 'YYYY-MM-DD' and 'HH:mm'
+      let year, month, day;
+      if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        [year, month, day] = dateStr.split('-').map(Number);
+      } else if (dateStr) {
+        // Try to parse date from summary (e.g., '24 November 2025')
+        const summaryDateMatch = dateStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+        if (summaryDateMatch) {
+          day = Number(summaryDateMatch[1]);
+          const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+          month = monthNames.findIndex(m => m.toLowerCase() === summaryDateMatch[2].toLowerCase()) + 1;
+          year = Number(summaryDateMatch[3]);
+        }
+      }
+      // Fallback to today if date is missing or invalid
+      if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+        const today = new Date();
+        year = today.getFullYear();
+        month = today.getMonth() + 1;
+        day = today.getDate();
+      }
+      let hour = 0, minute = 0;
+      if (timeStr && timeStr.match(/^\d{1,2}:\d{2}/)) {
+        [hour, minute] = timeStr.split(':').map(Number);
+      } else if (timeStr && timeStr.match(/^\d{3,4}$/)) {
+        // Handle '1130' format
+        hour = Number(timeStr.slice(0, timeStr.length - 2));
+        minute = Number(timeStr.slice(-2));
+      }
+      // If hour or minute is NaN, fallback to 0
+      if (isNaN(hour)) hour = 0;
+      if (isNaN(minute)) minute = 0;
+      const dt = new Date(year, month - 1, day, hour, minute, 0, 0);
+      // If date is invalid, fallback to today
+      if (isNaN(dt.getTime())) {
+        const today = new Date();
+        return new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      }
+      return dt;
+    }
     // Calculate dropoff time with improved formatting
     let dropoffTime = '-';
     let dropoffDuration = routeResults.pickupToDropoff.duration || 0;
-    if (pickupTime && dropoffDuration) {
-      let [h, m] = pickupTime.split(':').map(Number);
-      let dt = new Date();
-      dt.setHours(h, m, 0, 0);
+    let pickupDateObj = buildDateTime(tripDate, pickupTime);
+    if (pickupDateObj && dropoffDuration) {
+      let dt = new Date(pickupDateObj.getTime());
       dt.setMinutes(dt.getMinutes() + dropoffDuration);
-      let formatted = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      let formatted = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')} ${dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
       dropoffTime = `${formatted} (${formatMinutesToText(dropoffDuration)})`;
     }
     // Calculate base-to-pickup arrival time (30 min early) with improved formatting
     let startJourney = '-';
     let arrivalTime = '-';
     let basePickupDuration = routeResults.baseToPickup.duration || 0;
-    if (pickupTime && basePickupDuration) {
-      let [h, m] = pickupTime.split(':').map(Number);
-      let dtStart = new Date();
-      dtStart.setHours(h, m, 0, 0);
+    if (pickupDateObj && basePickupDuration) {
+      let dtStart = new Date(pickupDateObj.getTime());
       dtStart.setMinutes(dtStart.getMinutes() - basePickupDuration - 30);
-      let formattedStart = dtStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      let formattedStart = `${dtStart.getFullYear()}-${String(dtStart.getMonth()+1).padStart(2,'0')}-${String(dtStart.getDate()).padStart(2,'0')} ${dtStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
       startJourney = `${formattedStart} (leaves 30m early)`;
       // Arrival time at pickup
-      let dtArrival = new Date();
-      dtArrival.setHours(h, m, 0, 0);
+      let dtArrival = new Date(pickupDateObj.getTime());
       dtArrival.setMinutes(dtArrival.getMinutes() - 30);
-      let formattedArrival = dtArrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      let formattedArrival = `${dtArrival.getFullYear()}-${String(dtArrival.getMonth()+1).padStart(2,'0')}-${String(dtArrival.getDate()).padStart(2,'0')} ${dtArrival.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
       arrivalTime = `${formattedArrival}`;
     }
     // Calculate return to base time
     let returnToBaseTime = '-';
     let dropoffToBaseDuration = routeResults.dropoffToBase.duration || 0;
-    if (dropoffTime !== '-' && dropoffToBaseDuration) {
-      // dropoffTime is in format "HH:mm (duration)"; extract HH:mm
-      let dropoffMatch = dropoffTime.match(/^(\d{2}:\d{2})/);
+    if (dropoffTime !== '-' && dropoffToBaseDuration && pickupDateObj) {
+      // dropoffTime is in format "YYYY-MM-DD HH:mm (duration)"; extract date and time
+      let dropoffMatch = dropoffTime.match(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})/);
       if (dropoffMatch) {
-        let [h, m] = dropoffMatch[1].split(':').map(Number);
-        let dtReturn = new Date();
-        dtReturn.setHours(h, m, 0, 0);
+        let dtReturn = buildDateTime(dropoffMatch[1], dropoffMatch[2]);
         dtReturn.setMinutes(dtReturn.getMinutes() + dropoffToBaseDuration);
-        let formattedReturn = dtReturn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        let formattedReturn = `${dtReturn.getFullYear()}-${String(dtReturn.getMonth()+1).padStart(2,'0')}-${String(dtReturn.getDate()).padStart(2,'0')} ${dtReturn.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
         returnToBaseTime = `${formattedReturn} (${formatMinutesToText(dropoffToBaseDuration)})`;
       }
     }
     document.getElementById('ttBase').textContent = baseLocation || '-';
     document.getElementById('ttPickup').textContent = pickupLocation || '-';
     document.getElementById('ttDropoff').textContent = dropoffLocation || '-';
-    document.getElementById('ttStartJourney').textContent = startJourney;
-    document.getElementById('ttStartJourneyArrival').textContent = arrivalTime;
-    document.getElementById('ttPickupTime').textContent = pickupTime || '-';
-    document.getElementById('ttDropoffTime').textContent = dropoffTime;
-    document.getElementById('ttReturnToBaseTime').textContent = returnToBaseTime;
+    document.getElementById('ttStartJourney').textContent = startJourney !== '-' ? startJourney : (pickupTime ? pickupTime : '-');
+    document.getElementById('ttStartJourneyArrival').textContent = arrivalTime !== '-' ? arrivalTime : (pickupTime ? pickupTime : '-');
+    document.getElementById('ttPickupTime').textContent = pickupTime ? pickupTime : '-';
+    document.getElementById('ttDropoffTime').textContent = dropoffTime !== '-' ? dropoffTime : (pickupTime ? pickupTime : '-');
+    document.getElementById('ttReturnToBaseTime').textContent = returnToBaseTime !== '-' ? returnToBaseTime : (dropoffTime !== '-' ? dropoffTime : '-');
 
     updateParsedInfoFromStandardInput();
 }
