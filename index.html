@@ -114,17 +114,63 @@
     
     <!-- Free-Style Input Section -->
     <div class="free-style-section">
-      <div style="display: flex; align-items: center; gap: 16px;">
-  <h4 style="margin: 0;">Free-Style Input</h4>
-  <button id="returnToBaseToggle" onclick="toggleReturnToBase()" style="padding: 8px 18px; font-size: 15px; font-weight: 700; border-radius: 8px; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); color: white; box-shadow: 0 2px 8px rgba(0,184,148,0.15); border: none; cursor: pointer; transition: background 0.2s;">Return to Base: <span id="returnToBaseStatus">OFF</span></button>
-</div>
-<textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff.
 "></textarea>
-      <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Extract</button>
-        <button onclick="parseFreeStyle()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Extract</button>
-        <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
+      <div class="free-style-header">
+        <h4>Free-Style Input</h4>
+        <button id="returnToBaseToggle" onclick="toggleReturnToBase()">Return to Base: <span id="returnToBaseStatus">OFF</span></button>
       </div>
+      <textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff."></textarea>
+      <div class="free-style-buttons">
+        <button onclick="pasteFromClipboard()" class="paste-btn">📋 Paste & Extract</button>
+        <button onclick="parseFreeStyle()" class="extract-btn">Extract</button>
+        <button onclick="clearFreeStyleInput()" class="clear-btn">Clear</button>
+      </div>
+      /* Free-Style Section Button Styles */
+      .free-style-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 8px;
+      }
+      .free-style-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      .free-style-section button {
+        flex: 1;
+        padding: 12px 18px;
+        font-size: 15px;
+        font-weight: 700;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 2px 8px rgba(0,184,148,0.15);
+        transition: background 0.2s, color 0.2s;
+      }
+      #returnToBaseToggle {
+        background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+        color: white;
+        flex: 0 0 auto;
+      }
+      #returnToBaseToggle.off {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+      }
+      .paste-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+      .extract-btn {
+        background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+        color: white;
+        flex: 0 0 auto;
+      }
+      .clear-btn {
+        background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+        color: white;
+        flex: 0 0 auto;
+      }
       
       <div id="parsedInfo" class="parsed-info">
         <h4>Summary:</h4>
@@ -408,16 +454,20 @@
     }
 
     // Reload selected message
-
+    document.getElementById('reloadHistoryBtn').onclick = function() {
+      const selected = document.querySelector('input[name="historyMsg"]:checked');
+      if (selected) {
+        const idx = parseInt(selected.value);
+        let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+        if (history[idx]) {
+          freeStyleInput.value = history[idx];
+          parseFreeStyle();
+        }
+      }
+    };
 
     // Initial render
     renderHistory();
-    // Always update history after paste or extract
-    if (freeStyleInput) {
-      freeStyleInput.addEventListener('input', () => {
-        if (freeStyleInput.value.trim()) renderHistory();
-      });
-    }
   </script>
 </body>
 </html>

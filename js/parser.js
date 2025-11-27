@@ -8,7 +8,8 @@ async function pasteFromClipboard() {
     document.getElementById('freeStyleInput').value = cleanedText;
     parseFreeStyle(); // Auto-parse after paste
   } catch (err) {
-    alert('Please paste manually using Ctrl+V or Cmd+V');
+    document.getElementById('freeStyleInput').focus();
+    alert('Clipboard access failed. This feature only works on HTTPS or localhost and may be blocked by your browser. Please paste manually using Ctrl+V or Cmd+V.');
   }
 }
 
