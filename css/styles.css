@@ -1,3 +1,6 @@
+body, input, textarea, button, .parsed-info, .analysis-box, .earnings-summary, .route-breakdown {
+  font-family: Arial, Roboto, "Segoe UI", system-ui, sans-serif !important;
+}
 /* Free-Style Input section description margin */
 .free-style-section p {
   margin: 10px 0;

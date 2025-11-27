@@ -27,6 +27,17 @@ function clearFreeStyleInput() {
 
 window.parseFreeStyle = parseFreeStyle;
 async function parseFreeStyle() {
+  // Show loading animation and info
+  const parsedInfo = document.getElementById('parsedInfo');
+  parsedInfo.style.display = 'block';
+  parsedInfo.innerHTML = `<div id='extractLoading' style='display:flex;align-items:center;gap:10px;'><span class='loader' style='width:18px;height:18px;border:3px solid #00b894;border-top:3px solid #fff;border-radius:50%;display:inline-block;animation:spin 1s linear infinite;'></span><span>Extracting information...</span></div>`;
+  // Add loader animation CSS
+  if (!document.getElementById('loaderStyle')) {
+    const style = document.createElement('style');
+    style.id = 'loaderStyle';
+    style.innerHTML = `@keyframes spin { 0% { transform: rotate(0deg);} 100% { transform: rotate(360deg);} }`;
+    document.head.appendChild(style);
+  }
   // Clear all relevant fields before parsing
   document.getElementById('pickupLocation').value = '';
   document.getElementById('dropoffLocation').value = '';
@@ -35,7 +46,6 @@ async function parseFreeStyle() {
   document.getElementById('tripPrice').value = '';
   parsedDateLabel = '';
   parsedTimeLabel = '';
-  document.getElementById('parsedInfo').style.display = 'none';
   // ...existing code...
   const freeText = document.getElementById('freeStyleInput').value;
   if (!freeText.trim()) {
@@ -82,9 +92,214 @@ async function parseFreeStyle() {
   if (parsed.pickup && parsed.dropoff) {
     setTimeout(() => calculateTrip(), 500);
   }
+  
+  // Debug output for extraction
+  const debugDiv = document.createElement('div');
+  debugDiv.style.background = '#ffeaa7';
+  debugDiv.style.color = '#2d3436';
+  debugDiv.style.padding = '8px';
+  debugDiv.style.marginTop = '10px';
+  debugDiv.style.borderRadius = '6px';
+  debugDiv.innerHTML = `<strong>DEBUG PARSER OUTPUT:</strong><br>
+    Date: ${parsed.date || '<span style="color:red">(not found)</span>'}<br>
+    Time: ${parsed.time || '<span style="color:red">(not found)</span>'}<br>
+    Pickup: ${parsed.pickup || '<span style="color:red">(not found)</span>'}<br>
+    Dropoff: ${parsed.dropoff || '<span style="color:red">(not found)</span>'}<br>
+    Vehicle: ${parsed.vehicleType || '<span style="color:red">(not found)</span>'}<br>
+    Price: ${parsed.price || '<span style="color:red">(not found)</span>'}<br>
+    Payment: ${parsed.priceType || '<span style="color:red">(not found)</span>'}`;
+  document.getElementById('parsedInfo').appendChild(debugDiv);
 }
 
 async function parseFreeStyleText(text) {
+                // Heathrow Terminal 5 logic
+                if (/Terminal 5/i.test(text)) {
+                  if (!result.pickup && !result.dropoff) {
+                    result.pickup = 'Heathrow Terminal 5';
+                  } else {
+                    if (result.pickup && !result.dropoff) result.dropoff = 'Heathrow Terminal 5';
+                    if (!result.pickup && result.dropoff) result.pickup = 'Heathrow Terminal 5';
+                  }
+                }
+              // Helper: alternative extraction strategies
+              function altLogic(text) {
+                const result = {};
+                // Strategy 1: normalized single-line
+                const normText = text.replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ');
+                const fromToMatch = normText.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+                if (fromToMatch) {
+                  result.pickup = fromToMatch[1].replace(/\s+/g, ' ').trim();
+                  result.dropoff = fromToMatch[2].replace(/\s+/g, ' ').trim();
+                }
+                const priceMatch = normText.match(/£?(\d{2,3})\s*CASH/i) || normText.match(/Fare\s*(\d{2,3})/i) || normText.match(/£(\d{2,3})/i);
+                if (priceMatch) result.price = priceMatch[1];
+                if (/CASH/i.test(normText)) result.priceType = 'Cash';
+                if (/saloon/i.test(normText)) result.vehicleType = 'Saloon';
+                const timeMatch = normText.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || normText.match(/(\d{1,2}:\d{2})/i);
+                if (timeMatch) result.time = timeMatch[1];
+                const todayMatch = /today/i.test(normText);
+                const dateMatch = normText.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+                if (dateMatch) result.date = dateMatch[1];
+                else if (todayMatch) {
+                  const today = new Date();
+                  const day = String(today.getDate()).padStart(2, '0');
+                  const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+                  const year = today.getFullYear();
+                  result.date = `${day}-${month}-${year}`;
+                }
+                return result;
+              }
+            // Extra flexible extraction for multi-line, extra spaces
+            const result = {};
+            const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+            // Date and time
+            for (const line of lines) {
+              if (/today/i.test(line)) {
+                const today = new Date();
+                const day = String(today.getDate()).padStart(2, '0');
+                const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+                const year = today.getFullYear();
+                result.date = `${day}-${month}-${year}`;
+              }
+              const dateMatch = line.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+              if (dateMatch) result.date = dateMatch[1];
+              const timeMatch = line.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || line.match(/(\d{1,2}:\d{2})/i);
+              if (timeMatch) result.time = timeMatch[1];
+            }
+            // Pickup and dropoff (allow extra spaces)
+            for (const line of lines) {
+              const fromToMatch = line.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+              if (fromToMatch) {
+                result.pickup = fromToMatch[1].replace(/\s+/g, ' ').trim();
+                result.dropoff = fromToMatch[2].replace(/\s+/g, ' ').trim();
+              }
+            }
+            // Vehicle
+            for (const line of lines) {
+              if (/saloon/i.test(line)) result.vehicleType = 'Saloon';
+            }
+            // Price and cash
+            for (const line of lines) {
+              const priceMatch = line.match(/£?(\d{2,3})\s*CASH/i) || line.match(/Fare\s*(\d{2,3})/i) || line.match(/£(\d{2,3})/i);
+              if (priceMatch) result.price = priceMatch[1];
+              if (/CASH/i.test(line)) result.priceType = 'Cash';
+            }
+            // If any key missing, try alternative logic
+            const keys = ['date','time','pickup','dropoff','vehicleType','price','priceType'];
+            let missing = keys.some(k => !result[k]);
+            if (missing) {
+              const alt = altLogic(text);
+              for (const k of keys) {
+                if (!result[k] && alt[k]) result[k] = alt[k];
+              }
+            }
+            return result;
+          // Fallback: if main logic fails, check all previous logics
+          function fallbackExtraction(text, result) {
+            // Try normalized single-line logic
+            const normText = text.replace(/\r/g, '').replace(/\n+/g, ' ').replace(/\s{2,}/g, ' ');
+            // Date
+            const todayMatch = /today/i.test(normText);
+            const dateMatch = normText.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+            if (!result.date && dateMatch) result.date = dateMatch[1];
+            else if (!result.date && todayMatch) {
+              const today = new Date();
+              const day = String(today.getDate()).padStart(2, '0');
+              const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+              const year = today.getFullYear();
+              result.date = `${day}-${month}-${year}`;
+            }
+            // Time
+            const timeMatch = normText.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || normText.match(/(\d{1,2}:\d{2})/i);
+            if (!result.time && timeMatch) result.time = timeMatch[1];
+            // Pickup and Dropoff
+            const fromToMatch = normText.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+            if (!result.pickup && fromToMatch) {
+              result.pickup = fromToMatch[1].trim();
+              result.dropoff = fromToMatch[2].trim();
+            }
+            // Vehicle
+            if (!result.vehicleType && /saloon/i.test(normText)) result.vehicleType = 'Saloon';
+            // Price and cash
+            const priceMatch = normText.match(/£?(\d{2,3})\s*CASH/i) || normText.match(/Fare\s*(\d{2,3})/i) || normText.match(/£(\d{2,3})/i);
+            if (!result.price && priceMatch) result.price = priceMatch[1];
+            if (!result.priceType && /CASH/i.test(normText)) result.priceType = 'Cash';
+            return result;
+          }
+        // Split into lines and extract fields
+        const result = {};
+        const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
+        // Date and time
+        for (const line of lines) {
+          if (/today/i.test(line)) {
+            const today = new Date();
+            const day = String(today.getDate()).padStart(2, '0');
+            const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+            const year = today.getFullYear();
+            result.date = `${day}-${month}-${year}`;
+          }
+          const dateMatch = line.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+          if (dateMatch) result.date = dateMatch[1];
+          const timeMatch = line.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || line.match(/(\d{1,2}:\d{2})/i);
+          if (timeMatch) result.time = timeMatch[1];
+        }
+        // Pickup and dropoff
+        for (const line of lines) {
+          const fromToMatch = line.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+          if (fromToMatch) {
+            result.pickup = fromToMatch[1].trim();
+            result.dropoff = fromToMatch[2].trim();
+          }
+        }
+        // Vehicle
+        for (const line of lines) {
+          if (/saloon/i.test(line)) result.vehicleType = 'Saloon';
+        }
+        // Price and cash
+        for (const line of lines) {
+          const priceMatch = line.match(/£?(\d{2,3})\s*CASH/i) || line.match(/Fare\s*(\d{2,3})/i) || line.match(/£(\d{2,3})/i);
+          if (priceMatch) result.price = priceMatch[1];
+          if (/CASH/i.test(line)) result.priceType = 'Cash';
+        }
+        return result;
+      // Robust extraction for formats like 'Today 17:45 SE13 6QN to Heathrow T5 Saloon Fare 50 CASH'
+      const result = {};
+      // Date
+      const todayMatch = /today/i.test(text);
+      const dateMatch = text.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+      if (dateMatch) {
+        result.date = dateMatch[1];
+      } else if (todayMatch) {
+        const today = new Date();
+        const day = String(today.getDate()).padStart(2, '0');
+        const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+        const year = today.getFullYear();
+        result.date = `${day}-${month}-${year}`;
+      }
+      // Time
+      const timeMatch = text.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || text.match(/(\d{1,2}:\d{2})/i);
+      if (timeMatch) {
+        result.time = timeMatch[1];
+      }
+      // Pickup and Dropoff
+      const fromToMatch = text.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+      if (fromToMatch) {
+        result.pickup = fromToMatch[1].trim();
+        result.dropoff = fromToMatch[2].trim();
+      }
+      // Vehicle
+      if (/saloon/i.test(text)) {
+        result.vehicleType = 'Saloon';
+      }
+      // Price and cash
+      const priceMatch = text.match(/£?(\d{2,3})\s*CASH/i) || text.match(/Fare\s*(\d{2,3})/i) || text.match(/£(\d{2,3})/i);
+      if (priceMatch) {
+        result.price = priceMatch[1];
+      }
+      if (/CASH/i.test(text)) {
+        result.priceType = 'Cash';
+      }
+      return result;
     // If message contains 'T5' or 'Heathrow T5', set pickup to 'Heathrow T5' if not already set
     if (/\b(T5|Heathrow T5)\b/i.test(text) && !result.pickup) {
       result.pickup = 'Heathrow T5';
@@ -618,5 +833,11 @@ async function parseFreeStyleText(text) {
     }
   }
   
+  // If any key missing, try fallback extraction
+  const keys = ['date','time','pickup','dropoff','vehicleType','price','priceType'];
+  let missing = keys.some(k => !result[k]);
+  if (missing) {
+    fallbackExtraction(text, result);
+  }
   return result;
 }

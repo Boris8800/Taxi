@@ -121,8 +121,8 @@
 <textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff.
 "></textarea>
       <div style="display: flex; gap: 10px; margin-top: 10px;">
-        <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Parse</button>
-        <button onclick="parseFreeStyle()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Parse</button>
+        <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Extract</button>
+        <button onclick="parseFreeStyle()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Extract</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
       </div>
       
@@ -239,14 +239,17 @@
           <div class="efficiency-row">
             <span class="efficiency-label">Current Location</span>
             <span class="efficiency-value" id="ttBase">-</span>
+            <a id="ttBaseMap" href="#" target="_blank" style="margin-left:8px;">🗺️</a>
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label">Pickup Location</span>
             <span class="efficiency-value" id="ttPickup">-</span>
+            <a id="ttPickupMap" href="#" target="_blank" style="margin-left:8px;">🗺️</a>
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label">Dropoff Location</span>
             <span class="efficiency-value" id="ttDropoff">-</span>
+            <a id="ttDropoffMap" href="#" target="_blank" style="margin-left:8px;">🗺️</a>
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label" style="font-weight: bold;">Start Journey</span>
@@ -361,6 +364,7 @@
         `<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;'>
           <span style='flex:1;'>${msg.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
           <button class='reloadMsgBtn' data-idx='${idx}' style='margin-left:12px;padding:4px 12px;font-size:13px;font-weight:600;border-radius:6px;background:linear-gradient(135deg,#00b894 0%,#00cec9 100%);color:white;border:none;cursor:pointer;'>Reload</button>
+          <button class='deleteMsgBtn' data-idx='${idx}' title='Delete' style='margin-left:8px;padding:4px 8px;font-size:13px;font-weight:600;border-radius:6px;background:#e74c3c;color:white;border:none;cursor:pointer;'>🗑️</button>
         </div>`
       ).join('');
       // Attach event listeners to reload buttons
@@ -372,6 +376,16 @@
             freeStyleInput.value = history[idx];
             parseFreeStyle();
           }
+        };
+      });
+      // Attach event listeners to delete buttons
+      document.querySelectorAll('.deleteMsgBtn').forEach(btn => {
+        btn.onclick = function() {
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+          history.splice(idx, 1);
+          localStorage.setItem('messageHistory', JSON.stringify(history));
+          renderHistory();
         };
       });
     }
@@ -394,20 +408,16 @@
     }
 
     // Reload selected message
-    document.getElementById('reloadHistoryBtn').onclick = function() {
-      const selected = document.querySelector('input[name="historyMsg"]:checked');
-      if (selected) {
-        const idx = parseInt(selected.value);
-        let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
-        if (history[idx]) {
-          freeStyleInput.value = history[idx];
-          parseFreeStyle();
-        }
-      }
-    };
+
 
     // Initial render
     renderHistory();
+    // Always update history after paste or extract
+    if (freeStyleInput) {
+      freeStyleInput.addEventListener('input', () => {
+        if (freeStyleInput.value.trim()) renderHistory();
+      });
+    }
   </script>
 </body>
 </html>

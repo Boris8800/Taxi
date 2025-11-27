@@ -1,3 +1,108 @@
+    // Auto-fill and parse trip if message is present in freeStyleInput or pasted
+    function autoParseTripMessage(msg) {
+      // Parse message for known fields and flexible formats
+      const dateMatch = msg.match(/(\d{1,2}-[A-Z]{3}-\d{4})/i);
+      const todayMatch = /today/i.test(msg);
+      const timeMatch = msg.match(/(\d{1,2}:\d{2}\s*[AP]M)/i) || msg.match(/(\d{1,2}:\d{2})/i);
+      const fromToMatch = msg.match(/([A-Z0-9 ]{5,})\s+to\s+([A-Za-z0-9 ]{3,})/i);
+      const fromMatch = msg.match(/FROM:\s*([^\n]+)/i);
+      const toMatch = msg.match(/TO:\s*([^\n]+)/i);
+      const priceMatch = msg.match(/£?(\d{2,3})\s*CASH/i) || msg.match(/Fare\s*(\d{2,3})/i) || msg.match(/£(\d{2,3})/i);
+      const cashMatch = /CASH/i.test(msg);
+      const saloonMatch = /saloon/i.test(msg);
+
+      // Date
+      if (dateMatch) {
+        document.getElementById('tripDateDisplay').value = dateMatch[1];
+      } else if (todayMatch) {
+        const today = new Date();
+        const day = String(today.getDate()).padStart(2, '0');
+        const month = today.toLocaleString('en-GB', { month: 'short' }).toUpperCase();
+        const year = today.getFullYear();
+        document.getElementById('tripDateDisplay').value = `${day}-${month}-${year}`;
+      }
+      // Time
+      if (timeMatch) document.getElementById('tripTime').value = timeMatch[1];
+      // Locations
+      if (fromToMatch) {
+        document.getElementById('pickupLocation').value = fromToMatch[1].trim();
+        document.getElementById('dropoffLocation').value = fromToMatch[2].trim();
+      } else {
+        if (fromMatch) document.getElementById('pickupLocation').value = fromMatch[1].trim();
+        if (toMatch) document.getElementById('dropoffLocation').value = toMatch[1].trim();
+      }
+      // Price
+      if (priceMatch) document.getElementById('tripPrice').value = priceMatch[1];
+      // Vehicle
+      if (saloonMatch) {
+        window.parsedVehicleType = 'Saloon';
+      } else {
+        window.parsedVehicleType = '';
+      }
+
+      // Show parsed info
+      updateParsedInfoFromStandardInput();
+      // If cash, show CASH in summary
+      if (cashMatch) {
+        const details = document.getElementById('parsedDetails');
+        if (details && !details.innerHTML.includes('CASH')) {
+          details.innerHTML += '<br><strong>Payment:</strong> <span style="color:#00b894;font-weight:700;">CASH</span>';
+        }
+      }
+    }
+
+    // If message is present in freeStyleInput, auto-parse
+    const freeStyleInput = document.getElementById('freeStyleInput');
+    if (freeStyleInput && freeStyleInput.value.trim()) {
+      autoParseTripMessage(freeStyleInput.value.trim());
+    }
+  // Update Google Maps links for time table
+  setTimeout(() => {
+    function isMobile() {
+      return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+    function mapsAppUrl(query) {
+      if (/Android/i.test(navigator.userAgent)) {
+        return `intent://maps.google.com/maps?q=${encodeURIComponent(query)}#Intent;scheme=https;package=com.google.android.apps.maps;end`;
+      } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        return `maps://?q=${encodeURIComponent(query)}`;
+      } else {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      }
+    }
+    function handleMapClick(e, query) {
+      e.preventDefault();
+      const appUrl = mapsAppUrl(query);
+      const webUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+      // Visual feedback
+      e.target.style.background = '#dff9fb';
+      setTimeout(() => { e.target.style.background = ''; }, 300);
+      if (isMobile()) {
+        window.location = appUrl;
+        setTimeout(() => { window.open(webUrl, '_blank'); }, 1200);
+      } else {
+        window.open(webUrl, '_blank');
+      }
+    }
+    const base = document.getElementById('baseLocation').value;
+    const pickup = document.getElementById('pickupLocation').value;
+    const dropoff = document.getElementById('dropoffLocation').value;
+    const ttBaseMap = document.getElementById('ttBaseMap');
+    const ttPickupMap = document.getElementById('ttPickupMap');
+    const ttDropoffMap = document.getElementById('ttDropoffMap');
+    if (ttBaseMap) {
+      ttBaseMap.href = base ? mapsAppUrl(base) : '#';
+      ttBaseMap.onclick = function(e) { handleMapClick(e, base); };
+    }
+    if (ttPickupMap) {
+      ttPickupMap.href = pickup ? mapsAppUrl(pickup) : '#';
+      ttPickupMap.onclick = function(e) { handleMapClick(e, pickup); };
+    }
+    if (ttDropoffMap) {
+      ttDropoffMap.href = dropoff ? mapsAppUrl(dropoff) : '#';
+      ttDropoffMap.onclick = function(e) { handleMapClick(e, dropoff); };
+    }
+  }, 100);
 // Default trip data
 const defaultTrip = {
   date: "18 November",
@@ -243,22 +348,86 @@ function updateParsedInfoFromStandardInput() {
   if (isPOB) {
     paymentOnPOBLabel = ' <span style="background: #00b894; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">Payment on POB</span>';
   }
+  // Google Maps links with app scheme for mobile
+  function isMobile() {
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  }
+  function mapsAppUrl(query) {
+    return isMobile()
+      ? `comgooglemaps://?q=${encodeURIComponent(query)}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+  function mapsRouteUrl(origin, pickup, dropoff) {
+    if (isMobile()) {
+      // App: comgooglemaps://?saddr=origin&daddr=pickup+to:dropoff
+      let route = `comgooglemaps://?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(pickup)}+to:${encodeURIComponent(dropoff)}`;
+      return route;
+    } else {
+      return `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dropoff)}&waypoints=${encodeURIComponent(pickup)}`;
+    }
+  }
+  // Use span with click handler for robust fallback
+  function mapsLinkHtml(label, appUrl, webUrl) {
+    return `<span style='cursor:pointer;color:#007aff;text-decoration:underline;' onclick='window.openGoogleMapsLink("${appUrl}","${webUrl}")'>${label}</span>`;
+  }
+  const pickupLink = pickup ? mapsLinkHtml(pickup, mapsAppUrl(pickup), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}`) : 'Not set';
+  const dropoffLink = dropoff ? mapsLinkHtml(dropoff, mapsAppUrl(dropoff), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}`) : 'Not set';
+  const baseLink = baseLocation ? mapsLinkHtml(baseLocation, mapsAppUrl(baseLocation), `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(baseLocation)}`) : 'Not set';
+  // Directions: always open app on mobile, web on desktop
+  // Directions: use intent:// for Android, maps:// for iOS, web for desktop
+  function getDirectionsAppUrl(origin, pickup, dropoff) {
+    const androidIntent = `intent://maps.google.com/maps?daddr=${encodeURIComponent(pickup)}+to:${encodeURIComponent(dropoff)}&saddr=${encodeURIComponent(origin)}#Intent;scheme=https;package=com.google.android.apps.maps;end`;
+    const iosMaps = `maps://?saddr=${encodeURIComponent(origin)}&daddr=${encodeURIComponent(pickup)}+to:${encodeURIComponent(dropoff)}`;
+    const webUrl = `https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin)}&destination=${encodeURIComponent(dropoff)}&waypoints=${encodeURIComponent(pickup)}`;
+    if (/Android/i.test(navigator.userAgent)) {
+      return { url: androidIntent, web: webUrl };
+    } else if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      return { url: iosMaps, web: webUrl };
+    } else {
+      return { url: webUrl, web: webUrl };
+    }
+  }
+
+  const directionsUrls = (pickup && dropoff) ? getDirectionsAppUrl(baseLocation || pickup, pickup, dropoff) : null;
+  const routeLink = directionsUrls
+    ? `<span style='cursor:pointer;color:#007aff;text-decoration:underline;' onclick='window.openDirectionsAppUrl("${directionsUrls.url}", "${directionsUrls.web}")'>🗺️ Open Route in Google Maps</span>`
+    : '';
+
+  window.openDirectionsAppUrl = function(appUrl, webUrl) {
+    window.location = appUrl;
+    // Optionally fallback to web if needed (not implemented for strict app-only behavior)
+  };
+
+  // Add global handler for Google Maps links
+  window.openGoogleMapsLink = function(appUrl, webUrl) {
+    if (/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+      // Try to open app, fallback to web
+      const timeout = setTimeout(function() {
+        window.open(webUrl, '_blank');
+      }, 800);
+      window.location = appUrl;
+    } else {
+      window.open(webUrl, '_blank');
+    }
+  };
+
   document.getElementById('parsedDetails').innerHTML = `
-    <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
-    <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+    <strong>Pickup:</strong> ${pickupLink}<br>
+    <strong>Dropoff:</strong> ${dropoffLink}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Price:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Date:</strong> ${date || 'Not set'}<br>
     <strong>Time:</strong> ${time || 'Not set'}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+    <strong>Base Location:</strong> ${baseLink}<br>
     <strong>Return to Base:</strong> <span style="font-weight:700;color:${returnToBase ? '#00b894' : '#e74c3c'}">${returnToBase ? 'ON' : 'OFF'}</span><br>
     <strong>Vehicle:</strong> ${vehicleType}<br>
     <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
     ${extraInfo}
     <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
+    ${routeLink ? `<br><strong>Directions:</strong> ${routeLink}<br>` : ''}
     <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
     <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
     <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}
@@ -296,6 +465,15 @@ function updateTripAnalysis() {
   }
   // Only recalculate trip if toggle changes
   calculateTrip();
+  // Update Google Maps links for time table
+  setTimeout(() => {
+    const base = document.getElementById('baseLocation').value;
+    const pickup = document.getElementById('pickupLocation').value;
+    const dropoff = document.getElementById('dropoffLocation').value;
+    document.getElementById('ttBaseMap').href = base ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(base)}` : '#';
+    document.getElementById('ttPickupMap').href = pickup ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}` : '#';
+    document.getElementById('ttDropoffMap').href = dropoff ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}` : '#';
+  }, 100);
   // You can add more logic here to update map routes, profit, etc.
   updateParsedInfoFromStandardInput();
 }
@@ -327,6 +505,10 @@ function openInGoogleMaps() {
 
 window.onload = function() {
   loadTheme();
+  // Render history immediately on page load
+  if (typeof renderHistory === 'function') {
+    renderHistory();
+  }
   // Ask user to allow access to live location
   const locationPrompt = document.createElement('div');
   locationPrompt.id = 'locationPrompt';
