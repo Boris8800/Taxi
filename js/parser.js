@@ -1,4 +1,12 @@
 // Free-style text parsing functions
+
+// DEMO: Parse sample booking message and log result
+window.demoParseBooking = async function() {
+  const sampleText = `SAME DAY PAYMENT\nPick up: LN4 4SY\nDrop off: OX18 3LX\nTomorrow @ 05:00Am\nSaloon car\nNet fare: 150£`;
+  const result = await parseFreeStyleText(sampleText);
+  console.log('Parsed booking:', result);
+  alert('Parsed booking (see console):\n' + JSON.stringify(result, null, 2));
+};
 window.pasteFromClipboard = pasteFromClipboard;
 async function pasteFromClipboard() {
   try {
@@ -57,13 +65,20 @@ async function parseFreeStyle() {
   if (parsed.dropoff) {
     document.getElementById('dropoffLocation').value = parsed.dropoff;
   }
+  // Show price and append 'SAME DAY PAYMENT' if present in message
+  let priceText = '';
   if (parsed.price) {
     if (parsed.priceType === 'Cash') {
-      document.getElementById('tripPrice').value = `${parsed.price} Cash`;
+      priceText = `${parsed.price} Cash`;
     } else {
-      document.getElementById('tripPrice').value = parsed.price;
+      priceText = parsed.price;
     }
   }
+  if (/SAME DAY PAYMENT/i.test(freeText)) {
+    priceText += priceText ? ' | SAME DAY PAYMENT' : 'SAME DAY PAYMENT';
+  }
+  document.getElementById('tripPrice').value = priceText;
+
   if (parsed.date) {
     parsedDateLabel = parsed.date;
     document.getElementById('tripDateDisplay').value = parsed.date;
@@ -75,9 +90,8 @@ async function parseFreeStyle() {
   }
 
   // ...existing code...
-  
   document.getElementById('parsedInfo').style.display = 'block';
-  
+
   // Auto-calculate if we have enough info
   if (parsed.pickup && parsed.dropoff) {
     setTimeout(() => calculateTrip(), 500);
@@ -85,6 +99,20 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+    // Always initialize result object
+    let result = {};
+    // If message contains 'Pick up:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
+    const pickUpMatch = text.match(/Pick\s*up\s*:\s*([^\n\r]+)/i);
+    if (pickUpMatch) {
+      result.pickup = pickUpMatch[1].replace(/[.,;\s]+$/, '').trim();
+      result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'PickUpColon';
+    }
+    // If message contains 'Drop off:' use it as dropoff location (robust to whitespace, punctuation, and line breaks)
+    const dropOffMatch = text.match(/Drop\s*off\s*:\s*([^\n\r]+)/i);
+    if (dropOffMatch) {
+      result.dropoff = dropOffMatch[1].replace(/[.,;\s]+$/, '').trim();
+      result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'DropOffColon';
+    }
     // If message contains 'T5' or 'Heathrow T5', set pickup to 'Heathrow T5' if not already set
     if (/\b(T5|Heathrow T5)\b/i.test(text) && !result.pickup) {
       result.pickup = 'Heathrow T5';
@@ -182,7 +210,7 @@ async function parseFreeStyleText(text) {
       }
       result.specialFormat = 'HeathrowT5_NR324AA_Time';
     }
-  const result = {};
+  // const result = {}; // Removed duplicate declaration
   // Custom parsing for Payment on POB example
   const pobExampleMatch = text.match(/(🚨🚨 Payment on POB ✅️ ✔️ )[\s\S]*?(Any car 🚗 )[\s\S]*?(Today @ (\d{1,2}:\d{2}) PM \(Landing Time\))[\s\S]*?(Heathrow to ([A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}))[\s\S]*?(Fare; £(\d{2,4}) Net)/i);
   if (pobExampleMatch) {
@@ -299,8 +327,11 @@ async function parseFreeStyleText(text) {
     result.vehicleType = vehicleTypeMatch[1].trim();
   }
 
-  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET' or 'PAYMENT - 80 SAME DAY'
-  let priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+  // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET' or 'PAYMENT - 80 SAME DAY' or 'Net fare: 150£'
+  let priceLabelMatch = text.match(/Net fare\s*[:\-]?\s*(\d+(?:\.\d{2})?)£?/i);
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+  }
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£?(\d+(?:\.\d{2})?)(?:\s*SAME DAY)?/i);
   }
@@ -312,6 +343,13 @@ async function parseFreeStyleText(text) {
   }
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/(\d+)\s*NET/i);
+  }
+  // Support price as standalone '150£' or '£150' on its own line
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/^(\d+(?:\.\d{2})?)£$/m);
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/^£(\d+(?:\.\d{2})?)$/m);
   }
   // Add support for 'Cash' payments: look for 'Cash' and a price
   let cashMatch = text.match(/(\d+(?:\.\d{2})?)\s*Cash/i);
