@@ -170,6 +170,13 @@ function updateParsedInfoFromStandardInput() {
   // Get current values from standard input fields
   const pickup = document.getElementById('pickupLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.pickup) || '';
   const dropoff = document.getElementById('dropoffLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.dropoff) || '';
+  // Copy pickup and dropoff HTML from summary to time table
+  const summaryPickupHTML = pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : '-';
+  const summaryDropoffHTML = dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : '-';
+  const ttPickup = document.getElementById('ttPickup');
+  if (ttPickup) ttPickup.innerHTML = summaryPickupHTML;
+  const ttDropoff = document.getElementById('ttDropoff');
+  if (ttDropoff) ttDropoff.innerHTML = summaryDropoffHTML;
   const date = document.getElementById('tripDateDisplay').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.date) || '';
   const time = document.getElementById('tripTime').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.time) || '';
   const price = document.getElementById('tripPrice').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.price) || '';
@@ -228,9 +235,7 @@ function updateParsedInfoFromStandardInput() {
     if (window.lastParsedFreeStyle.carPark) {
       extraInfo += '<strong>Car Park:</strong> Required<br>';
     }
-    if (window.lastParsedFreeStyle.sameDayPayment) {
-      extraInfo += '<strong>Same Day Payment:</strong> Yes<br>';
-    }
+    // Removed Same Day Payment from summary
   }
 
   let paymentOnPOBLabel = '';
@@ -244,8 +249,8 @@ function updateParsedInfoFromStandardInput() {
     paymentOnPOBLabel = ' <span style="background: #00b894; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">Payment on POB</span>';
   }
   document.getElementById('parsedDetails').innerHTML = `
-    <strong>Pickup:</strong> ${pickup || 'Not set'}<br>
-    <strong>Dropoff:</strong> ${dropoff || 'Not set'}<br>
+    <strong>Pickup:</strong> ${pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : 'Not set'}<br>
+    <strong>Dropoff:</strong> ${dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : 'Not set'}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Price:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
@@ -261,7 +266,16 @@ function updateParsedInfoFromStandardInput() {
     <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
     <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
     <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
-    <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}
+    <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}<br>
+    <strong>Profit/Mile:</strong> ${(() => {
+      let profitValue = parseFloat((profit || '').replace('£',''));
+      let distanceValue = parseFloat((totalDistance || '').replace('mi',''));
+      if (!isNaN(profitValue) && !isNaN(distanceValue) && distanceValue > 0) {
+        return '£' + (profitValue / distanceValue).toFixed(2);
+      } else {
+        return 'Not Specified';
+      }
+    })()}
   `;
 
   // Always show the parsed info section after parsing

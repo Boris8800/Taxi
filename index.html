@@ -1,3 +1,9 @@
+      <!-- Hidden Earnings Analysis elements for JS logic -->
+      <div style="display:none;">
+        <div id="pricePerMile"></div>
+        <div id="pricePerHour"></div>
+        <div id="totalProfit"></div>
+      </div>
 <!DOCTYPE html>
 <html>
 <head>
@@ -210,29 +216,6 @@
         </div>
       </div>
       
-      <!-- Earnings Summary -->
-      <div class="earnings-summary">
-
-        <p style="opacity: 0.9; margin: 0;">Earnings Analysis.</p>
-        
-        <div class="earnings-grid">
-          <div class="earnings-card">
-            <div class="earnings-label">Price Per Mile</div>
-            <div class="earnings-value" id="pricePerMile">-</div>
-            <div class="earnings-label">Gross earnings per mile</div>
-          </div>
-          <div class="earnings-card">
-            <div class="earnings-label">Price Per Hour</div>
-            <div class="earnings-value" id="pricePerHour">-</div>
-            <div class="earnings-label">Clean earnings per hour</div>
-          </div>
-          <div class="earnings-card">
-            <div class="earnings-label">Total Profit</div>
-            <div class="earnings-value" id="totalProfit">-</div>
-            <div class="earnings-label">Actual take-home pay</div>
-          </div>
-        </div>
-      </div>
         <!-- Time Table Card styled like Route Efficiency -->
         <div class="route-breakdown time-table-card" style="margin: 30px 0;">
           <h4 style="margin-top: 0; margin-bottom: 16px;">Time Table</h4>
@@ -242,11 +225,11 @@
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label">Pickup Location</span>
-            <span class="efficiency-value" id="ttPickup">-</span>
+            <span class="efficiency-value" id="ttPickup"><a id="ttPickupLink" href="#" target="_blank" style="color:#00b894;text-decoration:underline;">-</a></span>
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label">Dropoff Location</span>
-            <span class="efficiency-value" id="ttDropoff">-</span>
+            <span class="efficiency-value" id="ttDropoff"><a id="ttDropoffLink" href="#" target="_blank" style="color:#e67e22;text-decoration:underline;">-</a></span>
           </div>
           <div class="efficiency-row">
             <span class="efficiency-label" style="font-weight: bold;">Start Journey</span>
@@ -328,8 +311,8 @@
 
   <!-- JavaScript Files -->
   <!-- History Card for last 10 pasted messages -->
-  <div id="historyCard" style="max-width: 600px; margin: 40px auto 20px auto; background: var(--background-secondary, #f8f8f8); border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 18px 22px;">
-    <h3 style="margin-top: 0;">🕑 Message History</h3>
+  <div class="route-breakdown time-table-card" style="margin: 30px 0;">
+    <h4 style="margin-top: 0; margin-bottom: 16px;">🕑 Message History</h4>
     <div id="historyList" style="margin-bottom: 16px;"></div>
     <!-- Individual reload buttons will be rendered per message -->
   </div>
@@ -359,6 +342,7 @@
       }
       historyList.innerHTML = history.map((msg, idx) =>
         `<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;'>
+          <button class='deleteMsgBtn' data-idx='${idx}' style='margin-right:8px;padding:4px 8px;font-size:13px;font-weight:600;border-radius:6px;background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:white;border:none;cursor:pointer;' title='Delete'><span style='font-size:16px;'>🗑️</span></button>
           <span style='flex:1;'>${msg.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</span>
           <button class='reloadMsgBtn' data-idx='${idx}' style='margin-left:12px;padding:4px 12px;font-size:13px;font-weight:600;border-radius:6px;background:linear-gradient(135deg,#00b894 0%,#00cec9 100%);color:white;border:none;cursor:pointer;'>Reload</button>
         </div>`
@@ -372,6 +356,15 @@
             freeStyleInput.value = history[idx];
             parseFreeStyle();
           }
+        };
+      });
+      document.querySelectorAll('.deleteMsgBtn').forEach(btn => {
+        btn.onclick = function() {
+          const idx = parseInt(btn.getAttribute('data-idx'));
+          let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
+          history.splice(idx, 1);
+          localStorage.setItem('messageHistory', JSON.stringify(history));
+          renderHistory();
         };
       });
     }

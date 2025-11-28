@@ -332,6 +332,10 @@ async function parseFreeStyleText(text) {
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
   }
+  // Support 'Price: £30' and 'Price £30'
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/Price\s*[;:\-]?\s*£\s*(\d+(?:\.\d{2})?)/i);
+  }
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£?(\d+(?:\.\d{2})?)(?:\s*SAME DAY)?/i);
   }
@@ -343,6 +347,13 @@ async function parseFreeStyleText(text) {
   }
   if (!priceLabelMatch) {
     priceLabelMatch = text.match(/(\d+)\s*NET/i);
+  }
+  // Support '100 net', 'net 100', '100net', 'net: 100', etc.
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/(\d+(?:\.\d{2})?)\s*net\b/i);
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/net\s*:?\s*(\d+(?:\.\d{2})?)/i);
   }
   // Support price as standalone '150£' or '£150' on its own line
   if (!priceLabelMatch) {
