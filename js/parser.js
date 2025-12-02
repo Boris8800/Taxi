@@ -140,11 +140,12 @@ async function parseFreeStyleText(text) {
                 result.extraMessage = `🛞 TODAY🛞🛞\nANY EXECUTIVE\n@${execExampleMatch[1]}pm.. landing\nTerminal 3‼️${execExampleMatch[2]}...\n£${execExampleMatch[3]}..Net`;
                 return result;
               }
-            // Support for vehicle type: S class or similar
-            const sClassMatch = text.match(/\b(s\s*class\s*or\s*similar)\b/i);
+            // Support for vehicle type: S class or similar, E-class or similar
+            const sClassMatch = text.match(/\b([se]\s*-?\s*class\s*or\s*similar)\b/i);
             if (sClassMatch) {
-              result.vehicleType = 'S Class or Similar';
-              result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'SClassOrSimilar';
+              const className = sClassMatch[1].toUpperCase().startsWith('E') ? 'E-Class' : 'S Class';
+              result.vehicleType = `${className} or Similar`;
+              result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'ClassOrSimilar';
             }
           // Extract pickup and dropoff if only 'Pick up =' or 'Pickup =' and 'To' are present
           const pickupDropOnlyMatch = text.match(/pick\s*up\s*[=:]?\s*([\w\s]+)[\s\S]*?to\s*([A-Z0-9 ]{4,15})/i);
@@ -346,6 +347,9 @@ async function parseFreeStyleText(text) {
     priceLabelMatch = text.match(/PRICE\s*:?\s*£?\s*(\d+(?:\.\d{2})?)\s*NET/i);
   }
   if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/Fare\s+(\d+(?:\.\d{2})?)\s*NET/i);
+  }
+  if (!priceLabelMatch) {
     priceLabelMatch = text.match(/(\d+)\s*NET/i);
   }
   // Support '100 net', 'net 100', '100net', 'net: 100', etc.
@@ -419,6 +423,7 @@ async function parseFreeStyleText(text) {
   // Extract price with better pattern matching including PAYMENT format
   let priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
                     cleanText.match(/payment[\s\-]*£(\d+(?:\.\d{2})?)/i) || // PAYMENT- £75
+                    cleanText.match(/fare\s+£(\d+(?:\.\d{2})?)\s*net/i) || // FARE £70 NET
                     cleanText.match(/(\d+)£\s*net/i) || // 48£ Net
                     cleanText.match(/price\s*[;:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/fare\s*[;:\-]\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net)?/i) || // Fare; £107 net or Fare: 60
@@ -445,9 +450,9 @@ async function parseFreeStyleText(text) {
   
   // Enhanced date parsing with full date format support
   const dateMatch = cleanText.match(/\b(tonight)\b/i) || // TONIGHT
+                   cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 03 Dec 2025 or 21 Nov 2025
                    cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4})/i) || // Nov 20, 2025
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{4})?)/i) || // 20th Nov or 21st Nov 2025
-                   cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 21 Nov 2025
                    cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
                    cleanText.match(/\b(today|tomorrow)\b/i) ||
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
