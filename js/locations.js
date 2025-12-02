@@ -212,10 +212,10 @@ function extractLocations(text) {
     /\bfrom\s+([^\n]+?)\s+to\s+([^\n]+?)(?=\n|$)/gi,
     // Full postcode to full postcode: "SW1A 0PW to CT14 6DL"
     /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\b/gi,
-    // Full postcode to airport code: "SS9 4SZ to LHR"
-    /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\s+to\s+([A-Z]{3,4})\b/g,
+    // Full postcode to airport code: "SS9 4SZ to LHR" (stop at word boundary - must be 3-4 letter airport code only)
+    /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\s+to\s+(LHR|LGW|STN|LTN|LCY|BRS|BHX|MAN)\b/gi,
     // Airport code to full postcode: "LHR to SS9 4SZ"
-    /\b([A-Z]{3,4})\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\b/g,
+    /\b(LHR|LGW|STN|LTN|LCY|BRS|BHX|MAN)\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?\s+\d[A-Z]{2})\b/gi,
     // Location name to full postcode: "Gatwick to N11 1PN" (must be at least 3 chars and not AM/PM)
     /\b([a-z]{3,}(?:\s+[a-z]+)*)\s+to\s+([A-Z]{1,2}\d{1,2}[A-Z]?(?:\s+\d[A-Z]{2})?)\b/gi,
     // Full postcode to location name: "CT14 6DL to Heathrow"
