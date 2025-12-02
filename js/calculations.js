@@ -101,10 +101,20 @@ function updateResults() {
   const hasCongestionCharge = isInCongestionZone(pickup) || isInCongestionZone(dropoff);
   const congestionCharge = hasCongestionCharge ? 15 : 0;
   
+  // Check for airport fee (£10 if pickup or dropoff is an airport)
+  const isAirport = (location) => {
+    const airportKeywords = ['heathrow', 'gatwick', 'stansted', 'luton', 'city airport', 'london city', 
+                             'lhr', 'lgw', 'stn', 'ltn', 'lcy', 'terminal', 'airport'];
+    const loc = location.toLowerCase();
+    return airportKeywords.some(keyword => loc.includes(keyword));
+  };
+  const hasAirportFee = isAirport(pickup) || isAirport(dropoff);
+  const airportFee = hasAirportFee ? 10 : 0;
+  
   // Calculate financials using the fuel cost per 100 miles
   const fuelCostPerMile = currentTrip.fuelCostPer100Miles / 100;
   const fuelCost = (totalDistance * fuelCostPerMile).toFixed(2);
-  const totalExpenses = (parseFloat(fuelCost) + congestionCharge).toFixed(2);
+  const totalExpenses = (parseFloat(fuelCost) + congestionCharge + airportFee).toFixed(2);
   const profit = (currentTrip.price - parseFloat(totalExpenses)).toFixed(2);
   const profitMargin = ((profit / currentTrip.price) * 100).toFixed(1);
   
@@ -147,11 +157,17 @@ function updateResults() {
   
   // Update financial metrics
   document.getElementById('netFare').textContent = `£${currentTrip.price}`;
+  
+  // Build fuel cost display with congestion charge and airport fee
+  let fuelCostDisplay = `£${fuelCost}`;
   if (congestionCharge > 0) {
-    document.getElementById('fuelCost').textContent = `£${fuelCost} + £${congestionCharge} CC`;
-  } else {
-    document.getElementById('fuelCost').textContent = `£${fuelCost}`;
+    fuelCostDisplay += ` + £${congestionCharge} CC`;
   }
+  if (airportFee > 0) {
+    fuelCostDisplay += ` + £${airportFee} Airport`;
+  }
+  document.getElementById('fuelCost').textContent = fuelCostDisplay;
+  
   document.getElementById('estimatedProfit').textContent = `£${profit}`;
   document.getElementById('profitMargin').textContent = `${profitMargin}%`;
   
