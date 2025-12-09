@@ -130,6 +130,29 @@
         <button onclick="pasteFromClipboard()" style="flex: 1; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">📋 Paste & Parse</button>
         <button onclick="parseFreeStyle()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Parse</button>
         <button onclick="clearFreeStyleInput()" style="flex: 0 0 auto; background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);">Clear</button>
+        <button onclick="aiExtractHandler()" style="flex: 0 0 auto; background: linear-gradient(135deg, #ffd600 0%, #ff8800 100%); color: #222; font-weight: 700;">🤖 AI Extract</button>
+      <script>
+      async function aiExtractHandler() {
+        const input = document.getElementById('freeStyleInput').value;
+        if (!input.trim()) {
+          alert('Please enter a message to extract.');
+          return;
+        }
+        const detailsDiv = document.getElementById('parsedDetails');
+        detailsDiv.innerHTML = '<em>Extracting with AI...</em>';
+        try {
+          const response = await fetch('https://taxi-iwe6.onrender.com/api/extract', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: input })
+          });
+          const aiResult = await response.json();
+          detailsDiv.innerHTML = `<pre style="white-space:pre-wrap;word-break:break-word;">${JSON.stringify(aiResult, null, 2)}</pre>`;
+        } catch (e) {
+          detailsDiv.innerHTML = '<span style="color:red;">AI extraction failed.</span>';
+        }
+      }
+      </script>
       </div>
       
       <div id="parsedInfo" class="parsed-info">
