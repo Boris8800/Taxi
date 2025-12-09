@@ -19,7 +19,8 @@ app.post('/api/extract', async (req, res) => {
   if (!apiKey) return res.status(500).json({ error: 'API key not set.' });
 
   try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`;
+    // Use the correct Gemini model endpoint
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${apiKey}`;
     const body = {
       contents: [{ parts: [{ text: message }] }]
     };
