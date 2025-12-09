@@ -264,11 +264,30 @@ async function parseFreeStyleText(text) {
     result.time = time;
   }
 
-  // Support 'Pick - ...' and 'Drop - ...' for locations
-  const pickDropSimple = text.match(/Pick\s*-\s*([^\n\r]+)[\n\r]+Drop\s*-\s*([^\n\r]+)/i);
-  if (pickDropSimple && pickDropSimple[1] && pickDropSimple[2]) {
-    result.pickup = (await expandLocation(pickDropSimple[1].trim()));
-    result.dropoff = (await expandLocation(pickDropSimple[2].trim()));
+  // PRIORITIZE: 'Pick - ...' and 'Drop - ...' for locations (even if not consecutive)
+  const pickLine = text.match(/^Pick\s*-\s*([^\n\r]+)/im);
+  const dropLine = text.match(/^Drop\s*-\s*([^\n\r]+)/im);
+  if (pickLine && pickLine[1]) {
+    let pickVal = pickLine[1].trim();
+    // Remove leading '- ' if present
+    if (pickVal.startsWith('- ')) pickVal = pickVal.slice(2).trim();
+    // Ignore if value is empty, just 'Pick', or a time/date phrase
+    if (
+      pickVal &&
+      !/^pick(\s|$)/i.test(pickVal) &&
+      !/^(tomorrow|today|\d{1,2}[.:]\d{2}(am|pm)?)/i.test(pickVal) &&
+      pickVal.toLowerCase() !== 'pick'
+    ) {
+      result.pickup = (await expandLocation(pickVal));
+    }
+  }
+  if (dropLine && dropLine[1]) {
+    let dropVal = dropLine[1].trim();
+    // Remove leading '- ' if present
+    if (dropVal.startsWith('- ')) dropVal = dropVal.slice(2).trim();
+    if (dropVal && !/^drop(\s|$)/i.test(dropVal)) {
+      result.dropoff = (await expandLocation(dropVal));
+    }
   }
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
