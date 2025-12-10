@@ -107,6 +107,7 @@ function extractLocations(text) {
   const pickupPatterns = [
     /pickup\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : (with space before colon, optional trailing period)
     /pickup\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: or Pickup: (no space, optional trailing period)
+    /pick\s+up\s+([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick up    SE1 7HR (multiple spaces)
     /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Pick - up : or Pick up :
     /pick\s*up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
     /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
@@ -115,6 +116,7 @@ function extractLocations(text) {
   const dropoffPatterns = [
     /dropoff\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff : (with space before colon, optional trailing period)
     /dropoff\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff: or Dropoff: (no space, optional trailing period)
+    /drop\s+off\s+([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop off   Gatwick Airport (multiple spaces)
     /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Drop - off : or Drop off :
     /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
     /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi

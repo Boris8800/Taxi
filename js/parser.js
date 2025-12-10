@@ -131,7 +131,8 @@ async function parseFreeStyleText(text) {
     let result = {};
     
         // Enhanced: If line contains 'PICKUP' followed by a time, set as time; if postcode/location, set as pickup
-        const pickupLineMatch = text.match(/^\s*PICKUP\s+(.+)$/gim);
+        // BUT exclude "Pickup time:" pattern which is handled separately
+        const pickupLineMatch = text.match(/^\s*PICKUP\s+(?!time\s*:)(.+)$/gim);
         if (pickupLineMatch) {
           pickupLineMatch.forEach(line => {
             let value = line.replace(/^\s*PICKUP\s+/i, '').trim();
@@ -167,18 +168,48 @@ async function parseFreeStyleText(text) {
             text = text.replace(line, '');
           });
         }
-    // If message contains 'Pick up:' or 'Pickup:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
-    const pickUpMatch = text.match(/Pick\s*up\s*:\s*([^\n\r]+)/i) || text.match(/Pickup\s*:\s*([^\n\r]+)/i);
-    if (pickUpMatch) {
-      result.pickup = await expandLocation(pickUpMatch[1].replace(/[.,;\s]+$/, '').trim());
-      result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'PickUpColon';
+    // Handle "Pickup time:" separately - extract time and date, but NOT location
+    const pickupTimeMatch = text.match(/Pickup\s+time\s*:\s*([^\n\r]+)/i);
+    if (pickupTimeMatch) {
+      const timeContent = pickupTimeMatch[1];
+      // Extract date from "Dec 10, 2025"
+      const dateExtract = timeContent.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4})/i);
+      if (dateExtract) {
+        result.pickupTimeDate = dateExtract[1]; // Store for later date parsing
+      }
+      // Extract time from "Dec 10, 2025 | 10:50"
+      const timeExtract = timeContent.match(/(\d{1,2}:\d{2})/);
+      if (timeExtract) {
+        result.time = timeExtract[1];
+      }
     }
+    
+    // DISABLED: Let extractLocations handle "Pick up:" patterns instead
+    // This prevents false matches like "Pickup time:" being treated as locations
+    /*
+    // If message contains 'Pick up:' or 'Pickup:' use it as pickup location
+    // Match only patterns where colon comes immediately after Pickup/Pick up (no other words between)
+    const pickUpColonMatch = text.match(/\bPick\s+up\s*:\s*([^\n\r]+)/i) || text.match(/\bPickup\s*:\s*([^\n\r]+)/i);
+    if (pickUpColonMatch) {
+      // Make absolutely sure it's not "Pickup time:" or similar
+      const hasWordBetween = /\b(Pick\s+up|Pickup)\s+\w+\s*:/i.test(pickUpColonMatch[0]);
+      if (!hasWordBetween) {
+        result.pickup = await expandLocation(pickUpColonMatch[1].replace(/[.,;\s]+$/, '').trim());
+        result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'PickUpColon';
+      }
+    }
+    */
+    
+    // DISABLED: These patterns interfere with extractLocations
+    // Let extractLocations handle all pickup/dropoff patterns with cleaned text
+    /*
     // If message contains 'Drop off:' or 'Dropoff:' use it as dropoff location (robust to whitespace, punctuation, and line breaks)
     const dropOffMatch = text.match(/Drop\s*off\s*:\s*([^\n\r]+)/i) || text.match(/Dropoff\s*:\s*([^\n\r]+)/i);
     if (dropOffMatch) {
       result.dropoff = await expandLocation(dropOffMatch[1].replace(/[.,;\s]+$/, '').trim());
       result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'DropOffColon';
     }
+    */
     // If message contains 'T5' or 'Heathrow T5', set pickup to 'Heathrow T5' if not already set
     if (/\b(T5|Heathrow T5)\b/i.test(text) && !result.pickup) {
       result.pickup = 'Heathrow T5';
@@ -359,6 +390,9 @@ async function parseFreeStyleText(text) {
   // Clean the text BEFORE extracting locations to prevent dates/times from being parsed as locations
   // Remove date, time, and mile patterns from text to prevent confusion
   let textForLocationExtraction = text
+    .replace(/Pickup\s+time\s*:\s*/gi, '') // Remove "Pickup time:" phrase but keep the date/time values
+    .replace(/\btime\b/gi, '') // Remove the word "time" to prevent it from interfering
+    .replace(/:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\s*\|\s*\d{1,2}:\d{2}/gi, '') // Remove ": Dec 10, 2025 | 10:50" pattern
     .replace(/\b\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4}\b/gi, '') // 10-Dec-2025 (standalone)
     .replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/gi, '') // 03 Dec 2025
     .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/gi, '') // Nov 20, 2025
@@ -575,7 +609,7 @@ async function parseFreeStyleText(text) {
   const dateMatch = cleanText.match(/\b(tonight)\b/i) || // TONIGHT
                    cleanText.match(/(\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4})/i) || // 10-Dec-2025
                    cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 03 Dec 2025 or 21 Nov 2025
-                   cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4})/i) || // Nov 20, 2025
+                   cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4})/i) || // Nov 20, 2025 or Dec 10, 2025
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{4})?)/i) || // 20th Nov or 21st Nov 2025
                    cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
                    cleanText.match(/\b(today|tomorrow)\b/i) ||
@@ -625,12 +659,23 @@ async function parseFreeStyleText(text) {
         // Handle 10-Dec-2025 format
         const dashMonthMatch = dateStr.match(/(\d{1,2})\-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-(\d{4})/i);
         const shortMonthMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
+        // Handle Dec 10, 2025 format (month-day-year)
+        const monthDayYearMatch = dateStr.match(/(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}),?\s+(\d{4})/i);
         
         if (dashMonthMatch) {
           const day = dashMonthMatch[1];
           const year = dashMonthMatch[3];
           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
           const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(dashMonthMatch[2].toLowerCase()));
+          parsedDate = new Date(year, monthIndex, day);
+          const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
+          const fullMonth = monthNames[monthIndex];
+          result.date = `${day} ${fullMonth} ${year} (${dayName})`;
+        } else if (monthDayYearMatch) {
+          const day = monthDayYearMatch[2];
+          const year = monthDayYearMatch[3];
+          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(monthDayYearMatch[1].toLowerCase()));
           parsedDate = new Date(year, monthIndex, day);
           const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
           const fullMonth = monthNames[monthIndex];
