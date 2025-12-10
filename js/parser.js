@@ -138,14 +138,14 @@ async function parseFreeStyleText(text) {
         }
     // Always initialize result object
     let result = {};
-    // If message contains 'Pick up:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
-    const pickUpMatch = text.match(/Pick\s*up\s*:\s*([^\n\r]+)/i);
+    // If message contains 'Pick up:' or 'Pickup:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
+    const pickUpMatch = text.match(/Pick\s*up\s*:\s*([^\n\r]+)/i) || text.match(/Pickup\s*:\s*([^\n\r]+)/i);
     if (pickUpMatch) {
       result.pickup = pickUpMatch[1].replace(/[.,;\s]+$/, '').trim();
       result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'PickUpColon';
     }
-    // If message contains 'Drop off:' use it as dropoff location (robust to whitespace, punctuation, and line breaks)
-    const dropOffMatch = text.match(/Drop\s*off\s*:\s*([^\n\r]+)/i);
+    // If message contains 'Drop off:' or 'Dropoff:' use it as dropoff location (robust to whitespace, punctuation, and line breaks)
+    const dropOffMatch = text.match(/Drop\s*off\s*:\s*([^\n\r]+)/i) || text.match(/Dropoff\s*:\s*([^\n\r]+)/i);
     if (dropOffMatch) {
       result.dropoff = dropOffMatch[1].replace(/[.,;\s]+$/, '').trim();
       result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'DropOffColon';
@@ -387,7 +387,8 @@ async function parseFreeStyleText(text) {
   // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET' or 'PAYMENT - 80 SAME DAY' or 'Net fare: 150£'
   let priceLabelMatch = text.match(/Net fare\s*[:\-]?\s*(\d+(?:\.\d{2})?)£?/i);
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/Price\s*:\s*£?\s*(\d+(?:\.\d{2})?)/i);
+    // Support 'Price: £10' and 'Price:£10' (with or without space after colon)
+    priceLabelMatch = text.match(/Price\s*:\s*£\s*(\d+(?:\.\d{2})?)/i) || text.match(/Price\s*:\s*£?(\d+(?:\.\d{2})?)/i);
   }
   // Support 'Price: £30' and 'Price £30'
   if (!priceLabelMatch) {
