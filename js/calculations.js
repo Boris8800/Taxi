@@ -45,6 +45,15 @@ function calculateTrip() {
 }
 
 function calculateRouteWithDetails(origin, destination, routeKey, callback) {
+  const directionsService = window.directionsService;
+  const directionsRenderer = window.directionsRenderer;
+  
+  if (!directionsService || !directionsRenderer) {
+    console.error('Google Maps services not initialized');
+    callback();
+    return;
+  }
+  
   directionsService.route(
     {
       origin: origin,
@@ -95,11 +104,13 @@ function updateResults() {
   });
   
   // Calculate totals, respecting Return to Base toggle
-  let totalDistance, totalTime;
+  let totalTime, totalDistance;
   if (window.returnToBase !== false) {
+    // Include full round trip
     totalDistance = routeResults.baseToPickup.distance + routeResults.pickupToDropoff.distance + routeResults.dropoffToBase.distance;
     totalTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration + routeResults.dropoffToBase.duration;
   } else {
+    // Only outbound journey
     totalDistance = routeResults.baseToPickup.distance + routeResults.pickupToDropoff.distance;
     totalTime = routeResults.baseToPickup.duration + routeResults.pickupToDropoff.duration;
   }
@@ -121,6 +132,7 @@ function updateResults() {
   const airportFee = hasAirportFee ? 10 : 0;
   
   // Calculate financials using the fuel cost per 100 miles
+  // Use totalDistance which respects Return to Base toggle
   const fuelCostPerMile = currentTrip.fuelCostPer100Miles / 100;
   const fuelCost = (totalDistance * fuelCostPerMile).toFixed(2);
   const totalExpenses = (parseFloat(fuelCost) + congestionCharge + airportFee).toFixed(2);
@@ -164,16 +176,32 @@ function updateResults() {
     document.getElementById('totalTime').textContent = `${formatMinutesToText(noReturnTime)} (-- ${formatMinutesToText(returnTime)})`;
   }
   
-  // Update financial metrics
-  document.getElementById('netFare').textContent = `£${currentTrip.price}`;
+  // Update financial metrics with cash badge if applicable
+  const tripPriceValue = document.getElementById('tripPrice').value || '';
+  const isCash = /\bcash\b/i.test(tripPriceValue);
+  
+  if (isCash) {
+    document.getElementById('netFare').innerHTML = `£${currentTrip.price} <span style="margin-left: 8px; padding: 3px 10px; background: #e53935; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; animation: flash 1.5s infinite; box-shadow: 0 2px 6px rgba(229, 57, 53, 0.3);">💰 CASH</span>`;
+  } else {
+    document.getElementById('netFare').textContent = `£${currentTrip.price}`;
+  }
+  
+  // Show/hide cash indicator in summary header
+  const cashIndicatorSummary = document.getElementById('cashIndicatorSummary');
+  
+  if (isCash) {
+    if (cashIndicatorSummary) cashIndicatorSummary.style.display = 'inline-block';
+  } else {
+    if (cashIndicatorSummary) cashIndicatorSummary.style.display = 'none';
+  }
   
   // Build fuel cost display with congestion charge and airport fee
   let fuelCostDisplay = `£${fuelCost}`;
-  if (congestionCharge > 0) {
-    fuelCostDisplay += ` + £${congestionCharge} CC`;
-  }
-  if (airportFee > 0) {
-    fuelCostDisplay += ` + £${airportFee} Airport`;
+  const extraCosts = [];
+  if (congestionCharge > 0) extraCosts.push(`CC £${congestionCharge}`);
+  if (airportFee > 0) extraCosts.push(`Airport £${airportFee}`);
+  if (extraCosts.length > 0) {
+    fuelCostDisplay += ` (${extraCosts.join(' + ')})`;
   }
   document.getElementById('fuelCost').textContent = fuelCostDisplay;
   
@@ -186,35 +214,48 @@ function updateResults() {
   const profitPerHourHeader = document.getElementById('profitPerHourHeader');
   
   // Handle different profit scenarios
-  if (profitPerHourValue < 4) {
-    alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ LOSS</span>';
+  let profitBadgeHTML = '';
+  if (profitPerHourValue < 0 || profit < 0) {
+    profitBadgeHTML = '<span class="alert-badge alert-danger">⚠️ LOSS</span>';
     profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
     profitPerHourHeader.style.color = '#e74c3c';
   } else if (profitPerHourValue < 5) {
-    alertBadge.innerHTML = '<span class="alert-badge alert-danger">⚠️ NO PROFIT</span>';
+    profitBadgeHTML = '<span class="alert-badge alert-danger">⚠️ NO PROFIT</span>';
     profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
     profitPerHourHeader.style.color = '#e74c3c';
   } else if (profitPerHourValue < 10) {
-    alertBadge.innerHTML = '<span class="alert-badge alert-danger">🔴 LOW PROFIT</span>';
+    profitBadgeHTML = '<span class="alert-badge alert-danger">🔴 LOW PROFIT</span>';
     profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
     profitPerHourHeader.style.color = '#e74c3c';
   } else if (profitPerHourValue < 13) {
-    alertBadge.innerHTML = '<span class="alert-badge alert-warning">🟡 Medium Profit</span>';
+    profitBadgeHTML = '<span class="alert-badge alert-warning">🟡 Medium Profit</span>';
     profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
     profitPerHourHeader.style.color = '#f39c12';
   } else {
-    alertBadge.innerHTML = '<span class="alert-badge alert-success">🟢 High Profit</span>';
+    profitBadgeHTML = '<span class="alert-badge alert-success">🟢 High Profit</span>';
     profitPerHourHeader.textContent = `£${profitPerHourValue.toFixed(2)}/hr`;
     profitPerHourHeader.style.color = '#00b894';
   }
+  
+  // Add extra cost badges
   if (congestionCharge > 0) {
-    alertBadge.innerHTML += '<span class="alert-badge alert-warning" style="background: #e67e22;">£15 CC</span>';
+    profitBadgeHTML += '<span class="alert-badge alert-warning" style="background: #e67e22;">CC £15</span>';
+  }
+  if (airportFee > 0) {
+    profitBadgeHTML += '<span class="alert-badge alert-warning" style="background: #3498db;">Airport £10</span>';
   }
   
+  alertBadge.innerHTML = profitBadgeHTML;
+  
   // Update earnings summary
-  document.getElementById('pricePerMile').textContent = `£${pricePerMileGross}`;
-  document.getElementById('pricePerHour').textContent = `£${pricePerHour}`;
-  document.getElementById('totalProfit').textContent = `£${profit}`;
+  // Profit per mile (net, after ALL expenses including return fuel)
+  const profitPerMile = (profit / routeResults.pickupToDropoff.distance).toFixed(2);
+  document.getElementById('pricePerMile').textContent = `£${profitPerMile}/mi`;
+  document.getElementById('pricePerHour').textContent = `£${pricePerHour}/hr`;
+  
+  // Show profit with LOSS indicator if negative
+  const profitDisplay = profit < 0 ? `£${profit} LOSS` : `£${profit}`;
+  document.getElementById('totalProfit').textContent = profitDisplay;
   
   // Update Total Distance and Total Time in Route Efficiency section
   document.getElementById('totalDistanceEfficiency').textContent = `${totalDistance.toFixed(1)} mi`;

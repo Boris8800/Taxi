@@ -105,15 +105,19 @@ function extractLocations(text) {
   // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY" and "Pick Up: Location"
   // Patterns for explicit pickup and dropoff lines (case-insensitive, robust)
   const pickupPatterns = [
-    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi, // Pick - up :
-    /pickup\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
-    /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
+    /pickup\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : (with space before colon, optional trailing period)
+    /pickup\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: or Pickup: (no space, optional trailing period)
+    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Pick - up : or Pick up :
+    /pick\s*up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
 
   const dropoffPatterns = [
-    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:-]?\s*([^\n\r\*\•]+?)(?=\n|[\*\•]|$)/gi, // Drop - off :
-    /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi,
-    /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?=\n|$)/gi
+    /dropoff\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff : (with space before colon, optional trailing period)
+    /dropoff\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff: or Dropoff: (no space, optional trailing period)
+    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Drop - off : or Drop off :
+    /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
   
   let pickupFound = false;
@@ -336,6 +340,11 @@ function extractLocations(text) {
 }
 
 async function expandLocation(location) {
+  // Safety check: return empty string if location is undefined or null
+  if (!location) {
+    return '';
+  }
+  
   const locTrimmed = location.trim();
   const locLower = locTrimmed.toLowerCase();
   
@@ -358,18 +367,29 @@ async function expandLocation(location) {
   for (const pattern of airportTerminalPatterns) {
     const match = locLower.match(pattern.regex);
     if (match && match[1]) {
+      // Special handling for Heathrow - use format Google recognizes
+      if (pattern.name === 'London Heathrow Airport') {
+        return `Heathrow Terminal ${match[1]}, Longford, UK`;
+      }
       return `${pattern.name} Terminal ${match[1]}`;
     }
+  }
+
+  // Handle standalone "terminal X" (defaults to Heathrow)
+  const standaloneTerminal = locLower.match(/^t\s*([1-5])$|^terminal\s*([1-5])$/i);
+  if (standaloneTerminal) {
+    const termNum = standaloneTerminal[1] || standaloneTerminal[2];
+    return `Heathrow Terminal ${termNum}, Longford, UK`;
   }
   
   // PRIORITY 3: Handle airport names with terminals
   // "Heathrow T3", "heathrow terminal 3", "Gatwick North" → Full name with terminal
   const airportNameTerminal = [
-    { keywords: ['heathrow'], name: 'London Heathrow Airport', terminalRegex: /[t\s]([1-5])/ },
-    { keywords: ['gatwick'], name: 'London Gatwick Airport', terminalRegex: /(north|south|n|s)/i },
-    { keywords: ['stansted'], name: 'London Stansted Airport', terminalRegex: null },
-    { keywords: ['luton'], name: 'London Luton Airport', terminalRegex: null },
-    { keywords: ['city airport', 'london city'], name: 'London City Airport', terminalRegex: null }
+    { keywords: ['heathrow'], name: 'Heathrow', terminalRegex: /(?:terminal\s*|t\s*)([1-5])/i, suffix: ', Longford, UK' },
+    { keywords: ['gatwick'], name: 'Gatwick', terminalRegex: /(north|south|n|s)/i, suffix: ', Gatwick, UK' },
+    { keywords: ['stansted'], name: 'London Stansted Airport', terminalRegex: null, suffix: ', UK' },
+    { keywords: ['luton'], name: 'London Luton Airport', terminalRegex: null, suffix: ', UK' },
+    { keywords: ['city airport', 'london city'], name: 'London City Airport', terminalRegex: null, suffix: ', UK' }
   ];
   
   for (const airport of airportNameTerminal) {
@@ -380,25 +400,25 @@ async function expandLocation(location) {
         if (termMatch) {
           const terminal = termMatch[1].toUpperCase();
           // Map N→North, S→South for Gatwick
-          if (terminal === 'N') return `${airport.name} Terminal North`;
-          if (terminal === 'S') return `${airport.name} Terminal South`;
-          if (terminal.toLowerCase() === 'north') return `${airport.name} Terminal North`;
-          if (terminal.toLowerCase() === 'south') return `${airport.name} Terminal South`;
-          return `${airport.name} Terminal ${terminal}`;
+          if (terminal === 'N') return `${airport.name} Terminal North${airport.suffix}`;
+          if (terminal === 'S') return `${airport.name} Terminal South${airport.suffix}`;
+          if (terminal.toLowerCase() === 'north') return `${airport.name} Terminal North${airport.suffix}`;
+          if (terminal.toLowerCase() === 'south') return `${airport.name} Terminal South${airport.suffix}`;
+          return `${airport.name} Terminal ${terminal}${airport.suffix}`;
         }
       }
-      return airport.name;
+      return airport.name + (airport.suffix || '');
     }
   }
   
   // PRIORITY 4: Handle bare airport codes (LHR, LGW, STN, LTN, LCY, BRS)
   const airportCodes = {
-    'lhr': 'London Heathrow Airport',
-    'lgw': 'London Gatwick Airport',
-    'stn': 'London Stansted Airport',
-    'ltn': 'London Luton Airport',
-    'lcy': 'London City Airport',
-    'brs': 'Bristol Airport'
+    'lhr': 'Heathrow Airport, Longford, UK',
+    'lgw': 'London Gatwick Airport, UK',
+    'stn': 'London Stansted Airport, UK',
+    'ltn': 'London Luton Airport, UK',
+    'lcy': 'London City Airport, UK',
+    'brs': 'Bristol Airport, UK'
   };
   
   if (airportCodes[locLower]) {

@@ -133,10 +133,15 @@ function shareTrip() {
       profitLevel = '🟢 High Profit';
     }
     
+    // Check if payment is cash
+    const tripPriceValue = document.getElementById('tripPrice').value || '';
+    const isCash = /\bcash\b/i.test(tripPriceValue);
+    const cashBadge = isCash ? ' 💰 CASH' : '';
+    
     const summary = `📊 SMART TRIP v1 - Trip Summary\n\n` +
       `📍 Route: ${pickup} → ${dropoff}\n` +
       `📅 Date: ${displayDate} | Time: ${displayTime}\n\n` +
-      `💰 Fare: £${displayPrice}\n` +
+      `💰 Fare: £${displayPrice}${cashBadge}\n` +
       `📏 Distance: ${totalDistance}\n` +
       `⏱️ Time: ${totalTime}\n\n` +
       `✅ Profit: ${profit} (${profitMargin} margin)\n` +

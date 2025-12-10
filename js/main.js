@@ -20,6 +20,10 @@ let parsedTimeLabel = '';
 let returnToBase = false;
 window.returnToBase = returnToBase;
 
+// Make directionsService and directionsRenderer globally accessible
+window.directionsService = directionsService;
+window.directionsRenderer = directionsRenderer;
+
 // Location database is now loaded from locations.js
 
 function initMap() {
@@ -28,6 +32,10 @@ function initMap() {
     draggable: false,
     polylineOptions: { strokeColor: 'blue', strokeWeight: 5 },
   });
+
+  // Make them globally accessible after initialization
+  window.directionsService = directionsService;
+  window.directionsRenderer = directionsRenderer;
 
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 10,
@@ -263,11 +271,17 @@ function updateParsedInfoFromStandardInput() {
   if (isPOB) {
     paymentOnPOBLabel = ' <span style="background: #00b894; color: white; padding: 2px 6px; border-radius: 3px; font-size: 11px;">Payment on POB</span>';
   }
+  
+  // Check if payment is cash
+  const tripPriceValue = document.getElementById('tripPrice').value || '';
+  const isCash = /\bcash\b/i.test(tripPriceValue);
+  const cashBadge = isCash ? ' <span style="margin-left: 8px; padding: 4px 12px; background: #e53935; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; animation: flash 1.5s infinite; box-shadow: 0 2px 6px rgba(229, 57, 53, 0.3);">💰 CASH</span>' : '';
+  
   document.getElementById('parsedDetails').innerHTML = `
     <strong>Pickup:</strong> ${pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : 'Not set'}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Fare:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
+    <strong>Fare:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}${cashBadge}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Date:</strong> ${date || 'Not set'}<br>
     <strong>Time:</strong> ${time || 'Not set'}<br>
@@ -317,7 +331,6 @@ function toggleReturnToBase() {
 
 function updateTripAnalysis() {
   // Update map, summary, and statistics based on returnToBase
-  // For demonstration, just update the dropoff to base stats visibility
   // Hide/show the entire metric row for Dropoff → Base (distance and time)
   const dropoffToBaseDistanceRow = document.getElementById('dropoffToBaseDistance').closest('.metric');
   const dropoffToBaseTimeRow = document.getElementById('dropoffToBaseTime').closest('.metric');
@@ -328,9 +341,15 @@ function updateTripAnalysis() {
     dropoffToBaseDistanceRow.style.display = 'none';
     dropoffToBaseTimeRow.style.display = 'none';
   }
-  // Only recalculate trip if toggle changes and locations are set
-  // calculateTrip(); // Commented out to prevent auto-calculation on page load
-  // You can add more logic here to update map routes, profit, etc.
+  
+  // Recalculate if we have valid locations
+  const pickup = document.getElementById('pickupLocation').value;
+  const dropoff = document.getElementById('dropoffLocation').value;
+  if (pickup && dropoff) {
+    // Recalculate with new toggle state
+    updateResults();
+  }
+  
   updateParsedInfoFromStandardInput();
 }
 

@@ -1,3 +1,15 @@
+/* Cash indicator flash animation */
+@keyframes flash {
+  0%, 100% {
+    opacity: 1;
+    background: #e53935;
+  }
+  50% {
+    opacity: 0.6;
+    background: #c62828;
+  }
+}
+
 /* Free-Style Input section description margin */
 .free-style-section p {
   margin: 10px 0;

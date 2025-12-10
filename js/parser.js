@@ -58,7 +58,7 @@ async function parseFreeStyle() {
   // Store last freestyle parse globally for extra info
   window.lastParsedFreeStyle = parsed;
 
-  // Update form with parsed values
+  // Update form with parsed values (already expanded in parseFreeStyleText)
   if (parsed.pickup) {
     document.getElementById('pickupLocation').value = parsed.pickup;
   }
@@ -77,7 +77,35 @@ async function parseFreeStyle() {
   if (/SAME DAY PAYMENT/i.test(freeText)) {
     priceText += priceText ? ' | SAME DAY PAYMENT' : 'SAME DAY PAYMENT';
   }
-  document.getElementById('tripPrice').value = priceText;
+  
+  const tripPriceInput = document.getElementById('tripPrice');
+  tripPriceInput.value = priceText;
+  
+  // If "cash" or "CASH" appears in the message, make the fare input red and show cash indicator
+  if (/\bcash\b/i.test(freeText)) {
+    tripPriceInput.style.backgroundColor = '#ffebee';
+    tripPriceInput.style.color = '#c62828';
+    tripPriceInput.style.fontWeight = 'bold';
+    tripPriceInput.style.borderColor = '#e53935';
+    
+    // Show cash indicator in Summary header
+    const cashIndicatorSummary = document.getElementById('cashIndicatorSummary');
+    if (cashIndicatorSummary) {
+      cashIndicatorSummary.style.display = 'inline-block';
+    }
+  } else {
+    // Reset to default styling if no cash
+    tripPriceInput.style.backgroundColor = '';
+    tripPriceInput.style.color = '';
+    tripPriceInput.style.fontWeight = '';
+    tripPriceInput.style.borderColor = '';
+    
+    // Hide cash indicator in Summary header
+    const cashIndicatorSummary = document.getElementById('cashIndicatorSummary');
+    if (cashIndicatorSummary) {
+      cashIndicatorSummary.style.display = 'none';
+    }
+  }
 
   if (parsed.date) {
     parsedDateLabel = parsed.date;
@@ -99,6 +127,9 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+    // Always initialize result object FIRST
+    let result = {};
+    
         // Enhanced: If line contains 'PICKUP' followed by a time, set as time; if postcode/location, set as pickup
         const pickupLineMatch = text.match(/^\s*PICKUP\s+(.+)$/gim);
         if (pickupLineMatch) {
@@ -136,18 +167,16 @@ async function parseFreeStyleText(text) {
             text = text.replace(line, '');
           });
         }
-    // Always initialize result object
-    let result = {};
     // If message contains 'Pick up:' or 'Pickup:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
     const pickUpMatch = text.match(/Pick\s*up\s*:\s*([^\n\r]+)/i) || text.match(/Pickup\s*:\s*([^\n\r]+)/i);
     if (pickUpMatch) {
-      result.pickup = pickUpMatch[1].replace(/[.,;\s]+$/, '').trim();
+      result.pickup = await expandLocation(pickUpMatch[1].replace(/[.,;\s]+$/, '').trim());
       result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'PickUpColon';
     }
     // If message contains 'Drop off:' or 'Dropoff:' use it as dropoff location (robust to whitespace, punctuation, and line breaks)
     const dropOffMatch = text.match(/Drop\s*off\s*:\s*([^\n\r]+)/i) || text.match(/Dropoff\s*:\s*([^\n\r]+)/i);
     if (dropOffMatch) {
-      result.dropoff = dropOffMatch[1].replace(/[.,;\s]+$/, '').trim();
+      result.dropoff = await expandLocation(dropOffMatch[1].replace(/[.,;\s]+$/, '').trim());
       result.specialFormat = (result.specialFormat ? result.specialFormat + '_' : '') + 'DropOffColon';
     }
     // If message contains 'T5' or 'Heathrow T5', set pickup to 'Heathrow T5' if not already set
@@ -327,9 +356,27 @@ async function parseFreeStyleText(text) {
     }
   }
   
+  // Clean the text BEFORE extracting locations to prevent dates/times from being parsed as locations
+  // Remove date, time, and mile patterns from text to prevent confusion
+  let textForLocationExtraction = text
+    .replace(/\b\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4}\b/gi, '') // 10-Dec-2025 (standalone)
+    .replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/gi, '') // 03 Dec 2025
+    .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/gi, '') // Nov 20, 2025
+    .replace(/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/g, '') // 10/12/2025 or 10-12-2025
+    .replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)?\b/gi, '') // 08:50 or 08:50AM
+    .replace(/\b\d+\.\d+\s*Miles?\b/gi, '') // 20.57 Miles
+    .replace(/\(\d+\s*seater\s*car\s*needed\)/gi, ''); // (9 seater car needed)
+  
+  // Enhanced location extraction - try with cleaned text (has Pickup:/Dropoff: labels)
+  let locations = extractLocations(textForLocationExtraction);
+  
+  // If locations still not found, try other extraction methods
+  if (locations.length < 2) {
+    locations = extractLocations(textForLocationExtraction);
+  }
+  
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
   // Support for "Pick Up - ... Drop Off: ..." format, 'X TO Y' format, and 'Destination:' as dropoff
-  let locations = extractLocations(text);
   // If not found, try explicit "Pick Up - ... Drop Off: ..." pattern
   if (locations.length < 2) {
     const pickDropPattern = /Pick\s*Up\s*[-:]?\s*([^\n\r]+)[\n\r]+Drop\s*Off\s*[:\-]?\s*([^\n\r]+)/i;
@@ -469,44 +516,64 @@ async function parseFreeStyleText(text) {
   cleanText = cleanText.replace(/\bTomm?o?r?o?w\b/gi, 'Tomorrow');
   text = text.replace(/\bTomm?o?r?o?w\b/gi, 'Tomorrow');
   
+  // Filter out undefined, null, or empty locations
+  locations = locations.filter(loc => loc && loc.trim());
+  
   // Simple logic: first location is pickup, second is dropoff
+  // Only set if not already set by explicit Pickup:/Dropoff: patterns
   if (locations.length >= 2) {
-    result.pickup = await expandLocation(locations[0]);
-    result.dropoff = await expandLocation(locations[1]);
+    if (!result.pickup) result.pickup = await expandLocation(locations[0]);
+    if (!result.dropoff) result.dropoff = await expandLocation(locations[1]);
   } else if (locations.length === 1) {
-    result.pickup = await expandLocation(locations[0]);
+    if (!result.pickup) result.pickup = await expandLocation(locations[0]);
   }
   
   // Extract price with better pattern matching including PAYMENT format
+  // Prioritize patterns with "net" keyword first
   let priceMatch = cleanText.match(/\*?payment[\s\-]*£(\d+(?:\.\d{2})?)(?:\s*same\s*day)?\*?/i) || // *PAYMENT- £75 SAME DAY* or PAYMENT- £75
                     cleanText.match(/payment[\s\-]*£(\d+(?:\.\d{2})?)/i) || // PAYMENT- £75
+                    cleanText.match(/£\s*(\d+(?:\.\d{2})?)\s*net\s*cash/i) || // £80 Net cash
+                    cleanText.match(/(\d+)\s*net\s*cash/i) || // 80 net cash
+                    cleanText.match(/£\s*(\d+(?:\.\d{2})?)\s*cash/i) || // £80 cash
+                    cleanText.match(/(\d+)\s*net/i) || // 47net, 48 net (prioritize before other patterns)
                     cleanText.match(/fare\s+£(\d+(?:\.\d{2})?)\s*net/i) || // FARE £70 NET
                     cleanText.match(/(\d+)£\s*net/i) || // 48£ Net
                     cleanText.match(/price\s*[;:\-]?\s*£?\s*(\d+(?:\.\d{2})?)\s*net/i) ||
                     cleanText.match(/fare\s*[;:\-]\s*£?\s*(\d+(?:\.\d{2})?)\s*(?:net)?/i) || // Fare; £107 net or Fare: 60
                     cleanText.match(/net\s*fare\s*[;:]\s*£?(\d+(?:\.\d{2})?)/i) ||
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)\s*net/i) ||
-                    cleanText.match(/(?:net\s*fare|price|fare|net|clear)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)/i) || 
+                    cleanText.match(/(?:net\s*fare|price|fare|clear)\s*[:\-]?\s*£?\s*(\d+(?:\.\d{2})?)/i) || 
                     cleanText.match(/saloon\s*:\s*(\d+)£/i) || // Saloon : 65£
                     cleanText.match(/£\s*(\d+(?:\.\d{2})?)/) ||
                     cleanText.match(/(\d+)\s*(?:pounds|gbp)\b/i) ||
-                    cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)/); // Standalone 2-3 digit numbers
+                    cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)/); // Standalone 2-3 digit numbers (last resort)
 
   // Prevent time-like patterns (e.g., '05 40', '05:40', '05 40 AM') from being parsed as price
   if (priceMatch) {
     const val = priceMatch[1];
-    // If the matched value is part of a time pattern, skip it as price
-    // Check for 'HH MM', 'HH:MM', or 'HH MM AM/PM' in the original text
-    const timeLikePattern = new RegExp(`\\b${val}(:|\\s)\\d{2}(\\s*(AM|PM))?\\b`, 'i');
-    if (timeLikePattern.test(cleanText)) {
-      // Looks like a time, do not parse as price
-    } else {
+    const matchedText = priceMatch[0]; // Get the full matched text, not just the captured group
+    
+    // If the matched text contains £, 'net', 'cash', 'payment', 'fare', it's definitely a price
+    if (/£|net|cash|payment|fare|price/i.test(matchedText)) {
       result.price = parseFloat(val);
+      // Check if it's a cash payment
+      if (/\bcash\b/i.test(matchedText)) {
+        result.priceType = 'Cash';
+      }
+    } else {
+      // Only check for time-like patterns if we're not sure it's a price
+      const timeLikePattern = new RegExp(`\\b${val}(:|\\s)\\d{2}(\\s*(AM|PM))?\\b`, 'i');
+      if (timeLikePattern.test(cleanText)) {
+        // Looks like a time, do not parse as price
+      } else {
+        result.price = parseFloat(val);
+      }
     }
   }
   
   // Enhanced date parsing with full date format support
   const dateMatch = cleanText.match(/\b(tonight)\b/i) || // TONIGHT
+                   cleanText.match(/(\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4})/i) || // 10-Dec-2025
                    cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 03 Dec 2025 or 21 Nov 2025
                    cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4})/i) || // Nov 20, 2025
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?:\s+\d{4})?)/i) || // 20th Nov or 21st Nov 2025
@@ -555,8 +622,20 @@ async function parseFreeStyleText(text) {
       } else {
         // Parse other date formats and add day name
         let parsedDate;
+        // Handle 10-Dec-2025 format
+        const dashMonthMatch = dateStr.match(/(\d{1,2})\-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-(\d{4})/i);
         const shortMonthMatch = dateStr.match(/(\d{1,2})(?:st|nd|rd|th)?\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)/i);
-        if (shortMonthMatch) {
+        
+        if (dashMonthMatch) {
+          const day = dashMonthMatch[1];
+          const year = dashMonthMatch[3];
+          const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(dashMonthMatch[2].toLowerCase()));
+          parsedDate = new Date(year, monthIndex, day);
+          const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
+          const fullMonth = monthNames[monthIndex];
+          result.date = `${day} ${fullMonth} ${year} (${dayName})`;
+        } else if (shortMonthMatch) {
           const day = shortMonthMatch[1];
           const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
           const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(shortMonthMatch[2].toLowerCase()));
@@ -646,9 +725,10 @@ async function parseFreeStyleText(text) {
     result.timeOfDay = timeOfDayMatch[1];
   }
   
-  // Parse passenger count from indicators like "(1 Persons)" or "🔴🔴" (red dots)
+  // Parse passenger count from indicators like "(1 Persons)" or "🔴🔴" (red dots) or "Seven Passenger"
   const passengerCountMatch = cleanText.match(/\((\d+)\s*persons?\)/i);
   const redDotsMatch = cleanText.match(/(🔴+)/);
+  const wordPassengerMatch = cleanText.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+passengers?\b/i);
   
   let passengerCount = null;
   if (passengerCountMatch) {
@@ -656,6 +736,13 @@ async function parseFreeStyleText(text) {
   } else if (redDotsMatch) {
     // Count red dots to determine passenger count
     passengerCount = redDotsMatch[1].length;
+  } else if (wordPassengerMatch) {
+    // Convert word to number
+    const wordToNum = {
+      'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+      'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10
+    };
+    passengerCount = wordToNum[wordPassengerMatch[1].toLowerCase()];
   }
   
   // Parse vehicle type - comprehensive patterns for all variations including passenger count and 'X seater' patterns
