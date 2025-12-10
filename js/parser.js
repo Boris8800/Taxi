@@ -99,6 +99,43 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+        // Enhanced: If line contains 'PICKUP' followed by a time, set as time; if postcode/location, set as pickup
+        const pickupLineMatch = text.match(/^\s*PICKUP\s+(.+)$/gim);
+        if (pickupLineMatch) {
+          pickupLineMatch.forEach(line => {
+            let value = line.replace(/^\s*PICKUP\s+/i, '').trim();
+            // Normalize time formats
+            let timeVal = null;
+            // 14:00, 2:00 PM, 2 PM, 14.00, 2pm, 2.00pm, 14 00
+            if (/^([0-2]?\d:[0-5]\d)(\s*[APap][Mm])?$/.test(value)) {
+              // 14:00 or 2:00 PM
+              timeVal = value.replace(/\s+/g, '').toUpperCase();
+            } else if (/^([0-2]?\d)[.: ]([0-5]\d)(\s*[APap][Mm])?$/.test(value)) {
+              // 14.00, 14 00, 2.00pm
+              let m = value.match(/^([0-2]?\d)[.: ]([0-5]\d)(\s*[APap][Mm])?$/);
+              if (m) {
+                timeVal = `${m[1].padStart(2,'0')}:${m[2].padStart(2,'0')}` + (m[3] ? m[3].toUpperCase().replace(/\s+/g,'') : '');
+              }
+            } else if (/^([0-2]?\d)(\s*[APap][Mm])$/.test(value)) {
+              // 2pm, 12AM
+              let m = value.match(/^([0-2]?\d)(\s*[APap][Mm])$/);
+              if (m) {
+                timeVal = `${m[1].padStart(2,'0')}:00${m[2].toUpperCase().replace(/\s+/g,'')}`;
+              }
+            } else if (/^([0-2]?\d)$/.test(value)) {
+              // Just hour, treat as HH:00
+              timeVal = value.padStart(2,'0') + ':00';
+            }
+            if (timeVal) {
+              result.time = timeVal;
+            } else {
+              // Otherwise treat as pickup location
+              result.pickup = value;
+            }
+            // Remove this line from text for further extraction
+            text = text.replace(line, '');
+          });
+        }
     // Always initialize result object
     let result = {};
     // If message contains 'Pick up:' use it as pickup location (robust to whitespace, punctuation, and line breaks)
