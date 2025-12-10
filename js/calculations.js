@@ -3,9 +3,18 @@ window.calculateTrip = calculateTrip;
 function calculateTrip() {
   // Get values from form
   const baseLocation = document.getElementById('baseLocation').value || "Birmingham";
-  const pickup = document.getElementById('pickupLocation').value || currentTrip.pickup;
-  const dropoff = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
-  const date = document.getElementById('tripDateDisplay').value || currentTrip.date;
+  const pickupInput = document.getElementById('pickupLocation').value;
+  const dropoffInput = document.getElementById('dropoffLocation').value;
+  
+  // Don't calculate if pickup or dropoff is empty
+  if (!pickupInput || !dropoffInput) {
+    console.log('Skipping calculation - pickup or dropoff is empty');
+    return;
+  }
+  
+  const pickup = pickupInput || currentTrip.pickup;
+  const dropoff = dropoffInput || currentTrip.dropoff;
+  const date = document.getElementById('tripDate').value || currentTrip.date;
   const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
   const price = parseFloat(document.getElementById('tripPrice').value) || currentTrip.price;
   const fuelCostPer100Miles = parseFloat(document.getElementById('fuelCostPer100Miles').value) || 15.00;
@@ -255,7 +264,7 @@ function updateResults() {
     const baseLocation = document.getElementById('baseLocation').value || "Birmingham";
     const pickupLocation = document.getElementById('pickupLocation').value || currentTrip.pickup;
     const dropoffLocation = document.getElementById('dropoffLocation').value || currentTrip.dropoff;
-    const tripDate = document.getElementById('tripDateDisplay').value || currentTrip.date;
+    const tripDate = document.getElementById('tripDate').value || currentTrip.date;
     const pickupTime = document.getElementById('tripTime').value || currentTrip.pickupTime;
     // Helper to build a valid Date from date and time, fallback to summary date if needed
     function buildDateTime(dateStr, timeStr) {

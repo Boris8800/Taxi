@@ -1,7 +1,7 @@
 // Utility functions for date, sharing, and UI
 function updateDateDisplay() {
   const dateInput = document.getElementById('tripDate');
-  const dateDisplay = document.getElementById('tripDateDisplay');
+  const dateDisplay = document.getElementById('tripDate');
   
   if (dateInput.value) {
     const date = new Date(dateInput.value + 'T00:00:00');
@@ -95,7 +95,7 @@ function shareTrip() {
       return;
     }
     
-    const date = document.getElementById('tripDateDisplay').value;
+    const date = document.getElementById('tripDate').value;
     const time = document.getElementById('tripTime').value;
     const price = document.getElementById('tripPrice').value;
     
@@ -136,7 +136,7 @@ function shareTrip() {
     const summary = `📊 SMART TRIP v1 - Trip Summary\n\n` +
       `📍 Route: ${pickup} → ${dropoff}\n` +
       `📅 Date: ${displayDate} | Time: ${displayTime}\n\n` +
-      `💰 Price: £${displayPrice}\n` +
+      `💰 Fare: £${displayPrice}\n` +
       `📏 Distance: ${totalDistance}\n` +
       `⏱️ Time: ${totalTime}\n\n` +
       `✅ Profit: ${profit} (${profitMargin} margin)\n` +

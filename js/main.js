@@ -34,6 +34,7 @@ function initMap() {
     center: window.liveLocationCoords ? { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng } : { lat: 51.5, lng: -0.12 },
     mapTypeId: 'roadmap'
   });
+  window.map = map; // Store globally for access in other functions
   directionsRenderer.setMap(map);
 
   // Set default values in form
@@ -49,17 +50,41 @@ function initMap() {
   document.getElementById('tripPrice').value = "";
   document.getElementById('fuelCostPer100Miles').value = "10.00";
 
+  // Clear parsed info display
+  const parsedInfo = document.getElementById('parsedInfo');
+  if (parsedInfo) {
+    parsedInfo.style.display = 'none';
+  }
+  const parsedDetails = document.getElementById('parsedDetails');
+  if (parsedDetails) {
+    parsedDetails.innerHTML = '';
+  }
+
+  // Clear any existing directions on the map
+  directionsRenderer.setDirections({routes: []});
+
   // Show live location marker if available
   addLiveLocationMarker();
+
+  // Initialize Google Maps Autocomplete for location inputs
+  setupGoogleAutocomplete();
+
+  // Add event listeners to standard input fields
+  setupInputListeners();
+
+  // Update parsed info initially
+  updateParsedInfoFromStandardInput();
+}
+
 // Helper to add live location marker to map
 function addLiveLocationMarker() {
-  if (window.liveLocationCoords && window.map) {
+  if (window.liveLocationCoords && map) {
     if (window.liveLocationMarker) {
       window.liveLocationMarker.setMap(null);
     }
     window.liveLocationMarker = new google.maps.Marker({
       position: { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng },
-      map: window.map,
+      map: map,
       title: 'Your Live Location',
       icon: {
         path: google.maps.SymbolPath.CIRCLE,
@@ -70,18 +95,8 @@ function addLiveLocationMarker() {
         strokeColor: '#2d3436'
       }
     });
-    window.map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
+    map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
   }
-}
-
-  // Initialize Google Maps Autocomplete for location inputs
-  setupGoogleAutocomplete();
-
-  // Add event listeners to standard input fields
-  setupInputListeners();
-
-  // Update parsed info initially
-  updateParsedInfoFromStandardInput();
 }
 
 function setupGoogleAutocomplete() {
@@ -143,7 +158,7 @@ function setupInputListeners() {
   const inputFields = [
     'pickupLocation',
     'dropoffLocation', 
-    'tripDateDisplay',
+    'tripDate',
     'tripTime',
     'tripPrice',
     'baseLocation'
@@ -177,7 +192,7 @@ function updateParsedInfoFromStandardInput() {
   if (ttPickup) ttPickup.innerHTML = summaryPickupHTML;
   const ttDropoff = document.getElementById('ttDropoff');
   if (ttDropoff) ttDropoff.innerHTML = summaryDropoffHTML;
-  const date = document.getElementById('tripDateDisplay').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.date) || '';
+  const date = document.getElementById('tripDate').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.date) || '';
   const time = document.getElementById('tripTime').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.time) || '';
   const price = document.getElementById('tripPrice').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.price) || '';
   const baseLocation = document.getElementById('baseLocation').value;
@@ -252,7 +267,7 @@ function updateParsedInfoFromStandardInput() {
     <strong>Pickup:</strong> ${pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : 'Not set'}<br>
     <strong>Dropoff:</strong> ${dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : 'Not set'}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Price:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
+    <strong>Fare:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}<br>
     <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
     <strong>Date:</strong> ${date || 'Not set'}<br>
     <strong>Time:</strong> ${time || 'Not set'}<br>
@@ -278,8 +293,13 @@ function updateParsedInfoFromStandardInput() {
     })()}
   `;
 
-  // Always show the parsed info section after parsing
-  document.getElementById('parsedInfo').style.display = 'block';
+  // Only show the parsed info section if there's actual data to display
+  const hasData = pickup || dropoff || price || date || time;
+  if (hasData) {
+    document.getElementById('parsedInfo').style.display = 'block';
+  } else {
+    document.getElementById('parsedInfo').style.display = 'none';
+  }
 }
 
 function toggleReturnToBase() {
@@ -308,8 +328,8 @@ function updateTripAnalysis() {
     dropoffToBaseDistanceRow.style.display = 'none';
     dropoffToBaseTimeRow.style.display = 'none';
   }
-  // Only recalculate trip if toggle changes
-  calculateTrip();
+  // Only recalculate trip if toggle changes and locations are set
+  // calculateTrip(); // Commented out to prevent auto-calculation on page load
   // You can add more logic here to update map routes, profit, etc.
   updateParsedInfoFromStandardInput();
 }
@@ -388,8 +408,6 @@ window.onload = function() {
           document.getElementById('returnToBaseStatus').textContent = 'OFF';
         }
         updateTripAnalysis();
-        // Demo: Show message for Pick Up - TN22 5HB, Drop Off: Heathrow Terminal 5
-        showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
         // Show live location marker on map
         if (window.map && window.liveLocationCoords) {
           if (window.liveLocationMarker) {
@@ -426,7 +444,6 @@ window.onload = function() {
         document.getElementById('returnToBaseStatus').textContent = 'OFF';
       }
       updateTripAnalysis();
-      showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
     });
   } else {
     // Geolocation not supported
@@ -443,7 +460,6 @@ window.onload = function() {
       document.getElementById('returnToBaseStatus').textContent = 'OFF';
     }
     updateTripAnalysis();
-    showPickupDropoffMessage('TN22 5HB', 'Heathrow Terminal 5');
   }
 };
 

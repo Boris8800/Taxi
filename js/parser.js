@@ -25,7 +25,7 @@ function clearFreeStyleInput() {
   document.getElementById('freeStyleInput').value = '';
   document.getElementById('pickupLocation').value = '';
   document.getElementById('dropoffLocation').value = '';
-  document.getElementById('tripDateDisplay').value = '';
+  document.getElementById('tripDate').value = '';
   document.getElementById('tripTime').value = '';
   document.getElementById('tripPrice').value = '';
   parsedDateLabel = '';
@@ -38,7 +38,7 @@ async function parseFreeStyle() {
   // Clear all relevant fields before parsing
   document.getElementById('pickupLocation').value = '';
   document.getElementById('dropoffLocation').value = '';
-  document.getElementById('tripDateDisplay').value = '';
+  document.getElementById('tripDate').value = '';
   document.getElementById('tripTime').value = '';
   document.getElementById('tripPrice').value = '';
   parsedDateLabel = '';
@@ -81,7 +81,7 @@ async function parseFreeStyle() {
 
   if (parsed.date) {
     parsedDateLabel = parsed.date;
-    document.getElementById('tripDateDisplay').value = parsed.date;
+    document.getElementById('tripDate').value = parsed.date;
   }
   if (parsed.time) {
     // Display the full time with label (e.g., "22:40 (Landing time)")

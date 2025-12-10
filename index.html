@@ -18,7 +18,7 @@
   <!-- CSS -->
   <link rel="stylesheet" href="css/styles.css">
   
-  <!-- Google Maps API -->
+  <!-- Google Maps API - loaded without async to ensure proper initialization -->
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyB9V88q7k5QQjG3QBtSyNwHXZ5CYfWL9i0&libraries=places"></script>
 </head>
 <body>
@@ -102,7 +102,7 @@
       
       <div class="input-group">
         <label for="tripDate">📅 Date</label>
-        <input type="text" id="tripDateDisplay" placeholder="Date will be parsed from message">
+        <input type="text" id="tripDate" placeholder="Date will be parsed from message">
       </div>
       
       <div class="input-group">
@@ -111,7 +111,7 @@
       </div>
       
       <div class="input-group">
-        <label for="tripPrice">💰 Price (Net)</label>
+        <label for="tripPrice">💰 Fare (Net)</label>
         <input type="text" id="tripPrice" value="" placeholder="e.g., 70">
       </div>
       
@@ -378,34 +378,15 @@
         setTimeout(() => {
           if (freeStyleInput.value.trim()) {
             saveToHistory(freeStyleInput.value.trim());
-            aiExtractHandler(); // Run AI extraction after paste
           }
         }, 300);
       });
     }
     if (parseBtn) {
       parseBtn.addEventListener('click', () => {
-        if (freeStyleInput.value.trim()) {
-          aiExtractHandler(); // Run AI extraction after parse
-        }
-      });
-      parseBtn.addEventListener('click', () => {
         if (freeStyleInput.value.trim()) saveToHistory(freeStyleInput.value.trim());
       });
     }
-
-    // Reload selected message
-    document.getElementById('reloadHistoryBtn').onclick = function() {
-      const selected = document.querySelector('input[name="historyMsg"]:checked');
-      if (selected) {
-        const idx = parseInt(selected.value);
-        let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');
-        if (history[idx]) {
-          freeStyleInput.value = history[idx];
-          parseFreeStyle();
-        }
-      }
-    };
 
     // Initial render
     renderHistory();
