@@ -470,14 +470,66 @@ async function expandLocation(location) {
     }
   }
   
-  // PRIORITY 4: Handle bare airport codes (LHR, LGW, STN, LTN, LCY, BRS)
+  // PRIORITY 4: Handle bare airport codes - ALL UK AIRPORTS
   const airportCodes = {
-    'lhr': 'Heathrow Airport, Longford, UK',
-    'lgw': 'London Gatwick Airport, UK',
-    'stn': 'London Stansted Airport, UK',
-    'ltn': 'London Luton Airport, UK',
-    'lcy': 'London City Airport, UK',
-    'brs': 'Bristol Airport, UK'
+    // London airports
+    'lhr': 'London Heathrow Airport',
+    'lgw': 'London Gatwick Airport',
+    'stn': 'London Stansted Airport',
+    'ltn': 'London Luton Airport',
+    'lcy': 'London City Airport',
+    // Major regional airports
+    'bhx': 'Birmingham Airport',
+    'man': 'Manchester Airport',
+    'edi': 'Edinburgh Airport',
+    'gla': 'Glasgow Airport',
+    'brs': 'Bristol Airport',
+    'ncl': 'Newcastle Airport',
+    'lba': 'Leeds Bradford Airport',
+    'ema': 'East Midlands Airport',
+    // England regional airports
+    'sou': 'Southampton Airport',
+    'lpl': 'Liverpool John Lennon Airport',
+    'dsa': 'Doncaster Sheffield Airport',
+    'ext': 'Exeter Airport',
+    'boh': 'Bournemouth Airport',
+    'nwi': 'Norwich Airport',
+    'huy': 'Humberside Airport',
+    'mme': 'Durham Tees Valley Airport',
+    'nqy': 'Newquay Cornwall Airport',
+    // Scotland airports
+    'pik': 'Glasgow Prestwick Airport',
+    'abz': 'Aberdeen Airport',
+    'inv': 'Inverness Airport',
+    'dnd': 'Dundee Airport',
+    'lsi': 'Sumburgh Airport',
+    'syy': 'Stornoway Airport',
+    'koi': 'Kirkwall Airport',
+    'lwk': 'Lerwick/Tingwall Airport',
+    'brr': 'Barra Airport',
+    'beb': 'Benbecula Airport',
+    'cal': 'Campbeltown Airport',
+    'tre': 'Tiree Airport',
+    'psl': 'Perth/Scone Airport',
+    'ily': 'Islay Airport',
+    'eoi': 'Eday Airport',
+    // Wales airports
+    'cwl': 'Cardiff Airport',
+    // Northern Ireland airports
+    'bfs': 'Belfast International Airport',
+    'bhd': 'George Best Belfast City Airport',
+    'ldy': 'City of Derry Airport',
+    // Channel Islands
+    'gci': 'Guernsey Airport',
+    'jer': 'Jersey Airport',
+    'aci': 'Alderney Airport',
+    // Isle of Man
+    'iom': 'Isle of Man Airport',
+    // Other regional
+    'isc': 'St Mary\'s Airport (Isles of Scilly)',
+    'bbp': 'Bembridge Airport',
+    'sen': 'Southend Airport',
+    'ceg': 'Hawarden Airport'
   };
   
   if (airportCodes[locLower]) {
