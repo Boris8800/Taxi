@@ -412,7 +412,32 @@ async function expandLocation(location) {
     return locTrimmed;
   }
   
-  // PRIORITY 2: Handle airport codes with terminals
+  // PRIORITY 2: For known airports and cities, validate with Google Maps first
+  // This ensures we get the correct formatted address
+  const knownAirports = [
+    'heathrow', 'gatwick', 'stansted', 'luton', 'london city',
+    'lhr', 'lgw', 'stn', 'ltn', 'lcy',
+    'manchester', 'man', 'birmingham', 'bhx', 'bristol', 'brs',
+    'edinburgh', 'edi', 'glasgow', 'gla', 'newcastle', 'ncl',
+    'leeds', 'lba', 'liverpool', 'lpl'
+  ];
+  
+  // Check if it's a known airport or city name
+  const isKnownLocation = knownAirports.some(keyword => locLower.includes(keyword));
+  
+  if (isKnownLocation && typeof window.validateLocationWithGoogleMaps === 'function') {
+    console.log(`🌍 Validating "${locTrimmed}" with Google Maps before expansion...`);
+    const validation = await window.validateLocationWithGoogleMaps(locTrimmed);
+    
+    if (validation.isValid) {
+      console.log(`✅ Google Maps validated: ${validation.formattedAddress}`);
+      return validation.formattedAddress;
+    } else {
+      console.log(`⚠️ Google Maps validation failed: ${validation.reason}, using local expansion`);
+    }
+  }
+  
+  // PRIORITY 3: Handle airport codes with terminals
   // LHR 2, LHR T2, LHRT2, LHR Terminal 2 → London Heathrow Airport Terminal 2
   const airportTerminalPatterns = [
     { regex: /^lhr\s*t?\s*([1-5])$/i, name: 'London Heathrow Airport' },
@@ -441,7 +466,7 @@ async function expandLocation(location) {
     return `Heathrow Terminal ${termNum}, Longford, UK`;
   }
   
-  // PRIORITY 3: Handle airport names with terminals
+  // PRIORITY 4: Handle airport names with terminals
   // "Heathrow T3", "heathrow terminal 3", "Gatwick North" → Full name with terminal
   const airportNameTerminal = [
     { keywords: ['heathrow'], name: 'Heathrow', terminalRegex: /(?:terminal\s*|t\s*)([1-5])/i, suffix: ', Longford, UK' },
@@ -470,7 +495,8 @@ async function expandLocation(location) {
     }
   }
   
-  // PRIORITY 4: Handle bare airport codes - ALL UK AIRPORTS
+  // PRIORITY 5: Handle bare airport codes - ALL UK AIRPORTS
+  // But first validate with Google Maps if available
   const airportCodes = {
     // London airports
     'lhr': 'London Heathrow Airport',
@@ -533,7 +559,22 @@ async function expandLocation(location) {
   };
   
   if (airportCodes[locLower]) {
-    return airportCodes[locLower];
+    const airportName = airportCodes[locLower];
+    
+    // Validate with Google Maps if available
+    if (typeof window.validateLocationWithGoogleMaps === 'function') {
+      console.log(`🌍 Validating airport code "${locTrimmed}" (${airportName}) with Google Maps...`);
+      const validation = await window.validateLocationWithGoogleMaps(airportName);
+      
+      if (validation.isValid) {
+        console.log(`✅ Google Maps validated: ${validation.formattedAddress}`);
+        return validation.formattedAddress;
+      } else {
+        console.log(`⚠️ Google Maps validation failed, using airport name: ${airportName}`);
+      }
+    }
+    
+    return airportName;
   }
   
   // PRIORITY 5: Handle UK postcodes - fetch full address for complete postcodes
