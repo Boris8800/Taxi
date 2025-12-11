@@ -203,12 +203,25 @@ async function extractLocations(text) {
         continue;
       }
       
+      // CRITICAL: Skip if it contains time pattern (08:30 am, 10:00 PM, etc.)
+      if (/\d{1,2}:\d{2}\s*(?:am|pm)/i.test(pickup)) {
+        console.log(`🕐 Skipping pickup "${pickup}" - contains time, not a location`);
+        continue;
+      }
+      
       // Clean up: remove "PICK UP", "PICK U", "Pickup", etc if still present
       pickup = pickup.replace(/^(pick\s*u[p]?|pickup?)\s*:?\s*/gi, '').trim();
       // Clean up temporal words that are not part of location
       pickup = pickup.replace(/^(tomorrow|today|tonight|morning|afternoon|evening)\s+/gi, '').trim();
       // Clean up any trailing/leading special characters and colons
       pickup = pickup.replace(/^[:\-;,\s\*\•⁠]+/, '').replace(/[\*\•\-⁠:;,\s]+$/, '').trim();
+      
+      // Skip if after cleaning, it still looks like a date or time
+      if (isDateString(pickup) || /\d{1,2}:\d{2}/.test(pickup)) {
+        console.log(`🗓️ Skipping cleaned pickup "${pickup}" - still a date/time`);
+        continue;
+      }
+      
       if (pickup) {
         locations[0] = pickup; // Always set as pickup
         pickupFound = true;
