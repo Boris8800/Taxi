@@ -174,11 +174,35 @@ async function extractLocations(text) {
   let pickupFound = false;
   let dropoffFound = false;
   
+  // Helper function to check if text looks like a date
+  function isDateString(text) {
+    // Check for full date patterns like "Friday 12th December 2025"
+    if (/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i.test(text)) {
+      return true;
+    }
+    // Check for other date patterns
+    if (/\b\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/i.test(text)) {
+      return true;
+    }
+    // Check for date with day name but no month: "Wednesday 19th 2025"
+    if (/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}\b/i.test(text)) {
+      return true;
+    }
+    return false;
+  }
+  
   // Try to find pickup location
   for (const pattern of pickupPatterns) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
       let pickup = matches[0][1].trim();
+      
+      // CRITICAL: Skip if this looks like a date
+      if (isDateString(pickup)) {
+        console.log(`🗓️ Skipping pickup "${pickup}" - it's a date, not a location`);
+        continue;
+      }
+      
       // Clean up: remove "PICK UP", "PICK U", "Pickup", etc if still present
       pickup = pickup.replace(/^(pick\s*u[p]?|pickup?)\s*:?\s*/gi, '').trim();
       // Clean up temporal words that are not part of location
@@ -198,6 +222,13 @@ async function extractLocations(text) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
       let dropoff = matches[0][1].trim();
+      
+      // CRITICAL: Skip if this looks like a date
+      if (isDateString(dropoff)) {
+        console.log(`🗓️ Skipping dropoff "${dropoff}" - it's a date, not a location`);
+        continue;
+      }
+      
       // Clean up: remove "DROP OFF", "DROP OF", "Dropoff", etc if still present
       dropoff = dropoff.replace(/^(drop\s*off?|dropoff?)\s*:?\s*/gi, '').trim();
       // Clean up temporal words that are not part of location
