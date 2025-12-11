@@ -63,7 +63,7 @@
     
     <!-- Standard Input Section -->
     <div class="input-section">
-      <h5>Standard Input</h5>
+      <h5 style="margin: 0 0 10px 0;">Standard Input</h5>
       
       <div class="fuel-cost-menu">
         <h4>Fuel Cost Settings</h4>
@@ -90,39 +90,62 @@
         <input type="text" id="baseLocation" value="Birmingham" placeholder="Enter your base location (name or postcode)">
       </div>
       
-      <div class="input-group">
-        <label for="pickupLocation">📍 Pickup Location</label>
-        <input type="text" id="pickupLocation" value="" placeholder="Enter pickup location">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin: 16px 0 10px 0;">
+        <h6 style="margin: 0; font-weight: 600;">Trip Details</h6>
+        <button onclick="toggleStandardInput()" id="toggleStandardBtn" style="padding: 6px 12px; font-size: 13px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">▶ Show</button>
       </div>
       
-      <div class="input-group">
-        <label for="dropoffLocation">🎯 Dropoff Location</label>
-        <input type="text" id="dropoffLocation" value="" placeholder="Enter dropoff location">
+      <div id="standardInputFields" style="display: none;">
+        <div class="input-group">
+          <label for="pickupLocation">📍 Pickup Location</label>
+          <input type="text" id="pickupLocation" value="" placeholder="Enter pickup location">
+        </div>
+        
+        <div class="input-group">
+          <label for="dropoffLocation">🎯 Dropoff Location</label>
+          <input type="text" id="dropoffLocation" value="" placeholder="Enter dropoff location">
+        </div>
+        
+        <div class="input-group">
+          <label for="tripDate">📅 Date</label>
+          <input type="text" id="tripDate" placeholder="Date will be parsed from message">
+        </div>
+        
+        <div class="input-group">
+          <label for="tripTime">🕐 Pickup Time</label>
+          <input type="text" id="tripTime" placeholder="Time will be parsed from message" value="">
+        </div>
+        
+        <div class="input-group">
+          <label for="tripPrice">💰 Fare (Net)</label>
+          <input type="text" id="tripPrice" value="" placeholder="e.g., 70">
+        </div>
+        
+        <button onclick="calculateTrip()" style="width: 100%; margin-top: 20px; padding: 14px; font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3); transition: all 0.3s ease;">🔄 Recalculate Trip</button>
       </div>
-      
-      <div class="input-group">
-        <label for="tripDate">📅 Date</label>
-        <input type="text" id="tripDate" placeholder="Date will be parsed from message">
-      </div>
-      
-      <div class="input-group">
-        <label for="tripTime">🕐 Pickup Time</label>
-        <input type="text" id="tripTime" placeholder="Time will be parsed from message" value="">
-      </div>
-      
-      <div class="input-group">
-        <label for="tripPrice">💰 Fare (Net)</label>
-        <input type="text" id="tripPrice" value="" placeholder="e.g., 70">
-      </div>
-      
-      <button onclick="calculateTrip()" style="width: 100%; margin-top: 20px; padding: 14px; font-size: 16px; font-weight: 700; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%); border-radius: 10px; box-shadow: 0 4px 15px rgba(0, 184, 148, 0.3); transition: all 0.3s ease;">🔄 Recalculate Trip</button>
     </div>
+    
+    <script>
+      function toggleStandardInput() {
+        const fields = document.getElementById('standardInputFields');
+        const btn = document.getElementById('toggleStandardBtn');
+        
+        if (fields.style.display === 'none') {
+          fields.style.display = 'block';
+          btn.innerHTML = '▼ Hide';
+        } else {
+          fields.style.display = 'none';
+          btn.innerHTML = '▶ Show';
+        }
+      }
+    </script>
     
     <!-- Free-Style Input Section -->
     <div class="free-style-section">
-      <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
   <h4 style="margin: 0;">Free-Style Input</h4>
   <button id="returnToBaseToggle" onclick="toggleReturnToBase()" style="flex: 0 0 auto; background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);">Return to Base: <span id="returnToBaseStatus">OFF</span></button>
+  <button id="copyMessageBtn" onclick="copyMessage(event)" style="flex: 0 0 auto; padding: 8px 14px; background: linear-gradient(135deg, #ffd43b 0%, #ffeaa7 100%); border: none; color: #333; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px; box-shadow: 0 2px 8px rgba(255, 212, 59, 0.3);">📋 Copy Message</button>
 </div>
 <textarea id="freeStyleInput" rows="5" placeholder="Paste or Enter trip details in any format. First location is pickup, second is dropoff.
 "></textarea>
@@ -316,12 +339,41 @@
     <div id="historyList" style="margin-bottom: 16px;"></div>
     <!-- Individual reload buttons will be rendered per message -->
   </div>
-  <script src="js/main.js?v=5"></script>
-  <script src="js/calculations.js?v=5"></script>
-  <script src="js/parser.js?v=5"></script>
-  <script src="js/locations.js?v=5"></script>
-  <script src="js/utils.js?v=5"></script>
+  <script src="js/main.js?v=41"></script>
+  <script src="js/calculations.js?v=41"></script>
+  <script src="js/parser.js?v=41"></script>
+  <script src="js/postcode_validator.js?v=41"></script>
+  <script src="js/locations.js?v=41"></script>
+  <script src="js/utils.js?v=41"></script>
   <script>
+    // Copy message function
+    function copyMessage(event) {
+      const freeStyleInput = document.getElementById('freeStyleInput');
+      const message = freeStyleInput.value;
+      
+      if (!message || message.trim() === '') {
+        alert('⚠️ No message to copy');
+        return;
+      }
+      
+      // Copy to clipboard
+      navigator.clipboard.writeText(message).then(() => {
+        // Show success feedback
+        const btn = event.target;
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        btn.style.background = 'linear-gradient(135deg, #00b894 0%, #00cec9 100%)';
+        
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.background = 'linear-gradient(135deg, #ffd43b 0%, #ffeaa7 100%)';
+        }, 1500);
+      }).catch(err => {
+        console.error('Failed to copy:', err);
+        alert('❌ Failed to copy message');
+      });
+    }
+    
     // History logic
     function saveToHistory(message) {
       let history = JSON.parse(localStorage.getItem('messageHistory') || '[]');

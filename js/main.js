@@ -1,3 +1,36 @@
+// Helper function to remove temporal words from location strings
+function cleanTemporalWords(location) {
+  if (!location) return location;
+  
+  const temporalWords = [
+    'TOMORROW', 'TODAY', 'TONIGHT', 'MORNING', 'AFTERNOON', 'EVENING',
+    'ANY CAR', 'ANYCAR', 'SALOON', 'MPV', 'MPVS', 'ESTATE', 'EXEC', 'EXECUTIVE'
+  ];
+  
+  let cleaned = location.trim();
+  let iterations = 0;
+  const maxIterations = 5; // Prevent infinite loops
+  
+  // Keep removing temporal/vehicle words from the start until none are found
+  let changed = true;
+  while (changed && iterations < maxIterations) {
+    changed = false;
+    iterations++;
+    
+    for (const word of temporalWords) {
+      const regex = new RegExp('^' + word + '\\s+', 'gi');
+      const before = cleaned;
+      cleaned = cleaned.replace(regex, '');
+      if (before !== cleaned) {
+        changed = true;
+      }
+    }
+  }
+  
+  console.log('🧹 Cleaning location display:', location, '→', cleaned);
+  return cleaned.trim();
+}
+
 // Default trip data
 const defaultTrip = {
   date: "18 November",
@@ -191,8 +224,13 @@ function setupInputListeners() {
 
 function updateParsedInfoFromStandardInput() {
   // Get current values from standard input fields
-  const pickup = document.getElementById('pickupLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.pickup) || '';
-  const dropoff = document.getElementById('dropoffLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.dropoff) || '';
+  let pickup = document.getElementById('pickupLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.pickup) || '';
+  let dropoff = document.getElementById('dropoffLocation').value || (window.lastParsedFreeStyle && window.lastParsedFreeStyle.dropoff) || '';
+  
+  // CRITICAL: Clean temporal words before displaying
+  pickup = cleanTemporalWords(pickup);
+  dropoff = cleanTemporalWords(dropoff);
+  
   // Copy pickup and dropoff HTML from summary to time table
   const summaryPickupHTML = pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : '-';
   const summaryDropoffHTML = dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : '-';
@@ -393,13 +431,12 @@ window.onload = function() {
   locationPrompt.style.textAlign = 'center';
   locationPrompt.style.zIndex = '9999';
   locationPrompt.style.fontSize = '1.1rem';
-  locationPrompt.innerHTML = '🚕 Please allow access to your live location for accurate base detection.';
+  locationPrompt.innerHTML = '🚕 Please allow access to your live location for accurate base detection.<br>📍 Recognizing location...';
   document.body.appendChild(locationPrompt);
 
   // Try to get user's current location and set as base
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(function(position) {
-      document.body.removeChild(locationPrompt);
       const lat = position.coords.latitude;
       const lng = position.coords.longitude;
       // Use Google Maps Geocoding API to get address from lat/lng
@@ -417,7 +454,16 @@ window.onload = function() {
         document.getElementById('ttBase').textContent = liveLocationText;
         // Store live location for map marker
         window.liveLocationCoords = { lat, lng, text: liveLocationText };
+        
+        // Initialize map and wait for it to load
         initMap();
+        
+        // Remove prompt after map is fully loaded
+        google.maps.event.addListenerOnce(window.map, 'idle', function() {
+          if (document.body.contains(locationPrompt)) {
+            document.body.removeChild(locationPrompt);
+          }
+        });
         // Set Return to Base OFF by default
         returnToBase = false;
         window.returnToBase = false;

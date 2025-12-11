@@ -402,11 +402,11 @@ async function parseFreeStyleText(text) {
     .replace(/\(\d+\s*seater\s*car\s*needed\)/gi, ''); // (9 seater car needed)
   
   // Enhanced location extraction - try with cleaned text (has Pickup:/Dropoff: labels)
-  let locations = extractLocations(textForLocationExtraction);
+  let locations = await extractLocations(textForLocationExtraction);
   
   // If locations still not found, try other extraction methods
   if (locations.length < 2) {
-    locations = extractLocations(textForLocationExtraction);
+    locations = await extractLocations(textForLocationExtraction);
   }
   
   // Enhanced location extraction BEFORE cleaning (to preserve "Airport Job" pattern)
@@ -465,47 +465,142 @@ async function parseFreeStyleText(text) {
     result.vehicleType = vehicleTypeMatch[1].trim();
   }
 
+  // Price extraction - IMPORTANT: Must avoid extracting numbers from postcodes
+  // First, identify all postcodes in the text to avoid confusion
+  const postcodePattern = /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi;
+  const postcodesInText = [];
+  let postcodeMatch;
+  while ((postcodeMatch = postcodePattern.exec(text)) !== null) {
+    postcodesInText.push(postcodeMatch[0]);
+  }
+  
+  // Helper function to check if a number is part of a postcode
+  function isPartOfPostcode(numberMatch, text) {
+    const matchIndex = text.indexOf(numberMatch);
+    if (matchIndex === -1) return false;
+    
+    // Check if this number is within any postcode
+    for (const postcode of postcodesInText) {
+      const postcodeIndex = text.indexOf(postcode);
+      if (postcodeIndex !== -1) {
+        const postcodeEnd = postcodeIndex + postcode.length;
+        // If the number is within the postcode range, it's part of it
+        if (matchIndex >= postcodeIndex && matchIndex < postcodeEnd) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   // Price: £90 or Price: 90 or *PAYMENT - £90 SAME DAY or 'PRICE 60 NET' or 'PAYMENT - 80 SAME DAY' or 'Net fare: 150£'
-  let priceLabelMatch = text.match(/Net fare\s*[:\-]?\s*(\d+(?:\.\d{2})?)£?/i);
-  if (!priceLabelMatch) {
-    // Support 'Price: £10' and 'Price:£10' (with or without space after colon)
-    priceLabelMatch = text.match(/Price\s*:\s*£\s*(\d+(?:\.\d{2})?)/i) || text.match(/Price\s*:\s*£?(\d+(?:\.\d{2})?)/i);
+  // IMPORTANT: Price must be 2+ digits (10 or more) and NOT part of a postcode
+  // Support both integer and decimal formats: 95, 95.00, 95.50
+  let priceLabelMatch = text.match(/Net fare\s*[:\-]?\s*(\d{2,}(?:\.\d{1,2})?)£?/i);
+  if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+    priceLabelMatch = null;
   }
-  // Support 'Price: £30' and 'Price £30'
+  
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/Price\s*[;:\-]?\s*£\s*(\d+(?:\.\d{2})?)/i);
+    // Support 'Price: £10.00' and 'Price:£10' (with or without space after colon)
+    priceLabelMatch = text.match(/Price\s*:\s*£\s*(\d{2,}(?:\.\d{1,2})?)/i) || text.match(/Price\s*:\s*£?(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
   }
+  // Support 'Price: £30.50' and 'Price £30'
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£?(\d+(?:\.\d{2})?)(?:\s*SAME DAY)?/i);
-  }
-  if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/\bPAYMENT\b\s*£?(\d+(?:\.\d{2})?)/i);
-  }
-  if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/PRICE\s*:?\s*£?\s*(\d+(?:\.\d{2})?)\s*NET/i);
-  }
-  if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/Fare\s+(\d+(?:\.\d{2})?)\s*NET/i);
-  }
-  if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/(\d+)\s*NET/i);
-  }
-  // Support '100 net', 'net 100', '100net', 'net: 100', etc.
-  if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/(\d+(?:\.\d{2})?)\s*net\b/i);
+    priceLabelMatch = text.match(/Price\s*[;:\-]?\s*£\s*(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
   }
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/net\s*:?\s*(\d+(?:\.\d{2})?)/i);
+    priceLabelMatch = text.match(/\*?PAYMENT\s*[-:]?\s*£?(\d{2,}(?:\.\d{1,2})?)(?:\s*SAME DAY)?/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
   }
-  // Support price as standalone '150£' or '£150' on its own line
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/^(\d+(?:\.\d{2})?)£$/m);
+    priceLabelMatch = text.match(/\bPAYMENT\b\s*£?(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
   }
   if (!priceLabelMatch) {
-    priceLabelMatch = text.match(/^£(\d+(?:\.\d{2})?)$/m);
+    priceLabelMatch = text.match(/PRICE\s*:?\s*£?\s*(\d{2,}(?:\.\d{1,2})?)\s*NET/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
   }
-  // Add support for 'Cash' payments: look for 'Cash' and a price
-  let cashMatch = text.match(/(\d+(?:\.\d{2})?)\s*Cash/i);
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/Fare\s*[:\-]?\s*(\d{2,}(?:\.\d{1,2})?)\s*NET/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  if (!priceLabelMatch) {
+    // This one should also support decimals
+    priceLabelMatch = text.match(/(\d{2,}(?:\.\d{1,2})?)\s*NET/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  // Support '100 net', 'net 100', '100.00 net', '100net', 'net: 100', etc.
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/(\d{2,}(?:\.\d{1,2})?)\s*net\b/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/net\s*:?\s*(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  // Support price as standalone '150£', '150.00£' or '£150', '£150.00' on its own line
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/^(\d{2,}(?:\.\d{1,2})?)£$/m);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/^£(\d{2,}(?:\.\d{1,2})?)$/m);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  // Support 'Fare: 95', 'Fare: 95.00', 'Fare 95', 'fare 60.00' format (case insensitive)
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/\bfare\s+(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  if (!priceLabelMatch) {
+    priceLabelMatch = text.match(/\bfare\s*[:\-]\s*(\d{2,}(?:\.\d{1,2})?)/i);
+    if (priceLabelMatch && isPartOfPostcode(priceLabelMatch[1], text)) {
+      priceLabelMatch = null;
+    }
+  }
+  
+  // Add support for 'Cash' payments: look for 'Cash' and a price (2+ digits, with optional decimals)
+  let cashMatch = text.match(/(\d{2,}(?:\.\d{1,2})?)\s*Cash/i);
+  if (cashMatch && isPartOfPostcode(cashMatch[1], text)) {
+    cashMatch = null;
+  }
+  
+  // FALLBACK: Recognize standalone decimal numbers like 60.00, 45.00, 25.00 (must be on their own line or word boundary)
+  if (!priceLabelMatch && !cashMatch) {
+    // Match numbers with exactly 2 decimals (like 60.00, 45.00) that are 10 or more
+    const standaloneDecimalMatch = text.match(/\b(\d{2,}\.\d{2})\b/);
+    if (standaloneDecimalMatch && !isPartOfPostcode(standaloneDecimalMatch[1], text)) {
+      priceLabelMatch = standaloneDecimalMatch;
+    }
+  }
+  
   if (!priceLabelMatch && cashMatch) {
     result.price = parseFloat(cashMatch[1]);
     result.priceType = 'Cash';
@@ -553,6 +648,13 @@ async function parseFreeStyleText(text) {
   // Filter out undefined, null, or empty locations
   locations = locations.filter(loc => loc && loc.trim());
   
+  // Clean locations: remove colons, commas, semicolons at the start or end
+  locations = locations.map(loc => {
+    if (!loc) return loc;
+    // Remove : ; , at the beginning or end
+    return loc.trim().replace(/^[:\-;,\s]+/, '').replace(/[:\-;,\s]+$/, '').trim();
+  });
+  
   // Simple logic: first location is pickup, second is dropoff
   // Only set if not already set by explicit Pickup:/Dropoff: patterns
   if (locations.length >= 2) {
@@ -560,6 +662,14 @@ async function parseFreeStyleText(text) {
     if (!result.dropoff) result.dropoff = await expandLocation(locations[1]);
   } else if (locations.length === 1) {
     if (!result.pickup) result.pickup = await expandLocation(locations[0]);
+  }
+  
+  // Clean pickup and dropoff if already set (remove colons, etc)
+  if (result.pickup) {
+    result.pickup = result.pickup.trim().replace(/^[:\-;,\s]+/, '').replace(/[:\-;,\s]+$/, '').trim();
+  }
+  if (result.dropoff) {
+    result.dropoff = result.dropoff.trim().replace(/^[:\-;,\s]+/, '').replace(/[:\-;,\s]+$/, '').trim();
   }
   
   // Extract price with better pattern matching including PAYMENT format
@@ -724,6 +834,8 @@ async function parseFreeStyleText(text) {
                            cleanText.match(/@\s*(\d{1,2}:\d{2})\s*(?:AM|PM)?\s*\(landing\)/i); // @ 11:12 PM (Landing)
   
   const timeMatch = landingTimeMatch ||
+                   cleanText.match(/(?:tomorrow|today|tonight)\s+at\s+(\d{1,2}[:\.]?\d{2})\s*(?:am|pm)/i) || // TOMORROW AT 23.00PM or TOMORROW AT 23:00PM
+                   cleanText.match(/at\s+(\d{1,2}[:\.]?\d{2})\s*(?:am|pm)/i) || // AT 23.00PM or AT 23:00PM
                    cleanText.match(/tonight\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)/i) || // TONIGHT @ 21:25 pm
                    cleanText.match(/tomorrow\s+@\s*(\d{1,2}:\d{2})\s*(?:am|pm)?/i) || // TOMORROW @ 09:50 (typo handled by normalization)
                    cleanText.match(/\d{1,2}(?:st|nd|rd|th)?\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+(\d{1,2}:\d{2})/i) || // 20th Nov 11:15
@@ -744,6 +856,10 @@ async function parseFreeStyleText(text) {
   
   if (timeMatch) {
     let time = timeMatch[1].trim();
+    // Convert dot to colon if needed (e.g., "23.00" -> "23:00")
+    if (/^\d{1,2}\.\d{2}$/.test(time)) {
+      time = time.replace('.', ':');
+    }
     // Convert space to colon if needed (e.g., "13 50" -> "13:50")
     if (/^\d{1,2}\s+\d{2}$/.test(time)) {
       time = time.replace(/\s+/, ':');
@@ -791,7 +907,7 @@ async function parseFreeStyleText(text) {
   }
   
   // Parse vehicle type - comprehensive patterns for all variations including passenger count and 'X seater' patterns
-  let vehicleMatch = cleanText.match(/\b(exec\s*\/\/\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpv|9\s*seater|8\s*seater|7\s*seater|minivan|minibus|estate|saloon|any\s*car|any\s*tesla|tesla|electric\s*car|electric)\b/gi);
+  let vehicleMatch = cleanText.match(/\b(exec\s*\/\/\/?\s*e\s*class\s*or\s*similar|e\s*class\s*or\s*similar|e\s*class|e-class|estate\s*car|saloon\s*car|ex[e|c]cutive\s*car|ex[e|c]cutive|mpv\s*8|mpvs|mpv|9\s*seater|8\s*seater|7\s*seater|minivan|minibus|estate|saloon|any\s*car|any\s*tesla|tesla|electric\s*car|electric)\b/gi);
   // Add support for '4 seater', '5 seater', etc.
   if (!vehicleMatch) {
     vehicleMatch = cleanText.match(/\b(\d{1,2}\s*seater)\b/i);
@@ -816,6 +932,8 @@ async function parseFreeStyleText(text) {
       result.vehicleType = 'Executive';
     } else if (vehicle.match(/mpv\s*8/i)) {
       result.vehicleType = 'MPV 8';
+    } else if (vehicle.match(/mpvs/i)) {
+      result.vehicleType = 'MPV';
     } else if (vehicle.match(/9\s*seater/i)) {
       result.vehicleType = '9 Seater';
     } else if (vehicle.match(/8\s*seater/i)) {
@@ -859,6 +977,54 @@ async function parseFreeStyleText(text) {
     } else {
       result.vehicleType = 'Not Specified';
     }
+  }
+  
+  // CRITICAL FIX: Clean temporal words from pickup and dropoff before returning
+  const temporalWords = [
+    'TOMORROW', 'TODAY', 'TONIGHT', 'MORNING', 'AFTERNOON', 'EVENING',
+    'ANY CAR', 'ANYCAR', 'SALOON', 'MPV', 'MPVS', 'ESTATE', 'EXEC', 'EXECUTIVE'
+  ];
+  
+  if (result.pickup) {
+    let cleaned = result.pickup;
+    let iterations = 0;
+    let changed = true;
+    
+    while (changed && iterations < 5) {
+      changed = false;
+      iterations++;
+      
+      for (const word of temporalWords) {
+        const regex = new RegExp('^' + word + '\\s+', 'gi');
+        const before = cleaned;
+        cleaned = cleaned.replace(regex, '');
+        if (before !== cleaned) changed = true;
+      }
+    }
+    
+    console.log('🧹 Parser cleaning pickup:', result.pickup, '→', cleaned);
+    result.pickup = cleaned.trim();
+  }
+  
+  if (result.dropoff) {
+    let cleaned = result.dropoff;
+    let iterations = 0;
+    let changed = true;
+    
+    while (changed && iterations < 5) {
+      changed = false;
+      iterations++;
+      
+      for (const word of temporalWords) {
+        const regex = new RegExp('^' + word + '\\s+', 'gi');
+        const before = cleaned;
+        cleaned = cleaned.replace(regex, '');
+        if (before !== cleaned) changed = true;
+      }
+    }
+    
+    console.log('🧹 Parser cleaning dropoff:', result.dropoff, '→', cleaned);
+    result.dropoff = cleaned.trim();
   }
   
   return result;

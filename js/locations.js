@@ -1,9 +1,47 @@
 // Location extraction and expansion utilities
-function extractLocations(text) {
+async function extractLocations(text) {
   const locations = [];
   const lowerText = text.toLowerCase();
   
-  // PRIORITY 0: Check for vertical listings with "Airport Job" pattern FIRST
+  // NEW PRIORITY 0: Try location validation with Google Maps first
+  // This will find and validate postcodes, cities, airports, and any location Google Maps recognizes
+  if (typeof window.extractAndValidateLocations === 'function') {
+    try {
+      const validated = await window.extractAndValidateLocations(text);
+      
+      // If we found both valid pickup and dropoff locations, use them
+      if (validated.pickup && validated.dropoff) {
+        console.log('✅ Using validated locations from Google Maps');
+        console.log('   Pickup:', validated.pickup.location, '→', validated.pickup.formattedAddress);
+        console.log('   Dropoff:', validated.dropoff.location, '→', validated.dropoff.formattedAddress);
+        locations.push(validated.pickup.location);
+        locations.push(validated.dropoff.location);
+        return locations;
+      }
+      
+      // If we only found pickup, use it and continue searching for dropoff
+      if (validated.pickup) {
+        console.log('✅ Using validated pickup location from Google Maps:', validated.pickup.location);
+        locations.push(validated.pickup.location);
+      }
+      
+      // If we only found dropoff, continue searching for pickup
+      if (validated.dropoff && locations.length === 0) {
+        console.log('✅ Using validated dropoff location from Google Maps:', validated.dropoff.location);
+        locations.push(validated.dropoff.location);
+      }
+      
+      // If we found both, return early
+      if (locations.length >= 2) {
+        return locations;
+      }
+    } catch (error) {
+      console.warn('⚠️ Error validating locations with Google Maps:', error);
+      // Continue with traditional extraction methods if validation fails
+    }
+  }
+  
+  // PRIORITY 1: Check for vertical listings with "Airport Job" pattern
   // Pattern: "Heathrow Airport Job\nHeathrow Airport\nE5 0QQ"
   // In this format: Airport name is ALWAYS pickup, Postcode is ALWAYS dropoff
   const airportJobMatch = text.match(/(heathrow|gatwick|stansted|luton|london city|birmingham|manchester)\s+airport\s+job/gi);
@@ -105,21 +143,32 @@ function extractLocations(text) {
   // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY" and "Pick Up: Location"
   // Patterns for explicit pickup and dropoff lines (case-insensitive, robust)
   const pickupPatterns = [
-    /pickup\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : (with space before colon, optional trailing period)
-    /pickup\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: or Pickup: (no space, optional trailing period)
-    /pick\s+up\s+([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick up    SE1 7HR (multiple spaces)
-    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Pick - up : or Pick up :
-    /pick\s*up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /pick\s+up\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
+    /^\s*pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Pickup: TOMORROW STN (captures STN after temporal word)
+    /pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: TOMORROW STN
+    /pickup\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : TOMORROW STN
+    /pick\s+u\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // PICK U : (typo)
+    /pick\s+up\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick up TOMORROW STN
+    /pick\s+u\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick u (typo)
+    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*pick\s*-?\s*u\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /pick\s*up\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /pick\s*u\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
 
   const dropoffPatterns = [
-    /dropoff\s+:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff : (with space before colon, optional trailing period)
-    /dropoff\s*:\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Dropoff: or Dropoff: (no space, optional trailing period)
+    /^\s*dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Dropoff: TOMORROW location
+    /^\s*drop[\s\-]*off\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi,
+    /dropoff\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+of\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
     /drop\s+off\s+([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop off   Gatwick Airport (multiple spaces)
-    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s]\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi, // Drop - off : or Drop off :
-    /drop\s*off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /drop\s+off\s*[:-]?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
+    /drop\s+of\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop of (typo)
+    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*drop\s*-?\s*of\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /drop\s*off\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s*of\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+off\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+of\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
   
   let pickupFound = false;
@@ -129,11 +178,15 @@ function extractLocations(text) {
   for (const pattern of pickupPatterns) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
-      const pickup = matches[0][1].trim();
-      // Clean up any trailing special characters
-      const cleanPickup = pickup.replace(/[\*\•\-\⁠]+$/, '').trim();
-      if (cleanPickup) {
-        locations[0] = cleanPickup; // Always set as pickup
+      let pickup = matches[0][1].trim();
+      // Clean up: remove "PICK UP", "PICK U", "Pickup", etc if still present
+      pickup = pickup.replace(/^(pick\s*u[p]?|pickup?)\s*:?\s*/gi, '').trim();
+      // Clean up temporal words that are not part of location
+      pickup = pickup.replace(/^(tomorrow|today|tonight|morning|afternoon|evening)\s+/gi, '').trim();
+      // Clean up any trailing/leading special characters and colons
+      pickup = pickup.replace(/^[:\-;,\s\*\•⁠]+/, '').replace(/[\*\•\-⁠:;,\s]+$/, '').trim();
+      if (pickup) {
+        locations[0] = pickup; // Always set as pickup
         pickupFound = true;
         break;
       }
@@ -144,11 +197,15 @@ function extractLocations(text) {
   for (const pattern of dropoffPatterns) {
     const matches = [...text.matchAll(pattern)];
     if (matches.length > 0 && matches[0][1]) {
-      const dropoff = matches[0][1].trim();
-      // Clean up any trailing special characters and invisible characters
-      const cleanDropoff = dropoff.replace(/[\*\•\-\⁠\u200B-\u200D\uFEFF]+/g, '').trim();
-      if (cleanDropoff) {
-        locations[1] = cleanDropoff; // Always set as dropoff
+      let dropoff = matches[0][1].trim();
+      // Clean up: remove "DROP OFF", "DROP OF", "Dropoff", etc if still present
+      dropoff = dropoff.replace(/^(drop\s*off?|dropoff?)\s*:?\s*/gi, '').trim();
+      // Clean up temporal words that are not part of location
+      dropoff = dropoff.replace(/^(tomorrow|today|tonight|morning|afternoon|evening)\s+/gi, '').trim();
+      // Clean up any trailing/leading special characters, colons, and invisible characters
+      dropoff = dropoff.replace(/^[:\-;,\s\*\•⁠\u200B-\u200D\uFEFF]+/, '').replace(/[\*\•\-⁠:;,\s\u200B-\u200D\uFEFF]+$/, '').trim();
+      if (dropoff) {
+        locations[1] = dropoff; // Always set as dropoff
         dropoffFound = true;
         break;
       }
