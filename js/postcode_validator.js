@@ -415,6 +415,7 @@ function extractAllLocations(text) {
 
 /**
  * Validates a location (postcode, city, airport, address) using Google Maps Geocoding API
+ * Tries multiple variations for airports and cities to ensure accurate validation
  * @param {string} location - The location to validate
  * @returns {Promise<Object>} - Object with {isValid: boolean, address: string, location: {lat, lng}}
  */
@@ -432,46 +433,107 @@ async function validateLocationWithGoogleMaps(location) {
     }
     
     const geocoder = new google.maps.Geocoder();
+    const locLower = location.toLowerCase().trim();
     
-    // Add ", UK" to ensure we're searching in UK (unless it's already there)
-    const searchQuery = location.toLowerCase().includes(', uk') ? location : `${location}, UK`;
+    // Build array of search variations to try
+    const searchVariations = [];
     
-    geocoder.geocode({ address: searchQuery }, (results, status) => {
-      if (status === 'OK' && results && results.length > 0) {
-        const result = results[0];
-        
-        // Check if the result is actually in UK
-        const isUK = result.address_components.some(component => 
-          component.types.includes('country') && 
-          (component.short_name === 'GB' || component.short_name === 'UK')
-        );
-        
-        if (isUK) {
-          resolve({
-            isValid: true,
-            location: location,
-            formattedAddress: result.formatted_address,
-            coordinates: {
-              lat: result.geometry.location.lat(),
-              lng: result.geometry.location.lng()
-            },
-            types: result.types // e.g., ['airport', 'point_of_interest'], ['locality', 'political'], etc.
-          });
-        } else {
-          resolve({
-            isValid: false,
-            reason: 'Location not found in UK',
-            location: location
-          });
-        }
-      } else {
+    // Known airports - try multiple variations
+    const airportVariations = {
+      'gatwick': ['Gatwick Airport, UK', 'London Gatwick Airport, UK', 'LGW Airport, UK'],
+      'heathrow': ['Heathrow Airport, UK', 'London Heathrow Airport, UK', 'LHR Airport, UK'],
+      'stansted': ['Stansted Airport, UK', 'London Stansted Airport, UK', 'STN Airport, UK'],
+      'luton': ['Luton Airport, UK', 'London Luton Airport, UK', 'LTN Airport, UK'],
+      'manchester': ['Manchester Airport, UK', 'MAN Airport, UK'],
+      'birmingham': ['Birmingham Airport, UK', 'BHX Airport, UK'],
+      'bristol': ['Bristol Airport, UK', 'BRS Airport, UK'],
+      'edinburgh': ['Edinburgh Airport, UK', 'EDI Airport, UK'],
+      'glasgow': ['Glasgow Airport, UK', 'GLA Airport, UK'],
+      'newcastle': ['Newcastle Airport, UK', 'NCL Airport, UK'],
+      'liverpool': ['Liverpool John Lennon Airport, UK', 'Liverpool Airport, UK', 'LPL Airport, UK']
+    };
+    
+    // Check if location matches known airport
+    let foundAirportVariations = false;
+    for (const [key, variations] of Object.entries(airportVariations)) {
+      if (locLower.includes(key)) {
+        searchVariations.push(...variations);
+        foundAirportVariations = true;
+        break;
+      }
+    }
+    
+    // Add original query (with ", UK" if not present)
+    const originalQuery = location.toLowerCase().includes(', uk') ? location : `${location}, UK`;
+    searchVariations.unshift(originalQuery);
+    
+    // If no specific variations found, just use original
+    if (!foundAirportVariations && searchVariations.length === 1) {
+      // For single-word entries that might be cities, try with UK
+      if (!location.includes(',')) {
+        searchVariations.push(`${location} Airport, UK`); // Try as airport
+      }
+    }
+    
+    console.log(`🔍 Will try ${searchVariations.length} variations for "${location}":`, searchVariations);
+    
+    // Try each variation until one succeeds
+    let currentIndex = 0;
+    
+    function tryNextVariation() {
+      if (currentIndex >= searchVariations.length) {
+        // All variations failed
         resolve({
           isValid: false,
-          reason: status === 'ZERO_RESULTS' ? 'Location not found' : `Geocoding failed: ${status}`,
-          location: location
+          reason: 'Location not found after trying all variations',
+          location: location,
+          triedVariations: searchVariations
         });
+        return;
       }
-    });
+      
+      const searchQuery = searchVariations[currentIndex];
+      console.log(`   Trying variation ${currentIndex + 1}/${searchVariations.length}: "${searchQuery}"`);
+      
+      geocoder.geocode({ address: searchQuery }, (results, status) => {
+        if (status === 'OK' && results && results.length > 0) {
+          const result = results[0];
+          
+          // Check if the result is actually in UK
+          const isUK = result.address_components.some(component => 
+            component.types.includes('country') && 
+            (component.short_name === 'GB' || component.short_name === 'UK')
+          );
+          
+          if (isUK) {
+            console.log(`   ✅ SUCCESS with variation: "${searchQuery}"`);
+            resolve({
+              isValid: true,
+              location: location,
+              formattedAddress: result.formatted_address,
+              coordinates: {
+                lat: result.geometry.location.lat(),
+                lng: result.geometry.location.lng()
+              },
+              types: result.types,
+              searchedAs: searchQuery
+            });
+            return;
+          } else {
+            console.log(`   ❌ Result not in UK, trying next variation...`);
+            currentIndex++;
+            tryNextVariation();
+          }
+        } else {
+          console.log(`   ❌ Geocoding failed (${status}), trying next variation...`);
+          currentIndex++;
+          tryNextVariation();
+        }
+      });
+    }
+    
+    // Start trying variations
+    tryNextVariation();
   });
 }
 
@@ -507,25 +569,26 @@ async function validatePostcodeWithGoogleMaps(postcode) {
 
 /**
  * Finds the first valid pickup location in the message
- * Searches from the beginning of the text
+ * Searches from the beginning of the text and tries ALL potential locations
  * @param {string} text - The text to search
  * @returns {Promise<Object|null>} - First valid location object or null
  */
 async function findValidPickupLocation(text) {
   const locations = extractAllLocations(text);
   
-  console.log(`Found ${locations.length} potential locations for pickup:`, locations);
+  console.log(`🔍 Found ${locations.length} potential locations for pickup:`, locations);
   
   // Validate each location until we find a valid one
-  for (const location of locations) {
+  for (let i = 0; i < locations.length; i++) {
+    const location = locations[i];
     // Clean the location before validating
     const cleanedLocation = cleanLocationString(location);
     
-    console.log(`Validating pickup location: ${cleanedLocation} (original: ${location})`);
+    console.log(`\n[${i + 1}/${locations.length}] Validating pickup location: "${cleanedLocation}" (original: "${location}")`);
     const validation = await validateLocationWithGoogleMaps(cleanedLocation);
     
     if (validation.isValid) {
-      console.log(`✓ Valid pickup location found: ${cleanedLocation}`);
+      console.log(`✅ Valid pickup location found: ${cleanedLocation} → ${validation.formattedAddress}`);
       return {
         location: cleanedLocation,
         formattedAddress: validation.formattedAddress,
@@ -533,17 +596,18 @@ async function findValidPickupLocation(text) {
         types: validation.types
       };
     } else {
-      console.log(`✗ Invalid pickup location: ${cleanedLocation} (${validation.reason})`);
+      console.log(`❌ Invalid pickup location: ${cleanedLocation} (${validation.reason})`);
+      console.log(`   Continuing search...`);
     }
   }
   
-  console.log('No valid pickup location found');
+  console.log('⚠️ No valid pickup location found after checking all potential locations');
   return null;
 }
 
 /**
  * Finds the first valid dropoff location in the message
- * Excludes the pickup location if provided
+ * Excludes the pickup location if provided and tries ALL potential locations
  * @param {string} text - The text to search
  * @param {string} excludeLocation - Location to exclude (the pickup one)
  * @returns {Promise<Object|null>} - First valid location object or null
@@ -551,24 +615,25 @@ async function findValidPickupLocation(text) {
 async function findValidDropoffLocation(text, excludeLocation = null) {
   const locations = extractAllLocations(text);
   
-  console.log(`Found ${locations.length} potential locations for dropoff:`, locations);
+  console.log(`🔍 Found ${locations.length} potential locations for dropoff:`, locations);
   
   // Validate each location until we find a valid one (skip the pickup location)
-  for (const location of locations) {
+  for (let i = 0; i < locations.length; i++) {
+    const location = locations[i];
     // Clean the location before validating
     const cleanedLocation = cleanLocationString(location);
     
     // Skip if this is the same as pickup location (compare cleaned versions)
     if (excludeLocation && cleanedLocation === cleanLocationString(excludeLocation)) {
-      console.log(`Skipping ${cleanedLocation} (already used as pickup)`);
+      console.log(`[${i + 1}/${locations.length}] Skipping "${cleanedLocation}" (already used as pickup)`);
       continue;
     }
     
-    console.log(`Validating dropoff location: ${cleanedLocation} (original: ${location})`);
+    console.log(`\n[${i + 1}/${locations.length}] Validating dropoff location: "${cleanedLocation}" (original: "${location}")`);
     const validation = await validateLocationWithGoogleMaps(cleanedLocation);
     
     if (validation.isValid) {
-      console.log(`✓ Valid dropoff location found: ${cleanedLocation}`);
+      console.log(`✅ Valid dropoff location found: ${cleanedLocation} → ${validation.formattedAddress}`);
       return {
         location: cleanedLocation,
         formattedAddress: validation.formattedAddress,
@@ -576,8 +641,14 @@ async function findValidDropoffLocation(text, excludeLocation = null) {
         types: validation.types
       };
     } else {
-      console.log(`✗ Invalid dropoff location: ${cleanedLocation} (${validation.reason})`);
+      console.log(`❌ Invalid dropoff location: ${cleanedLocation} (${validation.reason})`);
+      console.log(`   Continuing search...`);
     }
+  }
+  
+  console.log('⚠️ No valid dropoff location found after checking all potential locations');
+  return null;
+}
   }
   
   console.log('No valid dropoff location found');
