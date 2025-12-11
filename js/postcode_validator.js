@@ -135,11 +135,27 @@ async function findValidPostcode(text, excludePostcode = null) {
 /**
  * Extracts all potential location names (cities, airports, addresses)
  * ONLY extracts known cities and airports - no random words
+ * EXCLUDES date patterns to avoid false positives
  * @param {string} text - The text to search for locations
  * @returns {Array<string>} - Array of potential location names found
  */
 function extractAllLocationNames(text) {
   const locations = [];
+  
+  // First, remove date patterns from text to avoid extracting them as locations
+  // This prevents "Friday 12th December 2025" from being parsed as a location
+  let cleanedText = text;
+  
+  // Remove full date patterns with day names
+  cleanedText = cleanedText.replace(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi, '');
+  cleanedText = cleanedText.replace(/\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}\b/gi, '');
+  
+  // Remove other date patterns
+  cleanedText = cleanedText.replace(/\b\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/gi, '');
+  cleanedText = cleanedText.replace(/\b\d{1,2}\s+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/gi, '');
+  cleanedText = cleanedText.replace(/\b\d{1,2}\-(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4}\b/gi, '');
+  
+  console.log('🗓️ Removed date patterns, searching in:', cleanedText);
   
   // Known UK airports (case insensitive) - ALL UK AIRPORTS WITH IATA CODES
   const airports = [
@@ -257,14 +273,13 @@ function extractAllLocationNames(text) {
     
     // ISLES OF SCILLY
     'Land\'s End Airport', 'Isles of Scilly', 'ISC'
-  ];
   
   console.log('🔍 Searching for airports and cities in text...');
   
-  // Check for airports in text (case insensitive)
+  // Check for airports in CLEANED text (case insensitive)
   for (const airport of airports) {
     const regex = new RegExp(`\\b${airport.replace(/\s/g, '\\s*')}\\b`, 'gi');
-    const match = text.match(regex);
+    const match = cleanedText.match(regex);
     if (match) {
       // Use the original case from the text, capitalize properly
       const foundText = match[0];
@@ -295,12 +310,11 @@ function extractAllLocationNames(text) {
     'southend', 'colchester', 'crawley', 'gateshead', 'cheltenham', 'maidstone',
     'basingstoke', 'harlow', 'carlisle', 'worcester', 'lincoln', 'canterbury',
     'ilford', 'barking', 'enfield', 'romford', 'edmonton', 'wembley'
-  ];
   
-  // Check for known places (case insensitive)
+  // Check for known places in CLEANED text (case insensitive)
   for (const place of knownPlaces) {
     const regex = new RegExp(`\\b${place}\\b`, 'gi');
-    const match = text.match(regex);
+    const match = cleanedText.match(regex);
     if (match) {
       // Capitalize first letter of each word
       const foundText = match[0];

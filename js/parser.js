@@ -717,6 +717,8 @@ async function parseFreeStyleText(text) {
   
   // Enhanced date parsing with full date format support
   const dateMatch = cleanText.match(/\b(tonight)\b/i) || // TONIGHT
+                   // Full date with day name: Friday 12th December 2025
+                   cleanText.match(/((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
                    cleanText.match(/(\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4})/i) || // 10-Dec-2025
                    cleanText.match(/(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4})/i) || // 03 Dec 2025 or 21 Nov 2025
                    cleanText.match(/((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4})/i) || // Nov 20, 2025 or Dec 10, 2025
@@ -724,8 +726,8 @@ async function parseFreeStyleText(text) {
                    cleanText.match(/(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/) ||
                    cleanText.match(/\b(today|tomorrow)\b/i) ||
                    cleanText.match(/(\d{1,2}(?:st|nd|rd|th)?\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})/i) ||
-                   // New format: Wednesday 19th  2025
-                   cleanText.match(/(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}/i) ||
+                   // Date with day name but no month: Wednesday 19th 2025
+                   cleanText.match(/((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4})/i) ||
                    cleanText.match(/Date\s*:\s*ASAP(\s*\(Passenger ready\))?/i); // Date: ASAP or Date: ASAP (Passenger ready)
   
   // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
