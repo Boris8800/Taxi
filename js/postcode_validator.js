@@ -259,6 +259,8 @@ function extractAllLocationNames(text) {
     'Land\'s End Airport', 'Isles of Scilly', 'ISC'
   ];
   
+  console.log('🔍 Searching for airports and cities in text...');
+  
   // Check for airports in text (case insensitive)
   for (const airport of airports) {
     const regex = new RegExp(`\\b${airport.replace(/\s/g, '\\s*')}\\b`, 'gi');
@@ -266,12 +268,14 @@ function extractAllLocationNames(text) {
     if (match) {
       // Use the original case from the text, capitalize properly
       const foundText = match[0];
+      console.log(`   Found airport: "${foundText}" (from pattern: "${airport}")`);
       // Normalize spacing and capitalization
       const normalized = foundText.split(/\s+/)
         .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
         .join(' ');
       if (!locations.includes(normalized)) {
         locations.push(normalized);
+        console.log(`   ✅ Added to locations: "${normalized}"`);
       }
     }
   }
@@ -326,12 +330,16 @@ function extractAllLocationNames(text) {
 function extractAllLocations(text) {
   const locations = [];
   
+  console.log('📍 === extractAllLocations called ===');
+  console.log('Input text:', text);
+  
   // Get all postcodes with their positions
   const postcodePattern = /\b([A-Z]{1,2}\d{1,2}[A-Z]?\s*\d[A-Z]{2})\b/gi;
   const postcodeMatches = [...text.matchAll(postcodePattern)];
   
   // Get all location names with their positions
   const locationNames = extractAllLocationNames(text);
+  console.log('Location names found:', locationNames);
   
   // Create array of {text, position} objects
   const allMatches = [];
