@@ -426,8 +426,17 @@ async function expandLocation(location) {
   const isKnownLocation = knownAirports.some(keyword => locLower.includes(keyword));
   
   if (isKnownLocation && typeof window.validateLocationWithGoogleMaps === 'function') {
-    console.log(`🌍 Validating "${locTrimmed}" with Google Maps before expansion...`);
-    const validation = await window.validateLocationWithGoogleMaps(locTrimmed);
+    // For single-word airport names, add "Airport" to help Google Maps
+    let searchTerm = locTrimmed;
+    if (locLower === 'gatwick' || locLower === 'heathrow' || locLower === 'stansted' || 
+        locLower === 'luton' || locLower === 'manchester' || locLower === 'birmingham' || 
+        locLower === 'bristol' || locLower === 'edinburgh' || locLower === 'glasgow' || 
+        locLower === 'newcastle' || locLower === 'liverpool') {
+      searchTerm = locTrimmed + ' Airport';
+    }
+    
+    console.log(`🌍 Validating "${locTrimmed}" (searching: "${searchTerm}") with Google Maps before expansion...`);
+    const validation = await window.validateLocationWithGoogleMaps(searchTerm);
     
     if (validation.isValid) {
       console.log(`✅ Google Maps validated: ${validation.formattedAddress}`);
