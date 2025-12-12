@@ -406,10 +406,12 @@ async function parseFreeStyleText(text) {
   const vehicleOrPriceAnywherePattern = /(saloon|estate|executive|mpv|s\s*-?class|e\s*-?class|any car|vehicle|fare|price|net|cash|\£|\d+\s*net|\d+\s*cash|\d+\s*gbp|\d+\s*pounds|\d+\s*eur|\d+\s*usd)/i;
   textForLocationExtraction = textForLocationExtraction
     .split(/\r?\n/)
-    .filter(line =>
-      !vehicleOrPriceAnywherePattern.test(line) &&
-      !/summary|pickup:|dropoff:/i.test(line)
-    )
+    .map(line => line.replace(/\b(pick\s*up|drop\s*off)\s*:/i, '').trim())
+    .filter(line => {
+      if (vehicleOrPriceAnywherePattern.test(line)) return false;
+      if (/^\s*$/i.test(line)) return false; // Remove empty lines
+      return true;
+    })
     .join('\n');
 
   // Enhanced location extraction - try with cleaned text (has Pickup:/Dropoff: labels)
@@ -740,10 +742,14 @@ async function parseFreeStyleText(text) {
                    // Date with day name but no month: Wednesday 19th 2025
                    cleanText.match(/((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4})/i) ||
                    cleanText.match(/Date\s*:\s*ASAP(\s*\(Passenger ready\))?/i); // Date: ASAP or Date: ASAP (Passenger ready)
-  
+
   // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
   const dayNameMatch = cleanText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
-  
+
+  // If a time is present but no date, set date to today
+  const hasTime = /\b\d{1,2}:\d{2}(?:\s*[APap][Mm])?\b/.test(cleanText);
+  const hasExplicitDate = dateMatch || dayNameMatch;
+
   if (asapPresent) {
     // If ASAP is present anywhere, always set date to today and time to ASAP
     const today = new Date();
@@ -835,8 +841,13 @@ async function parseFreeStyleText(text) {
     targetDate.setDate(today.getDate() + daysUntil);
     const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
     result.date = `${targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} (${dayName})`;
+  } else if (hasTime && !hasExplicitDate) {
+    // If there is a time but no explicit date, set date to today
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
+    result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
   } else {
-    // If no date found, indicate date not recognized
+    // If no date found, indicate date not recognised
     result.date = 'Date not recognised';
   }
   
