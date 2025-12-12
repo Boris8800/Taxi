@@ -268,7 +268,7 @@ function shareTrip() {
       }
     </style></head><body>` +
     `<div class='route-panel-container'>` +
-    `<span id='liveDayTimePanel' style="display:block; text-align:right; font-size:15px; color:#ffeaa7; font-weight:600; margin-bottom:8px;">
+    `<span id='liveDayTimePanel' style="display:block; text-align:right; font-size:15px; font-weight:600; margin-bottom:8px;">
       <span id='panelClock'></span>
       <span id='panelPickupStatusCardClock' style="margin-left:8px;display:inline-block;vertical-align:middle;"></span>
     </span>` +
@@ -305,7 +305,7 @@ function shareTrip() {
           if (window.opener && window.opener.document) {
             var src = window.opener.document.getElementById('liveDayTime');
             var tgt = document.getElementById('panelClock');
-            if (src && tgt) tgt.textContent = src.textContent;
+            if (src && tgt) tgt.innerHTML = src.innerHTML;
             var statusSrc = window.opener.document.getElementById('pickupStatusCard');
             var statusTgt1 = document.getElementById('panelPickupStatusCard');
             var statusTgt2 = document.getElementById('panelPickupStatusCardClock');

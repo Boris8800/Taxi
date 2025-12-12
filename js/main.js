@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const parseBtn = document.querySelector('button[onclick*="parseFreeStyle"]');
   if (parseBtn) {
     parseBtn.addEventListener('click', () => {
-      if (!waitingForLocation) window.triggerAnalyzingStatus();
+      if (!waitingForLocation) window.clearAnalyzingStatus();
     });
   }
   const pasteBtn = document.querySelector('button[onclick*="pasteFromClipboard"]');
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => {
-      if (!waitingForLocation) window.triggerAnalyzingStatus();
+      if (!waitingForLocation) window.clearAnalyzingStatus();
     });
   }
 });
@@ -57,7 +57,10 @@ function updateLiveDayTime() {
     let h = now.getHours();
     let m = now.getMinutes();
     let s = now.getSeconds();
-    el.textContent = `${d<10?'0':''}${d}.${mo<10?'0':''}${mo}.${y<10?'0':''}${y}. ${h<10?'0':''}${h}.${m<10?'0':''}${m}.${s<10?'0':''}${s}`;
+    // Date part (default color), time part (orange)
+    const dateStr = `${d<10?'0':''}${d}.${mo<10?'0':''}${mo}.${y<10?'0':''}${y}.`;
+    const timeStr = `${h<10?'0':''}${h}.${m<10?'0':''}${m}.${s<10?'0':''}${s}`;
+    el.innerHTML = `${dateStr} <span style="color:#e67e22;">${timeStr}</span>`;
   }
 
   // Pickup status card logic (main and summary)
@@ -132,11 +135,11 @@ function updateLiveDayTime() {
     return;
   }
 
-  // 2. If live location exists, but missing pickup location or time, show 'Enter pickup location and time'
+  // 2. Si hay live location pero falta pickup o time, mostrar mensaje adecuado
   if (!pickupLoc || !pickupDateTime) {
     let msg = 'Enter pickup location and time';
-    // 3. If freestyle input has text, show 'Analizando...'
-    if (fs && fs.value.trim().length > 0) {
+    // Si está en modo analizando, mostrar 'Analyzing...'
+    if (window.analyzingStatus) {
       msg = 'Analyzing...';
     }
     for (const statusEl of statusEls) {
@@ -159,7 +162,12 @@ function updateLiveDayTime() {
         if (error) {
           statusEl.innerHTML = `<span style=\"display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;background:#ffeaa7;color:#c0392b;\">${error}</span>`;
         } else {
-          statusEl.innerHTML = `<span style=\"display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;${style}\">${status}</span>`;
+          // Add blinking effect for 'On time' status
+          let extraClass = '';
+          if (status === 'On time') {
+            extraClass = ' flash-blink';
+          }
+          statusEl.innerHTML = `<span class="ontime-status${extraClass}" style=\"display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;${style}\">${status}</span>`;
         }
       }
     }
@@ -644,7 +652,7 @@ window.onload = function() {
   locationPrompt.style.textAlign = 'center';
   locationPrompt.style.zIndex = '9999';
   locationPrompt.style.fontSize = '1.1rem';
-  locationPrompt.innerHTML = '🚕 Please allow access to your live location for accurate base detection.<br>📍 Recognizing location...';
+  locationPrompt.innerHTML = 'Please allow access to your life location for accurate detection.';
   document.body.appendChild(locationPrompt);
 
   // Try to get user's current location and set as base

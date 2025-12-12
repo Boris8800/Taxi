@@ -1,3 +1,8 @@
+/* Blinking effect for .ontime-status (same as .cash) */
+.ontime-status.flash-blink {
+  animation: flash 1.5s infinite;
+  box-shadow: 0 2px 6px rgba(0, 184, 148, 0.3);
+}
 /* Cash indicator flash animation */
 @keyframes flash {
   0%, 100% {

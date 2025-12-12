@@ -1009,48 +1009,34 @@ async function parseFreeStyleText(text) {
   
   // CRITICAL FIX: Clean temporal words from pickup and dropoff before returning
   const temporalWords = [
-    'TOMORROW', 'TODAY', 'TONIGHT', 'MORNING', 'AFTERNOON', 'EVENING',
-    'ANY CAR', 'ANYCAR', 'SALOON', 'MPV', 'MPVS', 'ESTATE', 'EXEC', 'EXECUTIVE'
+    'tomorrow', 'today', 'tonight', 'morning', 'afternoon', 'evening',
+    'any car', 'anycar', 'saloon', 'mpv', 'mpvs', 'estate', 'exec', 'executive'
   ];
-  
-  if (result.pickup) {
-    let cleaned = result.pickup;
+
+  function cleanTemporalWordsFromLocation(loc) {
+    if (!loc) return loc;
+    let cleaned = loc;
+    // Remove temporal words at any position, case-insensitive, as whole words
+    for (const word of temporalWords) {
+      const regex = new RegExp('\\b' + word + '\\b', 'gi');
+      cleaned = cleaned.replace(regex, '').replace(/\s{2,}/g, ' ');
+    }
     // Remove 'Today:' at the start (with or without space)
     cleaned = cleaned.replace(/^Today\s*:/i, '');
-    let iterations = 0;
-    let changed = true;
-    while (changed && iterations < 5) {
-      changed = false;
-      iterations++;
-      for (const word of temporalWords) {
-        const regex = new RegExp('^' + word + '\s+', 'gi');
-        const before = cleaned;
-        cleaned = cleaned.replace(regex, '');
-        if (before !== cleaned) changed = true;
-      }
-    }
-    console.log('🧹 Parser cleaning pickup:', result.pickup, '→', cleaned);
-    result.pickup = cleaned.trim();
+    // Remove leading/trailing punctuation like :, ;, .
+    cleaned = cleaned.replace(/^[\s:;,.]+|[\s:;,.]+$/g, '');
+    return cleaned.trim();
   }
-  
+
+  if (result.pickup) {
+    const before = result.pickup;
+    result.pickup = cleanTemporalWordsFromLocation(result.pickup);
+    console.log('🧹 Parser cleaning pickup:', before, '→', result.pickup);
+  }
   if (result.dropoff) {
-    let cleaned = result.dropoff;
-    // Remove 'Today:' at the start (with or without space)
-    cleaned = cleaned.replace(/^Today\s*:/i, '');
-    let iterations = 0;
-    let changed = true;
-    while (changed && iterations < 5) {
-      changed = false;
-      iterations++;
-      for (const word of temporalWords) {
-        const regex = new RegExp('^' + word + '\s+', 'gi');
-        const before = cleaned;
-        cleaned = cleaned.replace(regex, '');
-        if (before !== cleaned) changed = true;
-      }
-    }
-    console.log('🧹 Parser cleaning dropoff:', result.dropoff, '→', cleaned);
-    result.dropoff = cleaned.trim();
+    const before = result.dropoff;
+    result.dropoff = cleanTemporalWordsFromLocation(result.dropoff);
+    console.log('🧹 Parser cleaning dropoff:', before, '→', result.dropoff);
   }
   
   return result;
