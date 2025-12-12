@@ -35,6 +35,7 @@ function clearFreeStyleInput() {
 
 window.parseFreeStyle = parseFreeStyle;
 async function parseFreeStyle() {
+  window.triggerAnalyzingStatus && window.triggerAnalyzingStatus();
   // Clear all relevant fields before parsing
   document.getElementById('pickupLocation').value = '';
   document.getElementById('dropoffLocation').value = '';
@@ -44,14 +45,22 @@ async function parseFreeStyle() {
   parsedDateLabel = '';
   parsedTimeLabel = '';
   document.getElementById('parsedInfo').style.display = 'none';
-  // ...existing code...
   const freeText = document.getElementById('freeStyleInput').value;
   if (!freeText.trim()) {
+    window.clearAnalyzingStatus && window.clearAnalyzingStatus();
     alert("Please enter trip details");
     return;
   }
 
-  const parsed = await parseFreeStyleText(freeText);
+  let parsed;
+  try {
+    parsed = await parseFreeStyleText(freeText);
+    window.clearAnalyzingStatus && window.clearAnalyzingStatus();
+  } catch (e) {
+    window.analyzingStatus = false;
+    window.analyzingError = true;
+    return;
+  }
 
   // Store vehicle type globally
   parsedVehicleType = parsed.vehicleType || '';
@@ -127,6 +136,10 @@ async function parseFreeStyle() {
 }
 
 async function parseFreeStyleText(text) {
+      // Remove unwanted symbols before any parsing
+      text = text.replace(/[.]/g, ' ')
+                 .replace(/‼️/g, ' ')
+                 .replace(/—{2,}>/g, ' ');
     // Always initialize result object FIRST
     let result = {};
     
@@ -406,12 +419,10 @@ async function parseFreeStyleText(text) {
   const vehicleOrPriceAnywherePattern = /(saloon|estate|executive|mpv|s\s*-?class|e\s*-?class|any car|vehicle|fare|price|net|cash|\£|\d+\s*net|\d+\s*cash|\d+\s*gbp|\d+\s*pounds|\d+\s*eur|\d+\s*usd)/i;
   textForLocationExtraction = textForLocationExtraction
     .split(/\r?\n/)
-    .map(line => line.replace(/\b(pick\s*up|drop\s*off)\s*:/i, '').trim())
-    .filter(line => {
-      if (vehicleOrPriceAnywherePattern.test(line)) return false;
-      if (/^\s*$/i.test(line)) return false; // Remove empty lines
-      return true;
-    })
+    .filter(line =>
+      !vehicleOrPriceAnywherePattern.test(line) &&
+      !/summary|pickup:|dropoff:/i.test(line)
+    )
     .join('\n');
 
   // Enhanced location extraction - try with cleaned text (has Pickup:/Dropoff: labels)
@@ -667,6 +678,8 @@ async function parseFreeStyleText(text) {
     // Remove : ; , at the beginning or end
     return loc.trim().replace(/^[:\-;,\s]+/, '').replace(/[:\-;,\s]+$/, '').trim();
   });
+  // Exclude 'Today' (case-insensitive) from locations
+  locations = locations.filter(loc => loc.toLowerCase() !== 'today');
   
   // Simple logic: first location is pickup, second is dropoff
   // Only set if not already set by explicit Pickup:/Dropoff: patterns
@@ -742,14 +755,10 @@ async function parseFreeStyleText(text) {
                    // Date with day name but no month: Wednesday 19th 2025
                    cleanText.match(/((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4})/i) ||
                    cleanText.match(/Date\s*:\s*ASAP(\s*\(Passenger ready\))?/i); // Date: ASAP or Date: ASAP (Passenger ready)
-
+  
   // Check for day name (MONDAY, TUESDAY, etc.) for next 7 days
   const dayNameMatch = cleanText.match(/\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/i);
-
-  // If a time is present but no date, set date to today
-  const hasTime = /\b\d{1,2}:\d{2}(?:\s*[APap][Mm])?\b/.test(cleanText);
-  const hasExplicitDate = dateMatch || dayNameMatch;
-
+  
   if (asapPresent) {
     // If ASAP is present anywhere, always set date to today and time to ASAP
     const today = new Date();
@@ -841,13 +850,8 @@ async function parseFreeStyleText(text) {
     targetDate.setDate(today.getDate() + daysUntil);
     const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
     result.date = `${targetDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' })} (${dayName})`;
-  } else if (hasTime && !hasExplicitDate) {
-    // If there is a time but no explicit date, set date to today
-    const today = new Date();
-    const dayName = today.toLocaleDateString('en-GB', { weekday: 'long' });
-    result.date = `${today.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} (Today, ${dayName})`;
   } else {
-    // If no date found, indicate date not recognised
+    // If no date found, indicate date not recognized
     result.date = 'Date not recognised';
   }
   
@@ -1011,42 +1015,40 @@ async function parseFreeStyleText(text) {
   
   if (result.pickup) {
     let cleaned = result.pickup;
+    // Remove 'Today:' at the start (with or without space)
+    cleaned = cleaned.replace(/^Today\s*:/i, '');
     let iterations = 0;
     let changed = true;
-    
     while (changed && iterations < 5) {
       changed = false;
       iterations++;
-      
       for (const word of temporalWords) {
-        const regex = new RegExp('^' + word + '\\s+', 'gi');
+        const regex = new RegExp('^' + word + '\s+', 'gi');
         const before = cleaned;
         cleaned = cleaned.replace(regex, '');
         if (before !== cleaned) changed = true;
       }
     }
-    
     console.log('🧹 Parser cleaning pickup:', result.pickup, '→', cleaned);
     result.pickup = cleaned.trim();
   }
   
   if (result.dropoff) {
     let cleaned = result.dropoff;
+    // Remove 'Today:' at the start (with or without space)
+    cleaned = cleaned.replace(/^Today\s*:/i, '');
     let iterations = 0;
     let changed = true;
-    
     while (changed && iterations < 5) {
       changed = false;
       iterations++;
-      
       for (const word of temporalWords) {
-        const regex = new RegExp('^' + word + '\\s+', 'gi');
+        const regex = new RegExp('^' + word + '\s+', 'gi');
         const before = cleaned;
         cleaned = cleaned.replace(regex, '');
         if (before !== cleaned) changed = true;
       }
     }
-    
     console.log('🧹 Parser cleaning dropoff:', result.dropoff, '→', cleaned);
     result.dropoff = cleaned.trim();
   }

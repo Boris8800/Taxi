@@ -1,3 +1,216 @@
+// --- EVENT HOOKS FOR ANALYZING ---
+document.addEventListener('DOMContentLoaded', () => {
+  const fsInput = document.getElementById('freeStyleInput');
+  if (fsInput) {
+    fsInput.addEventListener('input', () => {
+      if (fsInput.value.trim().length > 0 && !waitingForLocation) window.triggerAnalyzingStatus();
+    });
+  }
+  // Patch parse buttons
+  const parseBtn = document.querySelector('button[onclick*="parseFreeStyle"]');
+  if (parseBtn) {
+    parseBtn.addEventListener('click', () => {
+      if (!waitingForLocation) window.triggerAnalyzingStatus();
+    });
+  }
+  const pasteBtn = document.querySelector('button[onclick*="pasteFromClipboard"]');
+  if (pasteBtn) {
+    pasteBtn.addEventListener('click', () => {
+      if (!waitingForLocation) window.triggerAnalyzingStatus();
+    });
+  }
+});
+// Global analyzing state for status card
+window.analyzingStatus = false;
+window.analyzingTimeout = null;
+window.analyzingError = false;
+
+window.triggerAnalyzingStatus = function() {
+  window.analyzingStatus = true;
+  window.analyzingError = false;
+  if (window.analyzingTimeout) clearTimeout(window.analyzingTimeout);
+  window.analyzingTimeout = setTimeout(() => {
+    window.analyzingStatus = false;
+    window.analyzingError = true;
+  }, 5000);
+}
+
+window.clearAnalyzingStatus = function() {
+  window.analyzingStatus = false;
+  window.analyzingError = false;
+  if (window.analyzingTimeout) clearTimeout(window.analyzingTimeout);
+}
+// Live day and time display for Trip Details, plus pickup status card (main and summary)
+let lastTravelStatus = '';
+let waitingForLocation = true;
+let lastTravelStatusStyle = '';
+let lastTravelStatusUpdate = 0;
+let lastTravelStatusPromise = null;
+
+function updateLiveDayTime() {
+  const el = document.getElementById('liveDayTime');
+  if (el) {
+    const now = new Date();
+    let d = now.getDate();
+    let mo = now.getMonth() + 1;
+    let y = now.getFullYear() % 100;
+    let h = now.getHours();
+    let m = now.getMinutes();
+    let s = now.getSeconds();
+    el.textContent = `${d<10?'0':''}${d}.${mo<10?'0':''}${mo}.${y<10?'0':''}${y}. ${h<10?'0':''}${h}.${m<10?'0':''}${m}.${s<10?'0':''}${s}`;
+  }
+
+  // Pickup status card logic (main and summary)
+  const statusEls = [
+    document.getElementById('pickupStatusCard'),
+    document.getElementById('pickupStatusCardSummary')
+  ];
+  // Get pickup time from input (expecting HH:mm or HH.mm or HH:mm:ss)
+  const pickupTimeStr = (document.getElementById('tripTime') && document.getElementById('tripTime').value) || '';
+  let pickupDateStr = (document.getElementById('tripDate') && document.getElementById('tripDate').value) || '';
+  // Try to parse pickup date and time
+  let pickupDateTime = null;
+  if (pickupTimeStr && pickupDateStr) {
+    // Try to parse date in dd.mm.yy. or yyyy-mm-dd
+    let y, m, d;
+    if (/\d{2}\.\d{2}\.\d{2}/.test(pickupDateStr)) {
+      // dd.mm.yy.
+      const parts = pickupDateStr.match(/(\d{2})\.(\d{2})\.(\d{2})/);
+      if (parts) {
+        d = parseInt(parts[1],10);
+        m = parseInt(parts[2],10)-1;
+        y = 2000+parseInt(parts[3],10);
+      }
+    } else if (/\d{4}-\d{2}-\d{2}/.test(pickupDateStr)) {
+      // yyyy-mm-dd
+      const parts = pickupDateStr.split('-');
+      y = parseInt(parts[0],10);
+      m = parseInt(parts[1],10)-1;
+      d = parseInt(parts[2],10);
+    } else {
+      // fallback: today
+      const now = new Date();
+      y = now.getFullYear();
+      m = now.getMonth();
+      d = now.getDate();
+    }
+    // Parse time (HH:mm or HH.mm or HH:mm:ss)
+    let th=0, tm=0;
+    let tMatch = pickupTimeStr.match(/(\d{1,2})[:.](\d{2})/);
+    if (tMatch) {
+      th = parseInt(tMatch[1],10);
+      tm = parseInt(tMatch[2],10);
+    }
+    pickupDateTime = new Date(y, m, d, th, tm, 0);
+  }
+
+  // Also show pickup time in summary
+  const summaryTimeEl = document.getElementById('summaryPickupTime');
+  if (summaryTimeEl) {
+    summaryTimeEl.textContent = pickupTimeStr ? `Pickup: ${pickupTimeStr}` : '';
+  }
+
+  // Calculate travel time from current location to pickup location
+  const pickupLoc = (document.getElementById('pickupLocation') && document.getElementById('pickupLocation').value) || '';
+  const fs = document.getElementById('freeStyleInput');
+
+  // 1. If no live location, show 'Waiting for location...'
+  if (waitingForLocation) {
+    for (const statusEl of statusEls) {
+      if (statusEl) statusEl.innerHTML = `<span style="display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;background:#ffeaa7;color:#c0392b;">Waiting for location...</span>`;
+    }
+    // Try to get location (will only run once)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(){
+        waitingForLocation = false;
+      }, function(){
+        waitingForLocation = false;
+      });
+    } else {
+      waitingForLocation = false;
+    }
+    return;
+  }
+
+  // 2. If live location exists, but missing pickup location or time, show 'Enter pickup location and time'
+  if (!pickupLoc || !pickupDateTime) {
+    let msg = 'Enter pickup location and time';
+    // 3. If freestyle input has text, show 'Analizando...'
+    if (fs && fs.value.trim().length > 0) {
+      msg = 'Analyzing...';
+    }
+    for (const statusEl of statusEls) {
+      if (statusEl) statusEl.innerHTML = `<span style="display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;background:#ffeaa7;color:#c0392b;">${msg}</span>`;
+    }
+    return;
+  }
+
+  // 4. If travel time is calculated, show the status card as before
+  // Only update travel time every 60 seconds or if pickupLoc changes
+  const now = Date.now();
+  if (!lastTravelStatusPromise || now - lastTravelStatusUpdate > 59000 || lastTravelStatusPromise.pickupLoc !== pickupLoc) {
+    lastTravelStatusPromise = getTravelStatusToPickup(pickupLoc, pickupDateTime);
+    lastTravelStatusPromise.pickupLoc = pickupLoc;
+    lastTravelStatusUpdate = now;
+  }
+  lastTravelStatusPromise.then(({status, style, error}) => {
+    for (const statusEl of statusEls) {
+      if (statusEl) {
+        if (error) {
+          statusEl.innerHTML = `<span style=\"display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;background:#ffeaa7;color:#c0392b;\">${error}</span>`;
+        } else {
+          statusEl.innerHTML = `<span style=\"display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;${style}\">${status}</span>`;
+        }
+      }
+    }
+  });
+}
+
+async function getTravelStatusToPickup(pickupLoc, pickupDateTime) {
+  return new Promise((resolve) => {
+    if (!window.google || !window.google.maps) {
+      resolve({error:'Google Maps not loaded'});
+      return;
+    }
+    if (!navigator.geolocation) {
+      resolve({error:'Geolocation not supported'});
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      waitingForLocation = false;
+      const origin = {lat: pos.coords.latitude, lng: pos.coords.longitude};
+      const service = new window.google.maps.DistanceMatrixService();
+      service.getDistanceMatrix({
+        origins: [origin],
+        destinations: [pickupLoc],
+        travelMode: 'DRIVING',
+        unitSystem: window.google.maps.UnitSystem.METRIC
+      }, function(response, status) {
+        if (status === 'OK' && response.rows && response.rows[0] && response.rows[0].elements && response.rows[0].elements[0].status === 'OK') {
+          const durationSec = response.rows[0].elements[0].duration.value;
+          const eta = new Date(Date.now() + durationSec*1000);
+          const diffMin = Math.round((pickupDateTime - eta)/60000);
+          if (diffMin > 15) {
+            resolve({status:'On time', style:'background:linear-gradient(135deg,#00b894 0%,#00cec9 100%);color:#fff;'});
+          } else if (diffMin >= 0) {
+            resolve({status:'Just in time', style:'background:linear-gradient(135deg,#ffd43b 0%,#ffeaa7 100%);color:#333;'});
+          } else {
+            resolve({status:'Late', style:'background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:#fff;'});
+          }
+        } else {
+          resolve({error:'Could not get travel time'});
+        }
+      });
+    }, function(err) {
+      let msg = 'Geolocation denied';
+      if (err && err.message) msg = err.message;
+      resolve({error:msg});
+    });
+  });
+}
+
+setInterval(updateLiveDayTime, 1000);
+updateLiveDayTime();
 // Helper function to remove temporal words from location strings
 function cleanTemporalWords(location) {
   if (!location) return location;
