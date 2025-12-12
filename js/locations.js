@@ -3,6 +3,92 @@ async function extractLocations(text) {
   const locations = [];
   const lowerText = text.toLowerCase();
   
+  console.log('🚀 ========================================');
+  console.log('🚀 extractLocations() v=60 STARTING');
+  console.log('🚀 ========================================');
+  
+  // **PRIORITY -1: REMOVE DATE AND TIME LINES FROM TEXT FIRST**
+  // Before searching for locations, identify and remove any lines that contain dates/times
+  // This prevents dates like "Friday 12th December 2025, 08:30 am" from being captured as locations
+  console.log('🧹 Cleaning date/time lines from text before location extraction...');
+  console.log('📝 Original text:', text);
+  
+  // Split text into lines and filter out date/time lines
+  const lines = text.split('\n');
+  const cleanedLines = [];
+  const removedLines = [];
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Check if line contains a date pattern
+    const isDate = (
+      // Full date with day name: "Friday 12th December 2025"
+      /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i.test(trimmedLine) ||
+      // Date without day name: "12th December 2025"
+      /\b\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/i.test(trimmedLine) ||
+      // Time patterns: "08:30 am", "10:00 PM"
+      /\b\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)\b/i.test(trimmedLine) ||
+      // Date with day name but no full month: "Wednesday 19th 2025"
+      /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}\b/i.test(trimmedLine)
+    );
+    
+    if (isDate && trimmedLine.length > 0) {
+      console.log(`🗓️ Removing date/time line: "${trimmedLine}"`);
+      removedLines.push(trimmedLine);
+      // Don't add this line to cleaned text
+    } else {
+      // Keep this line
+      cleanedLines.push(line);
+    }
+  }
+  
+  // Reconstruct text without date/time lines
+  const cleanedText = cleanedLines.join('\n').trim();
+  
+  if (removedLines.length > 0) {
+    console.log(`✅ Removed ${removedLines.length} date/time line(s).`);
+    console.log('📄 Cleaned text for location search:', cleanedText);
+  }
+  
+  // Use the cleaned text for all location searches
+  text = cleanedText;
+  
+  // **CHECK IF TEXT HAS "X TO Y" PATTERN**
+  // If it does, ONLY use extractAndValidateLocations and ignore all other patterns (like "Pick Up:", "Drop off:")
+  // Simply check if the word "to" exists (as a whole word, not part of another word)
+  const hasToPattern = /\bto\b/i.test(text);
+  if (hasToPattern) {
+    console.log('🎯 Detected "to" keyword in text. Using ONLY Google Maps validation, ignoring "Pick Up"/"Drop off" labels.');
+    console.log('📄 Text being sent to extractAndValidateLocations:', text);
+    
+    // CRITICAL: If "to" pattern exists, ONLY use extractAndValidateLocations and return immediately
+    // Do NOT continue with other patterns even if this fails
+    if (typeof window.extractAndValidateLocations === 'function') {
+      try {
+        const validated = await window.extractAndValidateLocations(text);
+        
+        if (validated && validated.pickup && validated.dropoff) {
+          console.log('✅ Using validated locations from Google Maps');
+          console.log('   Pickup:', validated.pickup.location, '→', validated.pickup.formattedAddress);
+          console.log('   Dropoff:', validated.dropoff.location, '→', validated.dropoff.formattedAddress);
+          // Use formattedAddress from Google Maps instead of the original location code
+          locations.push(validated.pickup.formattedAddress);
+          locations.push(validated.dropoff.formattedAddress);
+          return locations;
+        }
+        
+        // Even if validation failed, return empty array - do NOT try other patterns when "to" exists
+        console.log('⚠️ "to" keyword detected but validation failed. Returning empty to avoid incorrect extraction.');
+        return locations;
+      } catch (error) {
+        console.warn('⚠️ Error validating locations with "to" pattern:', error);
+        // Return empty array - do NOT continue with other patterns
+        return locations;
+      }
+    }
+  }
+  
   // NEW PRIORITY 0: Try location validation with Google Maps first
   // This will find and validate postcodes, cities, airports, and any location Google Maps recognizes
   if (typeof window.extractAndValidateLocations === 'function') {
@@ -14,9 +100,26 @@ async function extractLocations(text) {
         console.log('✅ Using validated locations from Google Maps');
         console.log('   Pickup:', validated.pickup.location, '→', validated.pickup.formattedAddress);
         console.log('   Dropoff:', validated.dropoff.location, '→', validated.dropoff.formattedAddress);
-        locations.push(validated.pickup.location);
-        locations.push(validated.dropoff.location);
+        locations.push(validated.pickup.formattedAddress);
+        locations.push(validated.dropoff.formattedAddress);
         return locations;
+      }
+      
+      // If "X TO Y" pattern exists and we found locations, return them even if not both
+      if (hasToPattern && (validated.pickup || validated.dropoff)) {
+        console.log('✅ Found location(s) via "X TO Y" pattern with Google Maps validation');
+        if (validated.pickup) {
+          console.log('   Pickup:', validated.pickup.location, '→', validated.pickup.formattedAddress);
+          locations.push(validated.pickup.formattedAddress);
+        }
+        if (validated.dropoff) {
+          console.log('   Dropoff:', validated.dropoff.location, '→', validated.dropoff.formattedAddress);
+          locations.push(validated.dropoff.formattedAddress);
+        }
+        // If we have both or if "TO" pattern exists, return now (don't try other patterns)
+        if (locations.length >= 2 || hasToPattern) {
+          return locations;
+        }
       }
       
       // If we only found pickup, use it and continue searching for dropoff
@@ -143,32 +246,32 @@ async function extractLocations(text) {
   // This covers: "* Pickup: Heathrow Airport" and "* Drop off: E4 8YY" and "Pick Up: Location"
   // Patterns for explicit pickup and dropoff lines (case-insensitive, robust)
   const pickupPatterns = [
-    /^\s*pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Pickup: TOMORROW STN (captures STN after temporal word)
-    /pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: TOMORROW STN
-    /pickup\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : TOMORROW STN
-    /pick\s+u\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // PICK U : (typo)
-    /pick\s+up\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick up TOMORROW STN
-    /pick\s+u\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick u (typo)
-    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
-    /[\*\•\-]?\s*pick\s*-?\s*u\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
-    /pick\s*up\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /pick\s*u\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
+    /^\s*pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Pickup: TOMORROW STN (captures STN after temporal word)
+    /pickup\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup: TOMORROW STN
+    /pickup\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pickup : TOMORROW STN
+    /pick\s+u\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // PICK U : (typo)
+    /pick\s+up\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick up TOMORROW STN
+    /pick\s+u\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Pick u (typo)
+    /[\*\•\-]?\s*pick\s*-?\s*up\s*[:\s][ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*pick\s*-?\s*u\s*[:\s][ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /pick\s*up\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /pick\s*u\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
 
   const dropoffPatterns = [
-    /^\s*dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Dropoff: TOMORROW location
-    /^\s*drop[\s\-]*off\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?$/gmi,
-    /dropoff\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /drop\s+of\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /^\s*dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?$/gmi, // Dropoff: TOMORROW location
+    /^\s*drop[\s\-]*off\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?$/gmi,
+    /dropoff\s+:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /dropoff\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+of\s*:\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
     /drop\s+off\s+([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop off   Gatwick Airport (multiple spaces)
-    /drop\s+of\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop of (typo)
-    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
-    /[\*\•\-]?\s*drop\s*-?\s*of\s*[:\s]\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
-    /drop\s*off\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /drop\s*of\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /drop\s+off\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
-    /drop\s+of\s*[:-]?\s*(?:tomorrow|today|tonight|morning|afternoon|evening)?\s*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
+    /drop\s+of\s+(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi, // Drop of (typo)
+    /[\*\•\-]?\s*drop\s*-?\s*off\s*[:\s][ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /[\*\•\-]?\s*drop\s*-?\s*of\s*[:\s][ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r\*\•]+?)(?:\s*\.\s*)?(?=\n|[\*\•]|$)/gi,
+    /drop\s*off\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s*of\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+off\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi,
+    /drop\s+of\s*[:-]?[ \t]*(?:tomorrow|today|tonight|morning|afternoon|evening)?[ \t]*([^\n\r]+?)(?:\s*\.\s*)?(?=\n|$)/gi
   ];
   
   let pickupFound = false;
@@ -222,8 +325,27 @@ async function extractLocations(text) {
         continue;
       }
       
+      // **MANDATORY GOOGLE MAPS VALIDATION**
+      // Every location MUST be validated with Google Maps before accepting
+      if (pickup && typeof window.validateLocationWithGoogleMaps === 'function') {
+        console.log(`🔍 Validating pickup candidate "${pickup}" with Google Maps...`);
+        const validation = await window.validateLocationWithGoogleMaps(pickup);
+        
+        if (validation.isValid) {
+          console.log(`✅ Google Maps confirmed "${pickup}" is a valid location: ${validation.formattedAddress}`);
+          locations[0] = pickup; // Always set as pickup
+          pickupFound = true;
+          break;
+        } else {
+          console.log(`❌ Google Maps rejected "${pickup}" as location: ${validation.reason}`);
+          // Continue to next pattern - this candidate is not a valid location
+          continue;
+        }
+      }
+      
+      // Fallback if Google Maps validation is not available (shouldn't happen)
       if (pickup) {
-        locations[0] = pickup; // Always set as pickup
+        locations[0] = pickup;
         pickupFound = true;
         break;
       }
@@ -248,6 +370,26 @@ async function extractLocations(text) {
       dropoff = dropoff.replace(/^(tomorrow|today|tonight|morning|afternoon|evening)\s+/gi, '').trim();
       // Clean up any trailing/leading special characters, colons, and invisible characters
       dropoff = dropoff.replace(/^[:\-;,\s\*\•⁠\u200B-\u200D\uFEFF]+/, '').replace(/[\*\•\-⁠:;,\s\u200B-\u200D\uFEFF]+$/, '').trim();
+      
+      // **MANDATORY GOOGLE MAPS VALIDATION**
+      // Every location MUST be validated with Google Maps before accepting
+      if (dropoff && typeof window.validateLocationWithGoogleMaps === 'function') {
+        console.log(`🔍 Validating dropoff candidate "${dropoff}" with Google Maps...`);
+        const validation = await window.validateLocationWithGoogleMaps(dropoff);
+        
+        if (validation.isValid) {
+          console.log(`✅ Google Maps confirmed "${dropoff}" is a valid location: ${validation.formattedAddress}`);
+          locations[1] = dropoff; // Always set as dropoff
+          dropoffFound = true;
+          break;
+        } else {
+          console.log(`❌ Google Maps rejected "${dropoff}" as location: ${validation.reason}`);
+          // Continue to next pattern - this candidate is not a valid location
+          continue;
+        }
+      }
+      
+      // Fallback if Google Maps validation is not available (shouldn't happen)
       if (dropoff) {
         locations[1] = dropoff; // Always set as dropoff
         dropoffFound = true;
@@ -443,16 +585,22 @@ async function extractLocations(text) {
 }
 
 async function expandLocation(location) {
+  console.log('🔍🔍🔍 expandLocation() called with:', location);
+  
   // Safety check: return empty string if location is undefined or null
   if (!location) {
+    console.log('❌ expandLocation() - location is empty, returning empty string');
     return '';
   }
   
   const locTrimmed = location.trim();
   const locLower = locTrimmed.toLowerCase();
   
+  console.log('🔍 expandLocation() - processing:', locTrimmed, '(lowercase:', locLower + ')');
+  
   // PRIORITY 1: If location contains a comma, preserve it exactly as entered (full address)
   if (locTrimmed.includes(',')) {
+    console.log('✅ expandLocation() - already full address (has comma), returning as-is');
     return locTrimmed;
   }
   
@@ -470,13 +618,20 @@ async function expandLocation(location) {
   const isKnownLocation = knownAirports.some(keyword => locLower.includes(keyword));
   
   if (isKnownLocation && typeof window.validateLocationWithGoogleMaps === 'function') {
-    // For single-word airport names, add "Airport" to help Google Maps
+    // For single-word airport names AND airport codes, add "Airport" to help Google Maps
     let searchTerm = locTrimmed;
     if (locLower === 'gatwick' || locLower === 'heathrow' || locLower === 'stansted' || 
         locLower === 'luton' || locLower === 'manchester' || locLower === 'birmingham' || 
         locLower === 'bristol' || locLower === 'edinburgh' || locLower === 'glasgow' || 
         locLower === 'newcastle' || locLower === 'liverpool') {
       searchTerm = locTrimmed + ' Airport';
+    }
+    // For airport codes (LHR, LGW, etc.), also add "Airport"
+    if (locLower === 'lhr' || locLower === 'lgw' || locLower === 'stn' || locLower === 'ltn' || 
+        locLower === 'lcy' || locLower === 'man' || locLower === 'bhx' || locLower === 'brs' || 
+        locLower === 'edi' || locLower === 'gla' || locLower === 'ncl' || locLower === 'lba' || 
+        locLower === 'lpl') {
+      searchTerm = locTrimmed + ' Airport, UK';
     }
     
     console.log(`🌍 Validating "${locTrimmed}" (searching: "${searchTerm}") with Google Maps before expansion...`);
@@ -656,26 +811,35 @@ async function expandLocation(location) {
   }
   
   // Partial postcode: "TN21" → "TN21 Heathfield area of East Sussex, United Kingdom"
+  // Special handling for central London postcodes to ensure they're recognized as London
+  const londonPostcodePrefixes = ['ec1', 'ec2', 'ec3', 'ec4', 'wc1', 'wc2', 'sw1', 'w1', 'se1', 'e1', 'n1', 'nw1'];
+  const isLondonPostcode = londonPostcodePrefixes.some(prefix => locLower.startsWith(prefix));
+  
   if (locLower.match(/^[a-z]{1,2}\d{1,2}[a-z]?$/i)) {
     const formattedPostcode = locTrimmed.toUpperCase();
+    
+    // For London postcodes, append ", London" to the search to ensure correct results
+    const searchTerm = isLondonPostcode ? `${formattedPostcode}, London, UK` : formattedPostcode;
     
     // Try to get area information from Google Geocoding API
     if (typeof google !== 'undefined' && google.maps && google.maps.Geocoder) {
       return new Promise((resolve) => {
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode({ 
-          address: formattedPostcode,
+          address: searchTerm,
           componentRestrictions: { country: 'GB' }
         }, (results, status) => {
           if (status === 'OK' && results[0]) {
             resolve(results[0].formatted_address);
           } else {
-            resolve(formattedPostcode);
+            // Fallback: if it's a known London postcode, at least indicate it's London
+            resolve(isLondonPostcode ? `${formattedPostcode}, London, UK` : formattedPostcode);
           }
         });
       });
     } else {
-      return formattedPostcode;
+      // If Google Maps not available and it's a London postcode, add London
+      return isLondonPostcode ? `${formattedPostcode}, London, UK` : formattedPostcode;
     }
   }
   

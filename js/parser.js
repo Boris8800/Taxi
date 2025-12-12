@@ -387,12 +387,12 @@ async function parseFreeStyleText(text) {
     }
   }
   
-  // Clean the text BEFORE extracting locations to prevent dates/times from being parsed as locations
+  // Clean the text BEFORE extracting locations to prevent dates/times or vehicle/price lines from being parsed as locations
   // Remove date, time, and mile patterns from text to prevent confusion
   let textForLocationExtraction = text
-    .replace(/Pickup\s+time\s*:\s*/gi, '') // Remove "Pickup time:" phrase but keep the date/time values
+    .replace(/Pickup\s+time\s*:*/gi, '') // Remove "Pickup time:" phrase but keep the date/time values
     .replace(/\btime\b/gi, '') // Remove the word "time" to prevent it from interfering
-    .replace(/:\s*(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\s*\|\s*\d{1,2}:\d{2}/gi, '') // Remove ": Dec 10, 2025 | 10:50" pattern
+    .replace(/: * (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},?\s+\d{4}\s*\|\s*\d{1,2}:\d{2}/gi, '') // Remove ": Dec 10, 2025 | 10:50" pattern
     .replace(/\b\d{1,2}\-(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\-\d{4}\b/gi, '') // 10-Dec-2025 (standalone)
     .replace(/\b\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/gi, '') // 03 Dec 2025
     .replace(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2},\s+\d{4}\b/gi, '') // Nov 20, 2025
@@ -400,7 +400,18 @@ async function parseFreeStyleText(text) {
     .replace(/\b\d{1,2}:\d{2}\s*(?:AM|PM)?\b/gi, '') // 08:50 or 08:50AM
     .replace(/\b\d+\.\d+\s*Miles?\b/gi, '') // 20.57 Miles
     .replace(/\(\d+\s*seater\s*car\s*needed\)/gi, ''); // (9 seater car needed)
-  
+
+  // Remove lines that are just vehicle type or price/fare/net/cash
+  // Exclude any line containing vehicle or price keywords anywhere in the line (not just at the start)
+  const vehicleOrPriceAnywherePattern = /(saloon|estate|executive|mpv|s\s*-?class|e\s*-?class|any car|vehicle|fare|price|net|cash|\£|\d+\s*net|\d+\s*cash|\d+\s*gbp|\d+\s*pounds|\d+\s*eur|\d+\s*usd)/i;
+  textForLocationExtraction = textForLocationExtraction
+    .split(/\r?\n/)
+    .filter(line =>
+      !vehicleOrPriceAnywherePattern.test(line) &&
+      !/summary|pickup:|dropoff:/i.test(line)
+    )
+    .join('\n');
+
   // Enhanced location extraction - try with cleaned text (has Pickup:/Dropoff: labels)
   let locations = await extractLocations(textForLocationExtraction);
   

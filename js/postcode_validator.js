@@ -692,41 +692,103 @@ async function extractAndValidateLocations(text) {
   console.log('=== Starting STRICT location extraction and validation ===');
   console.log('Message text:', text);
   
+  // **STEP 0: REMOVE DATE AND TIME LINES FROM TEXT FIRST**
+  // Before searching for locations, remove any lines that contain dates/times
+  console.log('🧹 [extractAndValidateLocations] Cleaning date/time lines...');
+  
+  const lines = text.split('\n');
+  const cleanedLines = [];
+  
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // Check if line contains a date pattern
+    const isDate = (
+      /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\b/i.test(trimmedLine) ||
+      /\b\d{1,2}(?:st|nd|rd|th)?\s+(January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}\b/i.test(trimmedLine) ||
+      /\b\d{1,2}:\d{2}\s*(?:am|pm|AM|PM)\b/i.test(trimmedLine) ||
+      /\b(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+\d{1,2}(?:st|nd|rd|th)?\s+\d{4}\b/i.test(trimmedLine)
+    );
+    
+    if (isDate && trimmedLine.length > 0) {
+      console.log(`🗓️ [extractAndValidateLocations] Removing: "${trimmedLine}"`);
+    } else {
+      cleanedLines.push(line);
+    }
+  }
+  
+  text = cleanedLines.join('\n').trim();
+  console.log('📄 [extractAndValidateLocations] Cleaned text:', text);
+  
   // PRIORITY: Check for "X TO Y" or "X to Y" pattern first
   // This explicitly defines the order: X = pickup, Y = dropoff
-  const toPattern = /\b(.+?)\s+(?:TO|to|To)\s+(.+?)(?:\n|$)/i;
-  const toMatch = text.match(toPattern);
+  // Strategy: Find the line with "to" and extract locations from that line only
+  const lines = text.split('\n');
+  let foundToPattern = false;
   
-  if (toMatch && toMatch[1] && toMatch[2]) {
-    console.log('📍 Found "X TO Y" pattern');
-    const potentialPickup = toMatch[1].trim();
-    const potentialDropoff = toMatch[2].trim();
-    
-    console.log(`   Checking: "${potentialPickup}" → "${potentialDropoff}"`);
-    
-    // Validate both locations
-    const pickupValidation = await validateLocationWithGoogleMaps(potentialPickup);
-    const dropoffValidation = await validateLocationWithGoogleMaps(potentialDropoff);
-    
-    if (pickupValidation.isValid && dropoffValidation.isValid) {
-      console.log('✅ Both locations in "TO" pattern are valid!');
-      return {
-        pickup: {
-          location: potentialPickup,
-          formattedAddress: pickupValidation.formattedAddress,
-          coordinates: pickupValidation.coordinates,
-          types: pickupValidation.types
-        },
-        dropoff: {
-          location: potentialDropoff,
-          formattedAddress: dropoffValidation.formattedAddress,
-          coordinates: dropoffValidation.coordinates,
-          types: dropoffValidation.types
+  for (const line of lines) {
+    // Check if this line contains "to" (case insensitive)
+    if (/\bto\b/i.test(line)) {
+      console.log(`📍 Found line with "to": "${line.trim()}"`);
+      
+      // Split by "to" (case insensitive) to get before and after
+      const parts = line.split(/\s+to\s+/i);
+      
+      if (parts.length >= 2) {
+        let potentialPickup = parts[0].trim();
+        let potentialDropoff = parts.slice(1).join(' to ').trim(); // In case there are multiple "to"s
+        
+        // Clean up: remove "Pick Up", "Pickup", etc. from the beginning
+        potentialPickup = potentialPickup.replace(/^.*?(?:pick\s*up?|pickup?)\s*:?\s*/gi, '').trim();
+        // Clean up: remove "Drop off", "Dropoff", etc. from dropoff
+        potentialDropoff = potentialDropoff.replace(/^.*?(?:drop\s*off?|dropoff?)\s*:?\s*/gi, '').trim();
+        // Remove any "Fare", "Price", etc. from end of dropoff
+        potentialDropoff = potentialDropoff.replace(/\s*(?:fare|price|cost).*$/gi, '').trim();
+        
+        // CRITICAL: Preserve spaces in postcodes - only normalize multiple spaces to single space
+        potentialPickup = potentialPickup.replace(/\s+/g, ' ').trim();
+        potentialDropoff = potentialDropoff.replace(/\s+/g, ' ').trim();
+        
+        console.log(`   Raw capture: "${parts[0].trim()}" → "${parts.slice(1).join(' to ').trim()}"`);
+        console.log(`   After cleanup: "${potentialPickup}" → "${potentialDropoff}"`);
+        console.log(`   Sending to Google Maps with preserved spaces...`);
+        
+        // Validate both locations - send EXACTLY as captured with spaces
+        const pickupValidation = await validateLocationWithGoogleMaps(potentialPickup);
+        const dropoffValidation = await validateLocationWithGoogleMaps(potentialDropoff);
+        
+        if (pickupValidation.isValid && dropoffValidation.isValid) {
+          console.log('✅ Both locations in "TO" pattern are valid!');
+          foundToPattern = true;
+          return {
+            pickup: {
+              location: potentialPickup,
+              formattedAddress: pickupValidation.formattedAddress,
+              coordinates: pickupValidation.coordinates,
+              types: pickupValidation.types
+            },
+            dropoff: {
+              location: potentialDropoff,
+              formattedAddress: dropoffValidation.formattedAddress,
+              coordinates: dropoffValidation.coordinates,
+              types: dropoffValidation.types
+            }
+          };
+        } else {
+          console.log('⚠️ "TO" pattern found but locations not valid');
+          if (!pickupValidation.isValid) {
+            console.log(`   ❌ Pickup "${potentialPickup}" rejected: ${pickupValidation.reason}`);
+          }
+          if (!dropoffValidation.isValid) {
+            console.log(`   ❌ Dropoff "${potentialDropoff}" rejected: ${dropoffValidation.reason}`);
+          }
         }
-      };
-    } else {
-      console.log('⚠️ "TO" pattern found but locations not valid, continuing with standard extraction');
+      }
     }
+  }
+  
+  if (!foundToPattern) {
+    console.log('ℹ️ No valid "X TO Y" pattern found, continuing with standard extraction');
   }
   
   // STRICT POSTCODE VALIDATION APPROACH:
