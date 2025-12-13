@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "main": "ai-proxy.js",
   "scripts": {
-    "start": "node ai-proxy.js"
+    "start": "node ai-proxy.js",
+    "serve": "node serve-static.js"
   },
   "dependencies": {
     "express": "^4.18.2",
