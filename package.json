@@ -1,9 +1,9 @@
 {
   "name": "ai-proxy",
   "version": "1.0.0",
-  "main": "ai-proxy.js",
+  "main": "serve-static.js",
   "scripts": {
-    "start": "node ai-proxy.js",
+    "start": "node serve-static.js",
     "serve": "node serve-static.js"
   },
   "dependencies": {

@@ -3,20 +3,20 @@ document.addEventListener('DOMContentLoaded', () => {
   const fsInput = document.getElementById('freeStyleInput');
   if (fsInput) {
     fsInput.addEventListener('input', () => {
-      if (fsInput.value.trim().length > 0 && !waitingForLocation) window.triggerAnalyzingStatus();
+      if (fsInput.value.trim().length > 0) window.triggerAnalyzingStatus();
     });
   }
   // Patch parse buttons
   const parseBtn = document.querySelector('button[onclick*="parseFreeStyle"]');
   if (parseBtn) {
     parseBtn.addEventListener('click', () => {
-      if (!waitingForLocation) window.clearAnalyzingStatus();
+      window.clearAnalyzingStatus();
     });
   }
   const pasteBtn = document.querySelector('button[onclick*="pasteFromClipboard"]');
   if (pasteBtn) {
     pasteBtn.addEventListener('click', () => {
-      if (!waitingForLocation) window.clearAnalyzingStatus();
+      window.clearAnalyzingStatus();
     });
   }
 });
@@ -42,7 +42,7 @@ window.clearAnalyzingStatus = function() {
 }
 // Live day and time display for Trip Details, plus pickup status card (main and summary)
 let lastTravelStatus = '';
-let waitingForLocation = true;
+let waitingForLocation = false;
 let lastTravelStatusStyle = '';
 let lastTravelStatusUpdate = 0;
 let lastTravelStatusPromise = null;
@@ -113,29 +113,10 @@ function updateLiveDayTime() {
     summaryTimeEl.textContent = pickupTimeStr ? `Pickup: ${pickupTimeStr}` : '';
   }
 
-  // Calculate travel time from current location to pickup location
+  // Calculate travel time from base location to pickup location
   const pickupLoc = (document.getElementById('pickupLocation') && document.getElementById('pickupLocation').value) || '';
-  const fs = document.getElementById('freeStyleInput');
 
-  // 1. If no live location, show 'Waiting for location...'
-  if (waitingForLocation) {
-    for (const statusEl of statusEls) {
-      if (statusEl) statusEl.innerHTML = `<span style="display:inline-block;padding:4px 14px;border-radius:8px;font-weight:700;font-size:13px;background:#ffeaa7;color:#c0392b;">Waiting for location...</span>`;
-    }
-    // Try to get location (will only run once)
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(function(){
-        waitingForLocation = false;
-      }, function(){
-        waitingForLocation = false;
-      });
-    } else {
-      waitingForLocation = false;
-    }
-    return;
-  }
-
-  // 2. Si hay live location pero falta pickup o time, mostrar mensaje adecuado
+  // 1. If pickup or time is missing, show a simple prompt.
   if (!pickupLoc || !pickupDateTime) {
     let msg = 'Enter pickup location and time';
     // Si está en modo analizando, mostrar 'Analyzing...'
@@ -148,7 +129,7 @@ function updateLiveDayTime() {
     return;
   }
 
-  // 4. If travel time is calculated, show the status card as before
+  // 2. If travel time is calculated, show the status card as before
   // Only update travel time every 60 seconds or if pickupLoc changes
   const now = Date.now();
   if (!lastTravelStatusPromise || now - lastTravelStatusUpdate > 59000 || lastTravelStatusPromise.pickupLoc !== pickupLoc) {
@@ -180,40 +161,7 @@ async function getTravelStatusToPickup(pickupLoc, pickupDateTime) {
       resolve({error:'Google Maps not loaded'});
       return;
     }
-    if (!navigator.geolocation) {
-      resolve({error:'Geolocation not supported'});
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      waitingForLocation = false;
-      const origin = {lat: pos.coords.latitude, lng: pos.coords.longitude};
-      const service = new window.google.maps.DistanceMatrixService();
-      service.getDistanceMatrix({
-        origins: [origin],
-        destinations: [pickupLoc],
-        travelMode: 'DRIVING',
-        unitSystem: window.google.maps.UnitSystem.METRIC
-      }, function(response, status) {
-        if (status === 'OK' && response.rows && response.rows[0] && response.rows[0].elements && response.rows[0].elements[0].status === 'OK') {
-          const durationSec = response.rows[0].elements[0].duration.value;
-          const eta = new Date(Date.now() + durationSec*1000);
-          const diffMin = Math.round((pickupDateTime - eta)/60000);
-          if (diffMin > 15) {
-            resolve({status:'On time', style:'background:linear-gradient(135deg,#00b894 0%,#00cec9 100%);color:#fff;'});
-          } else if (diffMin >= 0) {
-            resolve({status:'Just in time', style:'background:linear-gradient(135deg,#ffd43b 0%,#ffeaa7 100%);color:#333;'});
-          } else {
-            resolve({status:'Late', style:'background:linear-gradient(135deg,#e74c3c 0%,#c0392b 100%);color:#fff;'});
-          }
-        } else {
-          resolve({error:'Could not get travel time'});
-        }
-      });
-    }, function(err) {
-      let msg = 'Geolocation denied';
-      if (err && err.message) msg = err.message;
-      resolve({error:msg});
-    });
+    resolve({error:'Location status unavailable'});
   });
 }
 
@@ -273,6 +221,7 @@ let parsedDateLabel = '';
 let parsedTimeLabel = '';
 let returnToBase = false;
 window.returnToBase = returnToBase;
+let baseLocationAutoSet = false;
 
 // Make directionsService and directionsRenderer globally accessible
 window.directionsService = directionsService;
@@ -281,6 +230,13 @@ window.directionsRenderer = directionsRenderer;
 // Location database is now loaded from locations.js
 
 function initMap() {
+  if (!window.google || !google.maps) {
+    console.warn('Google Maps unavailable, using fallback-only mode');
+    document.getElementById('baseLocation').value = document.getElementById('baseLocation').value || 'Birmingham';
+    updateParsedInfoFromStandardInput();
+    return;
+  }
+
   directionsService = new google.maps.DirectionsService();
   directionsRenderer = new google.maps.DirectionsRenderer({
     draggable: false,
@@ -293,18 +249,14 @@ function initMap() {
 
   map = new google.maps.Map(document.getElementById("map"), {
     zoom: 10,
-    center: window.liveLocationCoords ? { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng } : { lat: 51.5, lng: -0.12 },
+    center: { lat: 51.5, lng: -0.12 },
     mapTypeId: 'roadmap'
   });
   window.map = map; // Store globally for access in other functions
   directionsRenderer.setMap(map);
 
   // Set default values in form
-  if (window.liveLocationCoords && window.liveLocationCoords.text) {
-    document.getElementById('baseLocation').value = window.liveLocationCoords.text;
-  } else {
-    document.getElementById('baseLocation').value = "Birmingham";
-  }
+  document.getElementById('baseLocation').value = "Birmingham";
   document.getElementById('pickupLocation').value = "";
   document.getElementById('dropoffLocation').value = "";
   document.getElementById('tripDate').value = "";
@@ -325,11 +277,11 @@ function initMap() {
   // Clear any existing directions on the map
   directionsRenderer.setDirections({routes: []});
 
-  // Show live location marker if available
-  addLiveLocationMarker();
-
   // Initialize Google Maps Autocomplete for location inputs
   setupGoogleAutocomplete();
+
+  // Try to replace the default base with the user's current location.
+  setBaseLocationFromCurrentPosition();
 
   // Add event listeners to standard input fields
   setupInputListeners();
@@ -338,30 +290,115 @@ function initMap() {
   updateParsedInfoFromStandardInput();
 }
 
-// Helper to add live location marker to map
-function addLiveLocationMarker() {
-  if (window.liveLocationCoords && map) {
-    if (window.liveLocationMarker) {
-      window.liveLocationMarker.setMap(null);
-    }
-    window.liveLocationMarker = new google.maps.Marker({
-      position: { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng },
-      map: map,
-      title: 'Your Live Location',
-      icon: {
-        path: google.maps.SymbolPath.CIRCLE,
-        scale: 10,
-        fillColor: '#00b894',
-        fillOpacity: 1,
-        strokeWeight: 2,
-        strokeColor: '#2d3436'
-      }
-    });
-    map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
+function setBaseLocationFromCurrentPosition() {
+  if (baseLocationAutoSet) {
+    return;
   }
+
+  const applyBaseLocation = (value) => {
+    if (!value) {
+      return false;
+    }
+
+    const baseInput = document.getElementById('baseLocation');
+    if (baseInput) {
+      baseInput.value = value;
+      baseLocationAutoSet = true;
+      updateParsedInfoFromStandardInput();
+      if (document.getElementById('pickupLocation').value && document.getElementById('dropoffLocation').value) {
+        updateResults();
+      }
+      return true;
+    }
+
+    return false;
+  };
+
+  const getApproximateLocationFromIp = async () => {
+    const endpoints = [
+      'https://ipapi.co/json/',
+      'https://ipwho.is/'
+    ];
+
+    for (const endpoint of endpoints) {
+      try {
+        const response = await fetch(endpoint, { cache: 'no-store' });
+        if (!response.ok) {
+          continue;
+        }
+
+        const data = await response.json();
+        if (data && data.city) {
+          const parts = [data.city, data.region || data.region_name, data.country_name || data.country].filter(Boolean);
+          const cityLocation = parts.join(', ');
+          if (cityLocation) {
+            return cityLocation;
+          }
+        }
+      } catch (error) {
+        console.warn('IP location lookup failed:', error);
+      }
+    }
+
+    return '';
+  };
+
+  const useFallbackLocation = async () => {
+    const fallbackLocation = await getApproximateLocationFromIp();
+    if (fallbackLocation) {
+      applyBaseLocation(fallbackLocation);
+    }
+  };
+
+  if (!navigator.geolocation) {
+    void useFallbackLocation();
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const coords = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      let resolvedLocation = `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+
+      try {
+        if (window.google && google.maps && google.maps.Geocoder) {
+          const geocoder = new google.maps.Geocoder();
+          const geocodeResult = await new Promise((resolve) => {
+            geocoder.geocode({ location: coords }, (results, status) => {
+              if (status === 'OK' && results && results[0]) {
+                resolve(results[0].formatted_address || results[0].name || '');
+              } else {
+                resolve('');
+              }
+            });
+          });
+
+          if (geocodeResult) {
+            resolvedLocation = geocodeResult;
+          }
+        }
+      } catch (error) {
+        console.warn('Unable to reverse geocode current location:', error);
+      }
+
+      applyBaseLocation(resolvedLocation);
+    },
+    async (error) => {
+      console.warn('Unable to detect current location:', error.message || error);
+      await useFallbackLocation();
+    },
+    { enableHighAccuracy: false, timeout: 8000, maximumAge: 600000 }
+  );
 }
 
 function setupGoogleAutocomplete() {
+  if (!window.google || !google.maps || !google.maps.places) {
+    return;
+  }
+
   // Add autocomplete to base location
   const baseInput = document.getElementById('baseLocation');
   const baseAutocomplete = new google.maps.places.Autocomplete(baseInput, {
@@ -517,7 +554,9 @@ function updateParsedInfoFromStandardInput() {
     if (window.lastParsedFreeStyle.carPark) {
       extraInfo += '<strong>Car Park:</strong> Required<br>';
     }
-    // Removed Same Day Payment from summary
+    if (window.lastParsedFreeStyle.sameDayPayment) {
+      extraInfo += '<strong>Same Day Payment:</strong> Yes<br>';
+    }
   }
 
   let paymentOnPOBLabel = '';
@@ -536,43 +575,91 @@ function updateParsedInfoFromStandardInput() {
   const isCash = /\bcash\b/i.test(tripPriceValue);
   const cashBadge = isCash ? ' <span style="margin-left: 8px; padding: 4px 12px; background: #e53935; color: white; border-radius: 6px; font-weight: bold; font-size: 13px; animation: flash 1.5s infinite; box-shadow: 0 2px 6px rgba(229, 57, 53, 0.3);">💰 CASH</span>' : '';
   
-  document.getElementById('parsedDetails').innerHTML = `
-    <strong>Pickup:</strong> ${pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : 'Not set'}<br>
-    <strong>Dropoff:</strong> ${dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : 'Not set'}<br>
-    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Fare:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}${cashBadge}<br>
-    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Date:</strong> ${date || 'Not set'}<br>
-    <strong>Time:</strong> ${time || 'Not set'}<br>
-    <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
-    <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
-    <strong>Return to Base:</strong> <span style="font-weight:700;color:${returnToBase ? '#00b894' : '#e74c3c'}">${returnToBase ? 'ON' : 'OFF'}</span><br>
-    <strong>Vehicle:</strong> ${vehicleType}<br>
-    <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
-    ${extraInfo}
-    <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
-    <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
-    <hr style=\"margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;\">
-    <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
-    <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}<br>
-    <strong>Profit/Mile:</strong> ${(() => {
-      let profitValue = parseFloat((profit || '').replace('£',''));
-      let distanceValue = parseFloat((totalDistance || '').replace('mi',''));
-      if (!isNaN(profitValue) && !isNaN(distanceValue) && distanceValue > 0) {
-        return '£' + (profitValue / distanceValue).toFixed(2);
-      } else {
-        return 'Not Specified';
-      }
-    })()}
-  `;
+  const parsedDetailsEl = document.getElementById('parsedDetails');
+  if (parsedDetailsEl) {
+    parsedDetailsEl.innerHTML = `
+      <strong>Pickup:</strong> ${pickup ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pickup)}' target='_blank' style='color:#00b894;text-decoration:underline;'>${pickup}</a>` : 'Not set'}<br>
+      <strong>Dropoff:</strong> ${dropoff ? `<a href='https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dropoff)}' target='_blank' style='color:#e67e22;text-decoration:underline;'>${dropoff}</a>` : 'Not set'}<br>
+      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
+      <strong>Fare:</strong> ${price ? (price.toString().startsWith('£') ? price : '£' + price) : 'Not set'}${paymentOnPOBLabel}${cashBadge}<br>
+      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
+      <strong>Date:</strong> ${date || 'Not set'}<br>
+      <strong>Time:</strong> ${time || 'Not set'}<br>
+      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
+      <strong>Base Location:</strong> ${baseLocation || 'Not set'}<br>
+      <strong>Return to Base:</strong> <span style="font-weight:700;color:${returnToBase ? '#00b894' : '#e74c3c'}">${returnToBase ? 'ON' : 'OFF'}</span><br>
+      <strong>Vehicle:</strong> ${vehicleType}<br>
+      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
+      ${extraInfo}
+      <strong>Total Distance:</strong> ${totalDistance !== '-' ? totalDistance : 'Not calculated'}<br>
+      <strong>Total Time:</strong> ${(totalTime && totalTime !== '-' && totalTime !== 'Not calculated') ? totalTime : 'Not Specified'}<br>
+      <hr style="margin: 6px 0; border: none; border-top: 1px solid #e0e0e0;">
+      <strong>Profit:</strong> ${showNotSpecified ? 'Not Specified' : ((profit && profit !== '-' && profit !== 'Not calculated') ? profit : 'Not Specified')}${profitBadge}${ccBadge}<br>
+      <strong>Profit/h:</strong> ${showNotSpecified ? 'Not Specified' : ((profitPerHour && profitPerHour !== '-' && profitPerHour !== 'Not calculated') ? profitPerHour : 'Not Specified')}<br>
+      <strong>Profit/Mile:</strong> ${(() => {
+        let profitValue = parseFloat((profit || '').replace('£',''));
+        let distanceValue = parseFloat((totalDistance || '').replace('mi',''));
+        if (!isNaN(profitValue) && !isNaN(distanceValue) && distanceValue > 0) {
+          return '£' + (profitValue / distanceValue).toFixed(2);
+        } else {
+          return 'Not Specified';
+        }
+      })()}
+    `;
+  }
+
+  updateExtractedInfoSection();
 
   // Only show the parsed info section if there's actual data to display
   const hasData = pickup || dropoff || price || date || time;
-  if (hasData) {
-    document.getElementById('parsedInfo').style.display = 'block';
-  } else {
-    document.getElementById('parsedInfo').style.display = 'none';
+  const parsedInfoEl = document.getElementById('parsedInfo');
+  if (parsedInfoEl) {
+    if (hasData) {
+      parsedInfoEl.style.display = 'block';
+    } else {
+      parsedInfoEl.style.display = 'none';
+    }
   }
+
+}
+
+function updateExtractedInfoSection() {
+  const summary = document.getElementById('extractedInfoSummary');
+  if (!summary) {
+    return;
+  }
+
+  const parsed = window.lastParsedFreeStyle || {};
+  const pickup = document.getElementById('pickupLocation').value || parsed.pickup || '';
+  const dropoff = document.getElementById('dropoffLocation').value || parsed.dropoff || '';
+  const baseLocation = document.getElementById('baseLocation').value || '';
+  const baseLabel = baseLocationAutoSet ? baseLocation : 'Detecting current location...';
+  const date = document.getElementById('tripDate').value || parsed.date || '';
+  const time = document.getElementById('tripTime').value || parsed.time || '';
+  const price = document.getElementById('tripPrice').value || '';
+  const vehicle = parsed.vehicleType || parsedVehicleType || 'Not Specified';
+  const isSameDay = Boolean(parsed.sameDayPayment || /same day payment/i.test(price));
+
+  const chips = [];
+  const addChip = (label, value) => {
+    if (!value) {
+      return;
+    }
+    chips.push(`<span class="extracted-chip"><strong>${label}:</strong> ${value}</span>`);
+  };
+
+  addChip('Pickup', pickup);
+  addChip('Dropoff', dropoff);
+  addChip('Date', date);
+  addChip('Time', time);
+  addChip('Fare', price);
+  addChip('Vehicle', vehicle);
+
+  if (isSameDay) {
+    chips.push('<span class="extracted-chip"><strong>Same Day:</strong> Yes</span>');
+  }
+
+  summary.innerHTML = chips.length ? chips.join('') : '<span class="extracted-chip is-muted">No extracted info yet</span>';
 }
 
 function toggleReturnToBase() {
@@ -610,143 +697,25 @@ function updateTripAnalysis() {
   }
   
   updateParsedInfoFromStandardInput();
-}
-
-function openInGoogleMaps() {
-  // Use 'Current Location' for base in Google Maps navigation
-  const base = 'Current Location';
-  // Sanitize pickup and dropoff: remove commas, extra spaces, and line breaks
-  const pickup = document.getElementById('pickupLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
-  const dropoff = document.getElementById('dropoffLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
-  
-  // Debug logs
-  console.log('Pickup:', pickup);
-  console.log('Dropoff:', dropoff);
-  console.log('Return to Base:', window.returnToBase);
-  
-  let url;
-  if (window.returnToBase !== false) {
-    // Return to Base ON: Current Location → pickup → dropoff → Current Location
-    url = `https://www.google.com/maps/dir/${encodeURIComponent(base)}/${encodeURIComponent(pickup)}/${encodeURIComponent(dropoff)}/${encodeURIComponent(base)}`;
-  } else {
-    // Return to Base OFF: Use Directions API format with empty origin for current location
-    url = `https://www.google.com/maps/dir/?api=1&origin=&destination=${encodeURIComponent(dropoff)}&waypoints=${encodeURIComponent(pickup)}`;
-  }
-  
-  console.log('Navigation URL:', url);
-  window.open(url, '_blank');
+  updateGoogleMapsRouteLink();
 }
 
 window.onload = function() {
   loadTheme();
-  // Ask user to allow access to live location
-  const locationPrompt = document.createElement('div');
-  locationPrompt.id = 'locationPrompt';
-  locationPrompt.style.position = 'fixed';
-  locationPrompt.style.top = '0';
-  locationPrompt.style.left = '0';
-  locationPrompt.style.width = '100%';
-  locationPrompt.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-  locationPrompt.style.color = 'white';
-  locationPrompt.style.padding = '18px 0';
-  locationPrompt.style.textAlign = 'center';
-  locationPrompt.style.zIndex = '9999';
-  locationPrompt.style.fontSize = '1.1rem';
-  locationPrompt.innerHTML = 'Please allow access to your life location for accurate detection.';
-  document.body.appendChild(locationPrompt);
-
-  // Try to get user's current location and set as base
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(function(position) {
-      const lat = position.coords.latitude;
-      const lng = position.coords.longitude;
-      // Use Google Maps Geocoding API to get address from lat/lng
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode({ location: { lat, lng } }, function(results, status) {
-        let liveLocationText = '';
-        if (status === 'OK' && results[0]) {
-          liveLocationText = results[0].formatted_address;
-        } else {
-          liveLocationText = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        }
-        // Set base location in Standard Input
-        document.getElementById('baseLocation').value = liveLocationText;
-        // Set base location in Time Table
-        document.getElementById('ttBase').textContent = liveLocationText;
-        // Store live location for map marker
-        window.liveLocationCoords = { lat, lng, text: liveLocationText };
-        
-        // Initialize map and wait for it to load
-        initMap();
-        
-        // Remove prompt after map is fully loaded
-        google.maps.event.addListenerOnce(window.map, 'idle', function() {
-          if (document.body.contains(locationPrompt)) {
-            document.body.removeChild(locationPrompt);
-          }
-        });
-        // Set Return to Base OFF by default
-        returnToBase = false;
-        window.returnToBase = false;
-        const toggleBtn = document.getElementById('returnToBaseToggle');
-        if (toggleBtn) {
-          toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-          document.getElementById('returnToBaseStatus').textContent = 'OFF';
-        }
-        updateTripAnalysis();
-        // Show live location marker on map
-        if (window.map && window.liveLocationCoords) {
-          if (window.liveLocationMarker) {
-            window.liveLocationMarker.setMap(null);
-          }
-          window.liveLocationMarker = new google.maps.Marker({
-            position: { lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng },
-            map: window.map,
-            title: 'Your Live Location',
-            icon: {
-              path: google.maps.SymbolPath.CIRCLE,
-              scale: 10,
-              fillColor: '#00b894',
-              fillOpacity: 1,
-              strokeWeight: 2,
-              strokeColor: '#2d3436'
-            }
-          });
-          // Optionally center map on live location
-          window.map.setCenter({ lat: window.liveLocationCoords.lat, lng: window.liveLocationCoords.lng });
-        }
-      });
-    }, function(error) {
-      locationPrompt.innerHTML = '⚠️ Location access denied. Using default base location.';
-      setTimeout(() => {
-        if (document.body.contains(locationPrompt)) document.body.removeChild(locationPrompt);
-      }, 3500);
-      initMap();
-      returnToBase = false;
-      window.returnToBase = false;
-      const toggleBtn = document.getElementById('returnToBaseToggle');
-      if (toggleBtn) {
-        toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-        document.getElementById('returnToBaseStatus').textContent = 'OFF';
-      }
-      updateTripAnalysis();
-    });
-  } else {
-    // Geolocation not supported
-    locationPrompt.innerHTML = '⚠️ Geolocation not supported. Using default base location.';
-    setTimeout(() => {
-      if (document.body.contains(locationPrompt)) document.body.removeChild(locationPrompt);
-    }, 3500);
-    initMap();
-    returnToBase = false;
-    window.returnToBase = false;
-    const toggleBtn = document.getElementById('returnToBaseToggle');
-    if (toggleBtn) {
-      toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
-      document.getElementById('returnToBaseStatus').textContent = 'OFF';
-    }
-    updateTripAnalysis();
+  if (!window.directionsService && window.google && window.google.maps && window.google.maps.DirectionsService) {
+    directionsService = new google.maps.DirectionsService();
+    window.directionsService = directionsService;
   }
+  returnToBase = false;
+  window.returnToBase = false;
+  const toggleBtn = document.getElementById('returnToBaseToggle');
+  if (toggleBtn) {
+    toggleBtn.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+    document.getElementById('returnToBaseStatus').textContent = 'OFF';
+  }
+  setBaseLocationFromCurrentPosition();
+  updateTripAnalysis();
+  updateGoogleMapsRouteLink();
 };
 
 // Show a message for a given pickup and dropoff (for demo or logic injection)

@@ -57,24 +57,54 @@ function convertToISODate(dateStr) {
 
 window.openInGoogleMaps = openInGoogleMaps;
 function openInGoogleMaps() {
-  const pickup = document.getElementById('pickupLocation').value;
-  const dropoff = document.getElementById('dropoffLocation').value;
-  
-  if (!pickup || !dropoff) {
+  const mapsUrl = getGoogleMapsRouteUrl();
+  if (!mapsUrl) {
     alert('⚠️ Please enter pickup and dropoff locations first!');
     return;
   }
-  
-  // Create Google Maps URL with waypoints: Current Location → Pickup → Dropoff → Current Location
-  // Using "My+Location" for current GPS position
-  const waypoint1 = encodeURIComponent(pickup);
-  const waypoint2 = encodeURIComponent(dropoff);
-  
-  // Google Maps URL with avoid=tolls parameter to avoid toll roads
-  const mapsUrl = `https://www.google.com/maps/dir/?api=1&origin=My+Location&destination=My+Location&waypoints=${waypoint1}|${waypoint2}&travelmode=driving&avoid=tolls`;
-  
-  // Open in new tab
+
   window.open(mapsUrl, '_blank');
+}
+
+window.getGoogleMapsRouteUrl = getGoogleMapsRouteUrl;
+function getGoogleMapsRouteUrl() {
+  const pickup = document.getElementById('pickupLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
+  const dropoff = document.getElementById('dropoffLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim();
+  const baseLocation = document.getElementById('baseLocation').value.replace(/,/g, '').replace(/\s+/g, ' ').replace(/\n/g, '').trim() || 'Birmingham';
+
+  if (!pickup || !dropoff) {
+    return '';
+  }
+
+  const params = new URLSearchParams({
+    api: '1',
+    origin: baseLocation,
+    destination: dropoff,
+    waypoints: pickup,
+    travelmode: 'driving',
+    avoid: 'tolls'
+  });
+
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+window.updateGoogleMapsRouteLink = updateGoogleMapsRouteLink;
+function updateGoogleMapsRouteLink() {
+  const link = document.getElementById('googleMapsRouteLink');
+  if (!link) {
+    return;
+  }
+
+  const routeUrl = getGoogleMapsRouteUrl();
+  if (routeUrl) {
+    link.href = routeUrl;
+    link.textContent = 'Open route in Google Maps: base location → pickup → dropoff';
+    link.classList.remove('is-disabled');
+  } else {
+    link.removeAttribute('href');
+    link.textContent = '';
+    link.classList.add('is-disabled');
+  }
 }
 
 window.shareTrip = shareTrip;

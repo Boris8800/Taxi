@@ -48,8 +48,16 @@ function calculateRouteWithDetails(origin, destination, routeKey, callback) {
   const directionsService = window.directionsService;
   const directionsRenderer = window.directionsRenderer;
   
-  if (!directionsService || !directionsRenderer) {
-    console.error('Google Maps services not initialized');
+  if (!directionsService) {
+    const estimatedDistance = estimateDistance(origin, destination);
+    const estimatedDuration = estimateDurationMinutes(estimatedDistance);
+
+    routeResults[routeKey] = {
+      distance: estimatedDistance,
+      duration: estimatedDuration,
+      text: formatMinutesToText(estimatedDuration)
+    };
+
     callback();
     return;
   }
@@ -76,10 +84,6 @@ function calculateRouteWithDetails(origin, destination, routeKey, callback) {
           duration: durationMinutes,
           text: durationText
         };
-        
-        if (routeKey === 'pickupToDropoff') {
-          directionsRenderer.setDirections(result);
-        }
       } else {
         // Fallback estimation
         const estimatedDistance = estimateDistance(origin, destination);
@@ -397,6 +401,104 @@ function updateResults() {
     document.getElementById('ttReturnToBaseTime').textContent = returnToBaseTime !== '-' ? returnToBaseTime : (dropoffTime !== '-' ? dropoffTime : '-');
 
     updateParsedInfoFromStandardInput();
+    updateTimeTableDisplay();
+}
+
+function updateTimeTableDisplay() {
+  const tripDateField = document.getElementById('tripDate');
+  const tripTimeField = document.getElementById('tripTime');
+  const tripDate = tripDateField ? tripDateField.value : '';
+  const pickupTime = tripTimeField ? tripTimeField.value : '';
+
+  const pickupDuration = routeResults.pickupToDropoff.duration || 0;
+  const returnDuration = routeResults.dropoffToBase.duration || 0;
+  const basePickupDuration = routeResults.baseToPickup.duration || 0;
+
+  const pickupDateObj = buildDateTimeForTable(tripDate, pickupTime);
+  const dropoffDateObj = pickupDateObj ? new Date(pickupDateObj.getTime()) : null;
+  if (dropoffDateObj) {
+    dropoffDateObj.setMinutes(dropoffDateObj.getMinutes() + pickupDuration);
+  }
+
+  const startJourneyObj = pickupDateObj ? new Date(pickupDateObj.getTime()) : null;
+  if (startJourneyObj) {
+    startJourneyObj.setMinutes(startJourneyObj.getMinutes() - basePickupDuration - 30);
+  }
+
+  const arrivalObj = pickupDateObj ? new Date(pickupDateObj.getTime()) : null;
+  if (arrivalObj) {
+    arrivalObj.setMinutes(arrivalObj.getMinutes() - 30);
+  }
+
+  const returnToBaseObj = dropoffDateObj ? new Date(dropoffDateObj.getTime()) : null;
+  if (returnToBaseObj) {
+    returnToBaseObj.setMinutes(returnToBaseObj.getMinutes() + returnDuration);
+  }
+
+  const ttStartJourney = document.getElementById('ttStartJourney');
+  if (ttStartJourney) {
+    ttStartJourney.textContent = startJourneyObj ? `${formatDateTimeForTable(startJourneyObj)} (leaves 30m early)` : (pickupTime || '-');
+  }
+
+  const ttStartJourneyArrival = document.getElementById('ttStartJourneyArrival');
+  if (ttStartJourneyArrival) {
+    ttStartJourneyArrival.textContent = arrivalObj ? formatDateTimeForTable(arrivalObj) : (pickupTime || '-');
+  }
+
+  const ttPickupTime = document.getElementById('ttPickupTime');
+  if (ttPickupTime) {
+    ttPickupTime.textContent = pickupDateObj ? formatDateTimeForTable(pickupDateObj) : (pickupTime || '-');
+  }
+
+  const ttDropoffTime = document.getElementById('ttDropoffTime');
+  if (ttDropoffTime) {
+    ttDropoffTime.textContent = dropoffDateObj ? `${formatDateTimeForTable(dropoffDateObj)} (${formatMinutesToText(pickupDuration)})` : (pickupTime || '-');
+  }
+
+  const ttReturnToBaseTime = document.getElementById('ttReturnToBaseTime');
+  if (ttReturnToBaseTime) {
+    ttReturnToBaseTime.textContent = returnToBaseObj ? `${formatDateTimeForTable(returnToBaseObj)} (${formatMinutesToText(returnDuration)})` : (dropoffDateObj ? formatDateTimeForTable(dropoffDateObj) : '-');
+  }
+}
+
+function buildDateTimeForTable(dateStr, timeStr) {
+  let year, month, day;
+  if (dateStr && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    [year, month, day] = dateStr.split('-').map(Number);
+  } else if (dateStr) {
+    const summaryDateMatch = dateStr.match(/(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/);
+    if (summaryDateMatch) {
+      day = Number(summaryDateMatch[1]);
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      month = monthNames.findIndex(m => m.toLowerCase() === summaryDateMatch[2].toLowerCase()) + 1;
+      year = Number(summaryDateMatch[3]);
+    }
+  }
+
+  if (!year || !month || !day || isNaN(year) || isNaN(month) || isNaN(day)) {
+    const today = new Date();
+    year = today.getFullYear();
+    month = today.getMonth() + 1;
+    day = today.getDate();
+  }
+
+  let hour = 0;
+  let minute = 0;
+  if (timeStr && /^\d{1,2}:\d{2}/.test(timeStr)) {
+    [hour, minute] = timeStr.split(':').map(Number);
+  } else if (timeStr && /^\d{3,4}$/.test(timeStr)) {
+    hour = Number(timeStr.slice(0, timeStr.length - 2));
+    minute = Number(timeStr.slice(-2));
+  }
+
+  if (isNaN(hour)) hour = 0;
+  if (isNaN(minute)) minute = 0;
+
+  return new Date(year, month - 1, day, hour, minute, 0, 0);
+}
+
+function formatDateTimeForTable(dateObj) {
+  return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${String(dateObj.getDate()).padStart(2, '0')} ${dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })}`;
 }
 
 function estimateDistance(origin, destination) {

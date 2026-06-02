@@ -30,7 +30,14 @@ function clearFreeStyleInput() {
   document.getElementById('tripPrice').value = '';
   parsedDateLabel = '';
   parsedTimeLabel = '';
-  document.getElementById('parsedInfo').style.display = 'none';
+  const extractedInfoSummary = document.getElementById('extractedInfoSummary');
+  if (extractedInfoSummary) {
+    extractedInfoSummary.innerHTML = '<span class="extracted-chip is-muted">No extracted info yet</span>';
+  }
+  const parsedInfoEl = document.getElementById('parsedInfo');
+  if (parsedInfoEl) {
+    parsedInfoEl.style.display = 'none';
+  }
 }
 
 window.parseFreeStyle = parseFreeStyle;
@@ -44,7 +51,10 @@ async function parseFreeStyle() {
   document.getElementById('tripPrice').value = '';
   parsedDateLabel = '';
   parsedTimeLabel = '';
-  document.getElementById('parsedInfo').style.display = 'none';
+  const parsedInfoEl = document.getElementById('parsedInfo');
+  if (parsedInfoEl) {
+    parsedInfoEl.style.display = 'none';
+  }
   const freeText = document.getElementById('freeStyleInput').value;
   if (!freeText.trim()) {
     window.clearAnalyzingStatus && window.clearAnalyzingStatus();
@@ -127,7 +137,11 @@ async function parseFreeStyle() {
   }
 
   // ...existing code...
-  document.getElementById('parsedInfo').style.display = 'block';
+  const parsedInfoShowEl = document.getElementById('parsedInfo');
+  if (parsedInfoShowEl) {
+    parsedInfoShowEl.style.display = 'block';
+  }
+  window.updateExtractedInfoSection && window.updateExtractedInfoSection();
 
   // Auto-calculate if we have enough info
   if (parsed.pickup && parsed.dropoff) {
@@ -195,6 +209,88 @@ async function parseFreeStyleText(text) {
       if (timeExtract) {
         result.time = timeExtract[1];
       }
+      text = text.replace(pickupTimeMatch[0], ' ');
+    }
+
+    const pickupDateMatch = text.match(/Pickup\s+date\s*:\s*([^\n\r]+)/i);
+    if (pickupDateMatch) {
+      const pickupDateValue = pickupDateMatch[1].trim();
+      if (!result.date) {
+        result.date = pickupDateValue;
+      }
+      text = text.replace(pickupDateMatch[0], ' ');
+    }
+
+    text = text.replace(/^\s*Pickup\s+date\s*:\s*[^\n\r]+$/gim, ' ')
+               .replace(/^\s*Pickup\s+time\s*:\s*[^\n\r]+$/gim, ' ');
+
+    const atFromToNetMatch = text.match(/(?:^|\n)\s*at\s*(\d{1,2}[:.]\d{2})\s+from\s+([^\n\r]+?)\s+to\s+([^\n\r]+?)\s+£\s*(\d{2,})(?:[.\s]\d{1,2})?\s*net\b/i);
+    if (atFromToNetMatch) {
+      result.time = atFromToNetMatch[1].replace('.', ':');
+      result.pickup = atFromToNetMatch[2].trim();
+      result.dropoff = atFromToNetMatch[3].trim();
+      result.price = parseFloat(atFromToNetMatch[4]);
+      result.priceType = 'Net';
+      result.date = 'Date not recognised';
+      if (/same day payment|same day/i.test(text)) {
+        result.sameDayPayment = true;
+      }
+      if (/any vehicle/i.test(text)) {
+        result.vehicleType = 'Any Vehicle';
+      }
+      if (/saloon car/i.test(text)) {
+        result.vehicleType = 'Saloon Car';
+      }
+      result.specialFormat = 'AtFromToNet';
+      return result;
+    }
+
+    const explicitJobMatch = text.match(/(?:^|\n)\s*(\d{1,2}\s+[A-Za-z]{3,9}\s+\d{2,4}\s+\d{1,2}:\d{2}\s*(?:AM|PM))?[\s\S]*?\bPickup\s*:\s*([^\n\r]+)[\s\S]*?\bDropoff\s*:\s*([^\n\r]+)[\s\S]*?\b(Fare|Price)\s*(\d+(?:\.\d{1,2})?)\b[\s\S]*?\b(Saloon|Any Vehicle|Any Car|Tesla or Smiler|Tesla|Smiler)\b/i);
+    if (explicitJobMatch) {
+      const header = explicitJobMatch[1] || '';
+      const headerMatch = header.match(/(\d{1,2})\s+([A-Za-z]{3,9})\s+(\d{2,4})\s+(\d{1,2}:\d{2})\s*(AM|PM)/i);
+      if (headerMatch) {
+        const day = headerMatch[1];
+        const monthName = headerMatch[2];
+        const yearRaw = headerMatch[3];
+        const year = yearRaw.length === 2 ? 2000 + parseInt(yearRaw, 10) : parseInt(yearRaw, 10);
+        const hour = headerMatch[4];
+        const ampm = headerMatch[5].toUpperCase();
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        const monthIndex = monthNames.findIndex(m => m.toLowerCase().startsWith(monthName.toLowerCase().substring(0, 3)));
+        if (monthIndex >= 0) {
+          const parsedDate = new Date(year, monthIndex, parseInt(day, 10));
+          const dayName = parsedDate.toLocaleDateString('en-GB', { weekday: 'long' });
+          result.date = `${String(parseInt(day, 10)).padStart(2, '0')} ${monthNames[monthIndex]} (${dayName})`;
+        }
+        result.time = `${hour} ${ampm}`;
+      }
+      result.pickup = explicitJobMatch[2].trim();
+      result.dropoff = explicitJobMatch[3].trim();
+      result.price = parseFloat(explicitJobMatch[5]);
+      result.vehicleType = explicitJobMatch[6].trim() === 'Tesla' || explicitJobMatch[6].trim() === 'Smiler'
+        ? 'Saloon'
+        : explicitJobMatch[6].trim();
+      if (/same day payment|same day/i.test(text)) {
+        result.sameDayPayment = true;
+      }
+      result.specialFormat = 'ExplicitJob';
+      return result;
+    }
+
+    const fromToMatch = text.match(/(?:^|\n)\s*(?:at\s+\d{1,2}:\d{2}\s+)?from\s+([^\n\r]+?)\s+to\s+([^\n\r]+?)(?=\s*(?:£|\n|$))/i);
+    if (fromToMatch && fromToMatch[1] && fromToMatch[2]) {
+      result.pickup = fromToMatch[1].trim();
+      result.dropoff = fromToMatch[2].trim();
+      result.specialFormat = 'AtFromTo';
+      text = text.replace(fromToMatch[0], ' ');
+    }
+
+    const explicitPickupDropMatch = text.match(/pickup\s*:\s*([^\n\r]+)[\s\S]*?drop(?:off)?\s*:\s*([^\n\r]+)/i);
+    if (explicitPickupDropMatch) {
+      result.pickup = explicitPickupDropMatch[1].trim();
+      result.dropoff = explicitPickupDropMatch[2].trim();
+      text = text.replace(explicitPickupDropMatch[0], ' ');
     }
     
     // DISABLED: Let extractLocations handle "Pick up:" patterns instead
@@ -443,7 +539,7 @@ async function parseFreeStyleText(text) {
       locations = [pickDropMatch[1].trim(), pickDropMatch[2].trim()];
     } else {
       // Try 'X TO Y' format (e.g., 'CR9 TO LCY')
-      const toMatch = text.match(/([A-Z0-9 ]{2,})\s+TO\s+([A-Z0-9 ]{2,})/i);
+      const toMatch = text.match(/(?:^|\n)\s*([^\n\r]+?)\s+TO\s+([^\n\r]+?)(?=\s*(?:\n|$))/i);
       if (toMatch && toMatch[1] && toMatch[2]) {
         locations = [toMatch[1].trim(), toMatch[2].trim()];
       } else {
@@ -625,18 +721,21 @@ async function parseFreeStyleText(text) {
     }
   }
   
-  if (!priceLabelMatch && cashMatch) {
+  if (typeof result.price === 'undefined' && !priceLabelMatch && cashMatch) {
     result.price = parseFloat(cashMatch[1]);
     result.priceType = 'Cash';
-  } else if (priceLabelMatch) {
-    result.price = parseFloat(priceLabelMatch[1]);
-    // If 'Cash' is present anywhere, mark as cash
-    if (/\bCash\b/i.test(text)) {
-      result.priceType = 'Cash';
-    }
-    // If 'same day payment' or 'same day' is present, mark as sameDayPayment
-    if (/same day payment|same day/i.test(text)) {
-      result.sameDayPayment = true;
+  } else if (typeof result.price === 'undefined' && priceLabelMatch) {
+    const extractedPrice = parseFloat(priceLabelMatch[1]);
+    if (extractedPrice >= 10) {
+      result.price = extractedPrice;
+      // If 'Cash' is present anywhere, mark as cash
+      if (/\bCash\b/i.test(text)) {
+        result.priceType = 'Cash';
+      }
+      // If 'same day payment' or 'same day' is present, mark as sameDayPayment
+      if (/same day payment|same day/i.test(text)) {
+        result.sameDayPayment = true;
+      }
     }
   }
 
@@ -719,10 +818,10 @@ async function parseFreeStyleText(text) {
                     cleanText.match(/\b(\d{2,3})\b(?!\d*[\.\.\-]\d)/); // Standalone 2-3 digit numbers (last resort)
 
   // Prevent time-like patterns (e.g., '05 40', '05:40', '05 40 AM') from being parsed as price
-  if (priceMatch) {
+  if (priceMatch && (typeof result.price === 'undefined' || result.price === null)) {
     const val = priceMatch[1];
     const matchedText = priceMatch[0]; // Get the full matched text, not just the captured group
-    
+
     // If the matched text contains £, 'net', 'cash', 'payment', 'fare', it's definitely a price
     if (/£|net|cash|payment|fare|price/i.test(matchedText)) {
       result.price = parseFloat(val);
@@ -733,9 +832,7 @@ async function parseFreeStyleText(text) {
     } else {
       // Only check for time-like patterns if we're not sure it's a price
       const timeLikePattern = new RegExp(`\\b${val}(:|\\s)\\d{2}(\\s*(AM|PM))?\\b`, 'i');
-      if (timeLikePattern.test(cleanText)) {
-        // Looks like a time, do not parse as price
-      } else {
+      if (!timeLikePattern.test(cleanText) && parseFloat(val) >= 10) {
         result.price = parseFloat(val);
       }
     }
@@ -944,6 +1041,9 @@ async function parseFreeStyleText(text) {
     // Get the first match and format it nicely
     let vehicle = vehicleMatch[0].trim();
     // Standardize the formatting for known types
+    if (/tesla\s+or\s+(smiler|similar)/i.test(text)) {
+      result.vehicleType = 'Tesla or Similar';
+    } else
     if (vehicle.match(/exec\s*\/\/\/?\s*e\s*class\s*or\s*similar/i)) {
       result.vehicleType = 'Exec/E Class or Similar';
     } else if (vehicle.match(/e\s*class\s*or\s*similar/i)) {
@@ -1010,6 +1110,7 @@ async function parseFreeStyleText(text) {
   // CRITICAL FIX: Clean temporal words from pickup and dropoff before returning
   const temporalWords = [
     'tomorrow', 'today', 'tonight', 'morning', 'afternoon', 'evening',
+    'same day payment', 'same day',
     'any car', 'anycar', 'saloon', 'mpv', 'mpvs', 'estate', 'exec', 'executive'
   ];
 

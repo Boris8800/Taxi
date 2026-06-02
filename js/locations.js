@@ -79,13 +79,22 @@ async function extractLocations(text) {
         }
         
         // Even if validation failed, return empty array - do NOT try other patterns when "to" exists
-        console.log('⚠️ "to" keyword detected but validation failed. Returning empty to avoid incorrect extraction.');
-        return locations;
+        console.log('⚠️ "to" keyword detected but validation failed. Trying local fallback extraction.');
       } catch (error) {
         console.warn('⚠️ Error validating locations with "to" pattern:', error);
-        // Return empty array - do NOT continue with other patterns
+      }
+
+    // Local fallback for messages like "E3 5SA To Heathrow" when Google validation is unavailable.
+    const localToMatch = text.match(/(?:^|\n)\s*([^\n]+?)\s+to\s+([^\n]+?)(?=\n|$)/i);
+    if (localToMatch) {
+      const pickupLoc = localToMatch[1].trim();
+      const dropoffLoc = localToMatch[2].trim();
+      if (pickupLoc) locations.push(pickupLoc);
+      if (dropoffLoc) locations.push(dropoffLoc);
+      if (locations.length >= 2) {
         return locations;
       }
+    }
     }
   }
   
